@@ -11,165 +11,166 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Daily cost snapshot stored at infrastructure/costs/daily/{date}
- * Documents daily costs by service.
+ * Daily cost snapshot stored at infrastructure/costs/daily/{date} Documents daily costs
+ * by service.
  */
 @Collection("daily")
 public class DailyCostEntity extends BaseEntity {
 
-    @DocumentId
-    @PropertyName("date")
-    @JsonProperty("date")
-    private String date; // Format: yyyy-MM-dd
+	@DocumentId
+	@PropertyName("date")
+	@JsonProperty("date")
+	private String date; // Format: yyyy-MM-dd
 
-    @PropertyName("totalCost")
-    @JsonProperty("totalCost")
-    private BigDecimal totalCost;
+	@PropertyName("totalCost")
+	@JsonProperty("totalCost")
+	private BigDecimal totalCost;
 
-    @PropertyName("gcpCost")
-    @JsonProperty("gcpCost")
-    private BigDecimal gcpCost;
+	@PropertyName("gcpCost")
+	@JsonProperty("gcpCost")
+	private BigDecimal gcpCost;
 
-    @PropertyName("clickhouseCost")
-    @JsonProperty("clickhouseCost")
-    private BigDecimal clickhouseCost;
+	@PropertyName("clickhouseCost")
+	@JsonProperty("clickhouseCost")
+	private BigDecimal clickhouseCost;
 
-    @PropertyName("currency")
-    @JsonProperty("currency")
-    private String currency = "USD";
+	@PropertyName("currency")
+	@JsonProperty("currency")
+	private String currency = "USD";
 
-    @PropertyName("costByService")
-    @JsonProperty("costByService")
-    private Map<String, BigDecimal> costByService;
+	@PropertyName("costByService")
+	@JsonProperty("costByService")
+	private Map<String, BigDecimal> costByService;
 
-    @PropertyName("firestoreReads")
-    @JsonProperty("firestoreReads")
-    private Long firestoreReads;
+	@PropertyName("firestoreReads")
+	@JsonProperty("firestoreReads")
+	private Long firestoreReads;
 
-    @PropertyName("firestoreWrites")
-    @JsonProperty("firestoreWrites")
-    private Long firestoreWrites;
+	@PropertyName("firestoreWrites")
+	@JsonProperty("firestoreWrites")
+	private Long firestoreWrites;
 
-    @PropertyName("firestoreDeletes")
-    @JsonProperty("firestoreDeletes")
-    private Long firestoreDeletes;
+	@PropertyName("firestoreDeletes")
+	@JsonProperty("firestoreDeletes")
+	private Long firestoreDeletes;
 
-    @PropertyName("createdAt")
-    @JsonProperty("createdAt")
-    private Instant createdAt;
+	@PropertyName("createdAt")
+	@JsonProperty("createdAt")
+	private Instant createdAt;
 
-    @PropertyName("updatedAt")
-    @JsonProperty("updatedAt")
-    private Instant updatedAt;
+	@PropertyName("updatedAt")
+	@JsonProperty("updatedAt")
+	private Instant updatedAt;
 
-    // Constructors
-    public DailyCostEntity() {
-        super();
-    }
+	// Constructors
+	public DailyCostEntity() {
+		super();
+	}
 
-    public DailyCostEntity(String date) {
-        super();
-        this.date = date;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-    }
+	public DailyCostEntity(String date) {
+		super();
+		this.date = date;
+		this.createdAt = Instant.now();
+		this.updatedAt = Instant.now();
+	}
 
-    // Getters and Setters
-    public String getDate() {
-        return date;
-    }
+	// Getters and Setters
+	public String getDate() {
+		return date;
+	}
 
-    public void setDate(String date) {
-        this.date = date;
-    }
+	public void setDate(String date) {
+		this.date = date;
+	}
 
-    public BigDecimal getTotalCost() {
-        return totalCost;
-    }
+	public BigDecimal getTotalCost() {
+		return totalCost;
+	}
 
-    public void setTotalCost(BigDecimal totalCost) {
-        this.totalCost = totalCost;
-    }
+	public void setTotalCost(BigDecimal totalCost) {
+		this.totalCost = totalCost;
+	}
 
-    public BigDecimal getGcpCost() {
-        return gcpCost;
-    }
+	public BigDecimal getGcpCost() {
+		return gcpCost;
+	}
 
-    public void setGcpCost(BigDecimal gcpCost) {
-        this.gcpCost = gcpCost;
-    }
+	public void setGcpCost(BigDecimal gcpCost) {
+		this.gcpCost = gcpCost;
+	}
 
-    public BigDecimal getClickhouseCost() {
-        return clickhouseCost;
-    }
+	public BigDecimal getClickhouseCost() {
+		return clickhouseCost;
+	}
 
-    public void setClickhouseCost(BigDecimal clickhouseCost) {
-        this.clickhouseCost = clickhouseCost;
-    }
+	public void setClickhouseCost(BigDecimal clickhouseCost) {
+		this.clickhouseCost = clickhouseCost;
+	}
 
-    public String getCurrency() {
-        return currency;
-    }
+	public String getCurrency() {
+		return currency;
+	}
 
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
+	public void setCurrency(String currency) {
+		this.currency = currency;
+	}
 
-    public Map<String, BigDecimal> getCostByService() {
-        return costByService;
-    }
+	public Map<String, BigDecimal> getCostByService() {
+		return costByService;
+	}
 
-    public void setCostByService(Map<String, BigDecimal> costByService) {
-        this.costByService = costByService;
-    }
+	public void setCostByService(Map<String, BigDecimal> costByService) {
+		this.costByService = costByService;
+	}
 
-    public Long getFirestoreReads() {
-        return firestoreReads;
-    }
+	public Long getFirestoreReads() {
+		return firestoreReads;
+	}
 
-    public void setFirestoreReads(Long firestoreReads) {
-        this.firestoreReads = firestoreReads;
-    }
+	public void setFirestoreReads(Long firestoreReads) {
+		this.firestoreReads = firestoreReads;
+	}
 
-    public Long getFirestoreWrites() {
-        return firestoreWrites;
-    }
+	public Long getFirestoreWrites() {
+		return firestoreWrites;
+	}
 
-    public void setFirestoreWrites(Long firestoreWrites) {
-        this.firestoreWrites = firestoreWrites;
-    }
+	public void setFirestoreWrites(Long firestoreWrites) {
+		this.firestoreWrites = firestoreWrites;
+	}
 
-    public Long getFirestoreDeletes() {
-        return firestoreDeletes;
-    }
+	public Long getFirestoreDeletes() {
+		return firestoreDeletes;
+	}
 
-    public void setFirestoreDeletes(Long firestoreDeletes) {
-        this.firestoreDeletes = firestoreDeletes;
-    }
+	public void setFirestoreDeletes(Long firestoreDeletes) {
+		this.firestoreDeletes = firestoreDeletes;
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	public void setUpdatedAt(Instant updatedAt) {
+		this.updatedAt = updatedAt;
+	}
 
-    @Override
-    public String getId() {
-        return date;
-    }
+	@Override
+	public String getId() {
+		return date;
+	}
 
-    @Override
-    public void setId(String id) {
-        this.date = id;
-    }
+	@Override
+	public void setId(String id) {
+		this.date = id;
+	}
+
 }

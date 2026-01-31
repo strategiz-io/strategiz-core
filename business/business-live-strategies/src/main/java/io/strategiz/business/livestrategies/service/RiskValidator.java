@@ -7,8 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Validates risk parameters before executing bot trades.
- * Ensures trades comply with position limits, daily loss limits, etc.
+ * Validates risk parameters before executing bot trades. Ensures trades comply with
+ * position limits, daily loss limits, etc.
  */
 @Service
 public class RiskValidator {
@@ -53,8 +53,8 @@ public class RiskValidator {
 	}
 
 	/**
-	 * Check if current time is within market hours.
-	 * Simplified check - for production use exchange calendar API.
+	 * Check if current time is within market hours. Simplified check - for production use
+	 * exchange calendar API.
 	 */
 	private boolean isMarketHours() {
 		java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -79,10 +79,7 @@ public class RiskValidator {
 	/**
 	 * Result of risk validation
 	 */
-	public record RiskCheckResult(
-			boolean passed,
-			String reason
-	) {
+	public record RiskCheckResult(boolean passed, String reason) {
 		public static RiskCheckResult success() {
 			return new RiskCheckResult(true, null);
 		}

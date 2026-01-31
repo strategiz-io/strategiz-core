@@ -13,33 +13,34 @@ import java.util.Optional;
 @Service
 public class DeleteBotDeploymentRepositoryImpl implements DeleteBotDeploymentRepository {
 
-    private final BotDeploymentBaseRepository baseRepository;
+	private final BotDeploymentBaseRepository baseRepository;
 
-    public DeleteBotDeploymentRepositoryImpl(BotDeploymentBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
+	public DeleteBotDeploymentRepositoryImpl(BotDeploymentBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-    @Override
-    public boolean delete(String id, String userId) {
-        Optional<BotDeployment> existing = baseRepository.findById(id);
-        if (existing.isEmpty()) {
-            return false;
-        }
+	@Override
+	public boolean delete(String id, String userId) {
+		Optional<BotDeployment> existing = baseRepository.findById(id);
+		if (existing.isEmpty()) {
+			return false;
+		}
 
-        BotDeployment bot = existing.get();
-        if (!userId.equals(bot.getUserId())) {
-            return false;
-        }
+		BotDeployment bot = existing.get();
+		if (!userId.equals(bot.getUserId())) {
+			return false;
+		}
 
-        // Soft delete using BaseRepository's delete method
-        return baseRepository.delete(id, userId);
-    }
+		// Soft delete using BaseRepository's delete method
+		return baseRepository.delete(id, userId);
+	}
 
-    @Override
-    public void hardDelete(String id) {
-        // Note: Hard delete not implemented in BaseRepository
-        // Use soft delete instead for now
-        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
-            "StrategyBot", "Hard delete not supported - use soft delete");
-    }
+	@Override
+	public void hardDelete(String id) {
+		// Note: Hard delete not implemented in BaseRepository
+		// Use soft delete instead for now
+		throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED, "StrategyBot",
+				"Hard delete not supported - use soft delete");
+	}
+
 }

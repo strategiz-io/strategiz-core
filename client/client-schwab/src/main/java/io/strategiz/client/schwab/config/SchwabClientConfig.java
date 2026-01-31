@@ -9,9 +9,10 @@ import org.springframework.web.client.RestTemplate;
  */
 @Configuration
 public class SchwabClientConfig {
-    
-    @Bean(name = "schwabRestTemplate")
-    public RestTemplate schwabRestTemplate() {
-        return new RestTemplate();
-    }
+
+	@Bean(name = "schwabRestTemplate")
+	public RestTemplate schwabRestTemplate() {
+		return new RestTemplate();
+	}
+
 }

@@ -26,8 +26,8 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doThrow;
 
 /**
- * Unit tests for SmsOtpAuthenticationController.
- * Tests SMS OTP sign-in flows for passwordless authentication.
+ * Unit tests for SmsOtpAuthenticationController. Tests SMS OTP sign-in flows for
+ * passwordless authentication.
  */
 @ExtendWith(MockitoExtension.class)
 class SmsOtpAuthenticationControllerTest {
@@ -124,8 +124,7 @@ class SmsOtpAuthenticationControllerTest {
 			// Inject mocks manually
 			java.lang.reflect.Field serviceField;
 			try {
-				serviceField = SmsOtpAuthenticationController.class
-					.getDeclaredField("smsOtpAuthenticationService");
+				serviceField = SmsOtpAuthenticationController.class.getDeclaredField("smsOtpAuthenticationService");
 				serviceField.setAccessible(true);
 				serviceField.set(controllerWithoutFraud, smsOtpAuthenticationService);
 			}
@@ -219,7 +218,8 @@ class SmsOtpAuthenticationControllerTest {
 			authResult.put("identityToken", "new-identity-token");
 			authResult.put("userId", TEST_USER_ID);
 
-			when(smsOtpAuthenticationService.authenticateWithOtp(eq(TEST_PHONE), eq(TEST_OTP_CODE), eq(TEST_SESSION_ID)))
+			when(smsOtpAuthenticationService.authenticateWithOtp(eq(TEST_PHONE), eq(TEST_OTP_CODE),
+					eq(TEST_SESSION_ID)))
 				.thenReturn(authResult);
 
 			// When
@@ -294,7 +294,8 @@ class SmsOtpAuthenticationControllerTest {
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyAuthenticationOtpWithoutSession(validRequest, httpServletResponse);
+			ResponseEntity<Map<String, Object>> response = controller
+				.verifyAuthenticationOtpWithoutSession(validRequest, httpServletResponse);
 
 			// Then
 			assertNotNull(response);

@@ -7,26 +7,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class AggregatedAlertPerformanceDTO {
 
-    @JsonProperty("totalSignals")
-    private Integer totalSignals;
+	@JsonProperty("totalSignals")
+	private Integer totalSignals;
 
-    @JsonProperty("signalsThisMonth")
-    private Integer signalsThisMonth;
+	@JsonProperty("signalsThisMonth")
+	private Integer signalsThisMonth;
 
-    // Getters and Setters
-    public Integer getTotalSignals() {
-        return totalSignals;
-    }
+	// Getters and Setters
+	public Integer getTotalSignals() {
+		return totalSignals;
+	}
 
-    public void setTotalSignals(Integer totalSignals) {
-        this.totalSignals = totalSignals;
-    }
+	public void setTotalSignals(Integer totalSignals) {
+		this.totalSignals = totalSignals;
+	}
 
-    public Integer getSignalsThisMonth() {
-        return signalsThisMonth;
-    }
+	public Integer getSignalsThisMonth() {
+		return signalsThisMonth;
+	}
 
-    public void setSignalsThisMonth(Integer signalsThisMonth) {
-        this.signalsThisMonth = signalsThisMonth;
-    }
+	public void setSignalsThisMonth(Integer signalsThisMonth) {
+		this.signalsThisMonth = signalsThisMonth;
+	}
+
 }

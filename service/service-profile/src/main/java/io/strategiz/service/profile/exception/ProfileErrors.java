@@ -4,10 +4,11 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Profile service error details for use with StrategizException.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Profile service error details for use with StrategizException. Implements ErrorDetails
+ * for integration with the Strategiz exception framework.
  *
- * Usage: throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, MODULE_NAME, userId);
+ * Usage: throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, MODULE_NAME,
+ * userId);
  */
 public enum ProfileErrors implements ErrorDetails {
 
@@ -62,4 +63,3 @@ public enum ProfileErrors implements ErrorDetails {
 	}
 
 }
- 

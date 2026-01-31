@@ -6,302 +6,314 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Response model for creating a new provider connection.
- * Contains the result of connection initiation (OAuth URL or API key setup confirmation).
+ * Response model for creating a new provider connection. Contains the result of
+ * connection initiation (OAuth URL or API key setup confirmation).
  */
 public class CreateProviderResponse {
-    
-    private String providerId;
-    private String providerName;
-    private String connectionType;
-    private String status; // "initiated", "pending", "requires_oauth", "requires_api_key"
-    private String message; // General status message
-    private Boolean operationSuccess; // True if operation was successful
-    
-    // Error fields
-    private String errorCode;
-    private String errorMessage;
-    
-    // OAuth-specific fields
-    private String authorizationUrl;
-    private String oauthUrl; // Alias for authorizationUrl
-    private String state;
-    private String oauthInstructions;
-    private Long expiresIn; // OAuth token expiration in seconds
-    
-    // Connection fields
-    private String accountType; // "paper", "live"
-    private Map<String, Object> connectionData;
-    private Map<String, Object> instructions; // Step-by-step instructions
-    
-    // API Key-specific fields
-    private String[] requiredFields;
-    private String apiKeyInstructions;
-    private boolean credentialsReceived;
-    
-    // General fields
-    private String connectionId; // Unique identifier for this connection attempt
-    private String flowType; // "oauth" or "api_key"
-    private String nextStep; // Instructions for the next step
-    private String redirectUrl; // Where to redirect after completion
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant createdAt;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant expiresAt; // When the connection attempt expires
-    
-    private Map<String, Object> metadata; // Additional provider-specific data
-    
-    // Constructors
-    public CreateProviderResponse() {
-        this.createdAt = Instant.now();
-    }
 
-    public CreateProviderResponse(String providerId, String providerName, String connectionType) {
-        this.providerId = providerId;
-        this.providerName = providerName;
-        this.connectionType = connectionType;
-        this.createdAt = Instant.now();
-    }
+	private String providerId;
 
-    // Getters and Setters
-    public String getProviderId() {
-        return providerId;
-    }
+	private String providerName;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	private String connectionType;
 
-    public String getProviderName() {
-        return providerName;
-    }
+	private String status; // "initiated", "pending", "requires_oauth", "requires_api_key"
 
-    public void setProviderName(String providerName) {
-        this.providerName = providerName;
-    }
+	private String message; // General status message
 
-    public String getConnectionType() {
-        return connectionType;
-    }
+	private Boolean operationSuccess; // True if operation was successful
 
-    public void setConnectionType(String connectionType) {
-        this.connectionType = connectionType;
-    }
+	// Error fields
+	private String errorCode;
 
-    public String getStatus() {
-        return status;
-    }
+	private String errorMessage;
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	// OAuth-specific fields
+	private String authorizationUrl;
 
-    public String getMessage() {
-        return message;
-    }
+	private String oauthUrl; // Alias for authorizationUrl
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	private String state;
 
-    public Boolean getOperationSuccess() {
-        return operationSuccess;
-    }
+	private String oauthInstructions;
 
-    public void setOperationSuccess(Boolean operationSuccess) {
-        this.operationSuccess = operationSuccess;
-    }
+	private Long expiresIn; // OAuth token expiration in seconds
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+	// Connection fields
+	private String accountType; // "paper", "live"
 
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
-    }
+	private Map<String, Object> connectionData;
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	private Map<String, Object> instructions; // Step-by-step instructions
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
+	// API Key-specific fields
+	private String[] requiredFields;
 
-    public String getAuthorizationUrl() {
-        return authorizationUrl;
-    }
+	private String apiKeyInstructions;
 
-    public void setAuthorizationUrl(String authorizationUrl) {
-        this.authorizationUrl = authorizationUrl;
-    }
+	private boolean credentialsReceived;
 
-    public String getOauthUrl() {
-        return oauthUrl;
-    }
+	// General fields
+	private String connectionId; // Unique identifier for this connection attempt
 
-    public void setOauthUrl(String oauthUrl) {
-        this.oauthUrl = oauthUrl;
-    }
+	private String flowType; // "oauth" or "api_key"
 
-    public String getState() {
-        return state;
-    }
+	private String nextStep; // Instructions for the next step
 
-    public void setState(String state) {
-        this.state = state;
-    }
+	private String redirectUrl; // Where to redirect after completion
 
-    public String getOauthInstructions() {
-        return oauthInstructions;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant createdAt;
 
-    public void setOauthInstructions(String oauthInstructions) {
-        this.oauthInstructions = oauthInstructions;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant expiresAt; // When the connection attempt expires
 
-    public String[] getRequiredFields() {
-        return requiredFields;
-    }
+	private Map<String, Object> metadata; // Additional provider-specific data
 
-    public void setRequiredFields(String[] requiredFields) {
-        this.requiredFields = requiredFields;
-    }
+	// Constructors
+	public CreateProviderResponse() {
+		this.createdAt = Instant.now();
+	}
 
-    public String getApiKeyInstructions() {
-        return apiKeyInstructions;
-    }
+	public CreateProviderResponse(String providerId, String providerName, String connectionType) {
+		this.providerId = providerId;
+		this.providerName = providerName;
+		this.connectionType = connectionType;
+		this.createdAt = Instant.now();
+	}
 
-    public void setApiKeyInstructions(String apiKeyInstructions) {
-        this.apiKeyInstructions = apiKeyInstructions;
-    }
+	// Getters and Setters
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public boolean isCredentialsReceived() {
-        return credentialsReceived;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public void setCredentialsReceived(boolean credentialsReceived) {
-        this.credentialsReceived = credentialsReceived;
-    }
+	public String getProviderName() {
+		return providerName;
+	}
 
-    public String getConnectionId() {
-        return connectionId;
-    }
+	public void setProviderName(String providerName) {
+		this.providerName = providerName;
+	}
 
-    public void setConnectionId(String connectionId) {
-        this.connectionId = connectionId;
-    }
+	public String getConnectionType() {
+		return connectionType;
+	}
 
-    public String getFlowType() {
-        return flowType;
-    }
+	public void setConnectionType(String connectionType) {
+		this.connectionType = connectionType;
+	}
 
-    public void setFlowType(String flowType) {
-        this.flowType = flowType;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public String getNextStep() {
-        return nextStep;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public void setNextStep(String nextStep) {
-        this.nextStep = nextStep;
-    }
+	public String getMessage() {
+		return message;
+	}
 
-    public String getRedirectUrl() {
-        return redirectUrl;
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    public void setRedirectUrl(String redirectUrl) {
-        this.redirectUrl = redirectUrl;
-    }
+	public Boolean getOperationSuccess() {
+		return operationSuccess;
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public void setOperationSuccess(Boolean operationSuccess) {
+		this.operationSuccess = operationSuccess;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public String getErrorCode() {
+		return errorCode;
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	public void setErrorCode(String errorCode) {
+		this.errorCode = errorCode;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 
-    public Long getExpiresIn() {
-        return expiresIn;
-    }
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
 
-    public void setExpiresIn(Long expiresIn) {
-        this.expiresIn = expiresIn;
-    }
+	public String getAuthorizationUrl() {
+		return authorizationUrl;
+	}
 
-    public Map<String, Object> getMetadata() {
-        return metadata;
-    }
+	public void setAuthorizationUrl(String authorizationUrl) {
+		this.authorizationUrl = authorizationUrl;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public String getOauthUrl() {
+		return oauthUrl;
+	}
 
-    public String getAccountType() {
-        return accountType;
-    }
+	public void setOauthUrl(String oauthUrl) {
+		this.oauthUrl = oauthUrl;
+	}
 
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
-    }
+	public String getState() {
+		return state;
+	}
 
-    public Map<String, Object> getConnectionData() {
-        return connectionData;
-    }
+	public void setState(String state) {
+		this.state = state;
+	}
 
-    public void setConnectionData(Map<String, Object> connectionData) {
-        this.connectionData = connectionData;
-    }
+	public String getOauthInstructions() {
+		return oauthInstructions;
+	}
 
-    public Map<String, Object> getInstructions() {
-        return instructions;
-    }
+	public void setOauthInstructions(String oauthInstructions) {
+		this.oauthInstructions = oauthInstructions;
+	}
 
-    public void setInstructions(Map<String, Object> instructions) {
-        this.instructions = instructions;
-    }
+	public String[] getRequiredFields() {
+		return requiredFields;
+	}
 
-    // Helper methods
-    public boolean isOAuthFlow() {
-        return "oauth".equals(flowType);
-    }
+	public void setRequiredFields(String[] requiredFields) {
+		this.requiredFields = requiredFields;
+	}
 
-    public boolean isApiKeyFlow() {
-        return "api_key".equals(flowType);
-    }
+	public String getApiKeyInstructions() {
+		return apiKeyInstructions;
+	}
 
-    public boolean requiresUserAction() {
-        return "requires_oauth".equals(status) || "requires_api_key".equals(status);
-    }
+	public void setApiKeyInstructions(String apiKeyInstructions) {
+		this.apiKeyInstructions = apiKeyInstructions;
+	}
 
-    public boolean isExpired() {
-        return expiresAt != null && Instant.now().isAfter(expiresAt);
-    }
+	public boolean isCredentialsReceived() {
+		return credentialsReceived;
+	}
 
-    @Override
-    public String toString() {
-        return "CreateProviderResponse{" +
-                "providerId='" + providerId + '\'' +
-                ", providerName='" + providerName + '\'' +
-                ", connectionType='" + connectionType + '\'' +
-                ", status='" + status + '\'' +
-                ", flowType='" + flowType + '\'' +
-                ", connectionId='" + connectionId + '\'' +
-                ", createdAt=" + createdAt +
-                ", expiresAt=" + expiresAt +
-                '}';
-    }
-} 
+	public void setCredentialsReceived(boolean credentialsReceived) {
+		this.credentialsReceived = credentialsReceived;
+	}
+
+	public String getConnectionId() {
+		return connectionId;
+	}
+
+	public void setConnectionId(String connectionId) {
+		this.connectionId = connectionId;
+	}
+
+	public String getFlowType() {
+		return flowType;
+	}
+
+	public void setFlowType(String flowType) {
+		this.flowType = flowType;
+	}
+
+	public String getNextStep() {
+		return nextStep;
+	}
+
+	public void setNextStep(String nextStep) {
+		this.nextStep = nextStep;
+	}
+
+	public String getRedirectUrl() {
+		return redirectUrl;
+	}
+
+	public void setRedirectUrl(String redirectUrl) {
+		this.redirectUrl = redirectUrl;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Long getExpiresIn() {
+		return expiresIn;
+	}
+
+	public void setExpiresIn(Long expiresIn) {
+		this.expiresIn = expiresIn;
+	}
+
+	public Map<String, Object> getMetadata() {
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
+	public String getAccountType() {
+		return accountType;
+	}
+
+	public void setAccountType(String accountType) {
+		this.accountType = accountType;
+	}
+
+	public Map<String, Object> getConnectionData() {
+		return connectionData;
+	}
+
+	public void setConnectionData(Map<String, Object> connectionData) {
+		this.connectionData = connectionData;
+	}
+
+	public Map<String, Object> getInstructions() {
+		return instructions;
+	}
+
+	public void setInstructions(Map<String, Object> instructions) {
+		this.instructions = instructions;
+	}
+
+	// Helper methods
+	public boolean isOAuthFlow() {
+		return "oauth".equals(flowType);
+	}
+
+	public boolean isApiKeyFlow() {
+		return "api_key".equals(flowType);
+	}
+
+	public boolean requiresUserAction() {
+		return "requires_oauth".equals(status) || "requires_api_key".equals(status);
+	}
+
+	public boolean isExpired() {
+		return expiresAt != null && Instant.now().isAfter(expiresAt);
+	}
+
+	@Override
+	public String toString() {
+		return "CreateProviderResponse{" + "providerId='" + providerId + '\'' + ", providerName='" + providerName + '\''
+				+ ", connectionType='" + connectionType + '\'' + ", status='" + status + '\'' + ", flowType='"
+				+ flowType + '\'' + ", connectionId='" + connectionId + '\'' + ", createdAt=" + createdAt
+				+ ", expiresAt=" + expiresAt + '}';
+	}
+
+}

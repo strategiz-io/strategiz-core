@@ -7,142 +7,147 @@ import java.time.Instant;
  */
 public class SmsDeliveryResult {
 
-    public enum Status {
-        /** Message accepted by provider, delivery pending */
-        QUEUED,
-        /** Message sent to carrier */
-        SENT,
-        /** Message delivered to device */
-        DELIVERED,
-        /** Message delivery failed */
-        FAILED,
-        /** Provider not available or configured */
-        UNAVAILABLE
-    }
+	public enum Status {
 
-    private final Status status;
-    private final String messageId;
-    private final String errorCode;
-    private final String errorMessage;
-    private final Instant timestamp;
-    private final String providerName;
+		/** Message accepted by provider, delivery pending */
+		QUEUED,
+		/** Message sent to carrier */
+		SENT,
+		/** Message delivered to device */
+		DELIVERED,
+		/** Message delivery failed */
+		FAILED,
+		/** Provider not available or configured */
+		UNAVAILABLE
 
-    private SmsDeliveryResult(Builder builder) {
-        this.status = builder.status;
-        this.messageId = builder.messageId;
-        this.errorCode = builder.errorCode;
-        this.errorMessage = builder.errorMessage;
-        this.timestamp = builder.timestamp != null ? builder.timestamp : Instant.now();
-        this.providerName = builder.providerName;
-    }
+	}
 
-    public Status getStatus() {
-        return status;
-    }
+	private final Status status;
 
-    public String getMessageId() {
-        return messageId;
-    }
+	private final String messageId;
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+	private final String errorCode;
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	private final String errorMessage;
 
-    public Instant getTimestamp() {
-        return timestamp;
-    }
+	private final Instant timestamp;
 
-    public String getProviderName() {
-        return providerName;
-    }
+	private final String providerName;
 
-    public boolean isSuccess() {
-        return status == Status.QUEUED || status == Status.SENT || status == Status.DELIVERED;
-    }
+	private SmsDeliveryResult(Builder builder) {
+		this.status = builder.status;
+		this.messageId = builder.messageId;
+		this.errorCode = builder.errorCode;
+		this.errorMessage = builder.errorMessage;
+		this.timestamp = builder.timestamp != null ? builder.timestamp : Instant.now();
+		this.providerName = builder.providerName;
+	}
 
-    public static Builder builder() {
-        return new Builder();
-    }
+	public Status getStatus() {
+		return status;
+	}
 
-    public static SmsDeliveryResult success(String messageId, String providerName) {
-        return builder()
-                .status(Status.QUEUED)
-                .messageId(messageId)
-                .providerName(providerName)
-                .build();
-    }
+	public String getMessageId() {
+		return messageId;
+	}
 
-    public static SmsDeliveryResult failure(String errorCode, String errorMessage, String providerName) {
-        return builder()
-                .status(Status.FAILED)
-                .errorCode(errorCode)
-                .errorMessage(errorMessage)
-                .providerName(providerName)
-                .build();
-    }
+	public String getErrorCode() {
+		return errorCode;
+	}
 
-    public static SmsDeliveryResult unavailable(String providerName) {
-        return builder()
-                .status(Status.UNAVAILABLE)
-                .errorMessage("SMS provider not available")
-                .providerName(providerName)
-                .build();
-    }
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 
-    @Override
-    public String toString() {
-        return "SmsDeliveryResult{" +
-                "status=" + status +
-                ", messageId='" + messageId + '\'' +
-                ", providerName='" + providerName + '\'' +
-                (errorMessage != null ? ", error='" + errorMessage + '\'' : "") +
-                '}';
-    }
+	public Instant getTimestamp() {
+		return timestamp;
+	}
 
-    public static class Builder {
-        private Status status;
-        private String messageId;
-        private String errorCode;
-        private String errorMessage;
-        private Instant timestamp;
-        private String providerName;
+	public String getProviderName() {
+		return providerName;
+	}
 
-        public Builder status(Status status) {
-            this.status = status;
-            return this;
-        }
+	public boolean isSuccess() {
+		return status == Status.QUEUED || status == Status.SENT || status == Status.DELIVERED;
+	}
 
-        public Builder messageId(String messageId) {
-            this.messageId = messageId;
-            return this;
-        }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder errorCode(String errorCode) {
-            this.errorCode = errorCode;
-            return this;
-        }
+	public static SmsDeliveryResult success(String messageId, String providerName) {
+		return builder().status(Status.QUEUED).messageId(messageId).providerName(providerName).build();
+	}
 
-        public Builder errorMessage(String errorMessage) {
-            this.errorMessage = errorMessage;
-            return this;
-        }
+	public static SmsDeliveryResult failure(String errorCode, String errorMessage, String providerName) {
+		return builder().status(Status.FAILED)
+			.errorCode(errorCode)
+			.errorMessage(errorMessage)
+			.providerName(providerName)
+			.build();
+	}
 
-        public Builder timestamp(Instant timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
+	public static SmsDeliveryResult unavailable(String providerName) {
+		return builder().status(Status.UNAVAILABLE)
+			.errorMessage("SMS provider not available")
+			.providerName(providerName)
+			.build();
+	}
 
-        public Builder providerName(String providerName) {
-            this.providerName = providerName;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "SmsDeliveryResult{" + "status=" + status + ", messageId='" + messageId + '\'' + ", providerName='"
+				+ providerName + '\'' + (errorMessage != null ? ", error='" + errorMessage + '\'' : "") + '}';
+	}
 
-        public SmsDeliveryResult build() {
-            return new SmsDeliveryResult(this);
-        }
-    }
+	public static class Builder {
+
+		private Status status;
+
+		private String messageId;
+
+		private String errorCode;
+
+		private String errorMessage;
+
+		private Instant timestamp;
+
+		private String providerName;
+
+		public Builder status(Status status) {
+			this.status = status;
+			return this;
+		}
+
+		public Builder messageId(String messageId) {
+			this.messageId = messageId;
+			return this;
+		}
+
+		public Builder errorCode(String errorCode) {
+			this.errorCode = errorCode;
+			return this;
+		}
+
+		public Builder errorMessage(String errorMessage) {
+			this.errorMessage = errorMessage;
+			return this;
+		}
+
+		public Builder timestamp(Instant timestamp) {
+			this.timestamp = timestamp;
+			return this;
+		}
+
+		public Builder providerName(String providerName) {
+			this.providerName = providerName;
+			return this;
+		}
+
+		public SmsDeliveryResult build() {
+			return new SmsDeliveryResult(this);
+		}
+
+	}
+
 }

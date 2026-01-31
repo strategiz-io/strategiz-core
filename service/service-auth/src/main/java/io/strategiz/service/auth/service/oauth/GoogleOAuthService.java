@@ -29,337 +29,311 @@ import java.util.UUID;
 @Service
 public class GoogleOAuthService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    private final GoogleClient googleClient;
-    private final OAuthUserManager oauthUserManager;
-    private final OAuthAuthenticationManager oauthAuthenticationManager;
-    private final SessionAuthBusiness sessionAuthBusiness;
-    private final AuthOAuthConfig oauthConfig;
+	private final GoogleClient googleClient;
 
-    public GoogleOAuthService(
-            GoogleClient googleClient,
-            OAuthUserManager oauthUserManager,
-            OAuthAuthenticationManager oauthAuthenticationManager,
-            SessionAuthBusiness sessionAuthBusiness,
-            AuthOAuthConfig oauthConfig) {
-        this.googleClient = googleClient;
-        this.oauthUserManager = oauthUserManager;
-        this.oauthAuthenticationManager = oauthAuthenticationManager;
-        this.sessionAuthBusiness = sessionAuthBusiness;
-        this.oauthConfig = oauthConfig;
-    }
+	private final OAuthUserManager oauthUserManager;
 
-    /**
-     * Get the authorization URL for Google OAuth
-     *
-     * @param isSignup Whether this is for signup flow
-     * @return The authorization URL and state
-     */
-    public Map<String, String> getAuthorizationUrl(boolean isSignup) {
-        return getAuthorizationUrl(isSignup, null);
-    }
+	private final OAuthAuthenticationManager oauthAuthenticationManager;
 
-    /**
-     * Get the authorization URL for Google OAuth with optional redirect
-     *
-     * @param isSignup Whether this is for signup flow
-     * @param redirectAfterAuth Optional redirect URL for cross-app SSO
-     * @return The authorization URL and state
-     */
-    public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
-        // Build state to match original OAuth format (same as Facebook)
-        // Signup: "signup:uuid" or "signup:uuid:base64redirect"
-        // Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
-        String uuid = UUID.randomUUID().toString();
-        String state;
-        if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
-            // Base64 encode the redirect URL to safely include in state
-            String encodedRedirect = java.util.Base64.getUrlEncoder().withoutPadding()
-                    .encodeToString(redirectAfterAuth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            if (isSignup) {
-                state = "signup:" + uuid + ":" + encodedRedirect;
-            } else {
-                // For signin, don't use "signin:" prefix - just uuid:redirect for backwards compatibility
-                state = uuid + ":" + encodedRedirect;
-            }
-            log.info("Built state with redirect: type={}, uuid={}, redirect={}",
-                isSignup ? "signup" : "signin", uuid, redirectAfterAuth);
-        } else {
-            // Original format: "signup:uuid" for signup, just "uuid" for signin
-            if (isSignup) {
-                state = "signup:" + uuid;
-            } else {
-                state = uuid;
-            }
-            log.info("Built state without redirect: type={}, uuid={}",
-                isSignup ? "signup" : "signin", uuid);
-        }
+	private final SessionAuthBusiness sessionAuthBusiness;
 
-        AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
-        if (googleConfig == null) {
-            log.error("Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
-        }
+	private final AuthOAuthConfig oauthConfig;
 
-        // Use signup redirect URI for signup flow, otherwise use signin redirect URI
-        String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
-                ? googleConfig.getSignupRedirectUri()
-                : googleConfig.getRedirectUri();
+	public GoogleOAuthService(GoogleClient googleClient, OAuthUserManager oauthUserManager,
+			OAuthAuthenticationManager oauthAuthenticationManager, SessionAuthBusiness sessionAuthBusiness,
+			AuthOAuthConfig oauthConfig) {
+		this.googleClient = googleClient;
+		this.oauthUserManager = oauthUserManager;
+		this.oauthAuthenticationManager = oauthAuthenticationManager;
+		this.sessionAuthBusiness = sessionAuthBusiness;
+		this.oauthConfig = oauthConfig;
+	}
 
-        String authUrl = UriComponentsBuilder.fromUriString(googleConfig.getAuthUrl())
-                .queryParam("client_id", googleConfig.getClientId())
-                .queryParam("redirect_uri", redirectUri)
-                .queryParam("state", state)
-                .queryParam("response_type", "code")
-                .queryParam("scope", "openid email profile")
-                .toUriString();
+	/**
+	 * Get the authorization URL for Google OAuth
+	 * @param isSignup Whether this is for signup flow
+	 * @return The authorization URL and state
+	 */
+	public Map<String, String> getAuthorizationUrl(boolean isSignup) {
+		return getAuthorizationUrl(isSignup, null);
+	}
 
-        Map<String, String> response = new HashMap<>();
-        response.put("url", authUrl);
-        response.put("state", state);
+	/**
+	 * Get the authorization URL for Google OAuth with optional redirect
+	 * @param isSignup Whether this is for signup flow
+	 * @param redirectAfterAuth Optional redirect URL for cross-app SSO
+	 * @return The authorization URL and state
+	 */
+	public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
+		// Build state to match original OAuth format (same as Facebook)
+		// Signup: "signup:uuid" or "signup:uuid:base64redirect"
+		// Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
+		String uuid = UUID.randomUUID().toString();
+		String state;
+		if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
+			// Base64 encode the redirect URL to safely include in state
+			String encodedRedirect = java.util.Base64.getUrlEncoder()
+				.withoutPadding()
+				.encodeToString(redirectAfterAuth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			if (isSignup) {
+				state = "signup:" + uuid + ":" + encodedRedirect;
+			}
+			else {
+				// For signin, don't use "signin:" prefix - just uuid:redirect for
+				// backwards compatibility
+				state = uuid + ":" + encodedRedirect;
+			}
+			log.info("Built state with redirect: type={}, uuid={}, redirect={}", isSignup ? "signup" : "signin", uuid,
+					redirectAfterAuth);
+		}
+		else {
+			// Original format: "signup:uuid" for signup, just "uuid" for signin
+			if (isSignup) {
+				state = "signup:" + uuid;
+			}
+			else {
+				state = uuid;
+			}
+			log.info("Built state without redirect: type={}, uuid={}", isSignup ? "signup" : "signin", uuid);
+		}
 
-        return response;
-    }
-    
-    /**
-     * Get the frontend URL for redirects
-     */
-    public String getFrontendUrl() {
-        return oauthConfig.getFrontendUrl();
-    }
+		AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+		if (googleConfig == null) {
+			log.error(
+					"Google OAuth configuration is not available. Check application.properties for oauth.providers.google settings.");
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
+		}
 
-    /**
-     * Handle OAuth callback from Google
-     *
-     * @param code Authorization code from Google
-     * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @return Clean response object based on the operation result
-     */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
-        // Determine signup from state for backwards compatibility
-        boolean isSignup = oauthUserManager.isSignupFlow(state);
-        return handleOAuthCallback(code, state, deviceId, isSignup);
-    }
+		// Use signup redirect URI for signup flow, otherwise use signin redirect URI
+		String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
+				? googleConfig.getSignupRedirectUri() : googleConfig.getRedirectUri();
 
-    /**
-     * Handle OAuth callback from Google with explicit signup flag
-     *
-     * @param code Authorization code from Google
-     * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @param isSignup Whether this is a signup flow (determined by calling controller)
-     * @return Clean response object based on the operation result
-     */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId, boolean isSignup) {
-        if (!isValidAuthorizationCode(code)) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
-        }
+		String authUrl = UriComponentsBuilder.fromUriString(googleConfig.getAuthUrl())
+			.queryParam("client_id", googleConfig.getClientId())
+			.queryParam("redirect_uri", redirectUri)
+			.queryParam("state", state)
+			.queryParam("response_type", "code")
+			.queryParam("scope", "openid email profile")
+			.toUriString();
 
-        // Extract redirect URL from state if present (format: type:uuid:encodedRedirect)
-        String redirectAfterAuth = extractRedirectFromState(state);
-        if (redirectAfterAuth != null) {
-            log.info("Extracted redirectAfterAuth from state: {}", redirectAfterAuth);
-        }
+		Map<String, String> response = new HashMap<>();
+		response.put("url", authUrl);
+		response.put("state", state);
 
-        GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
-        if (tokenResponse == null) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
-        }
+		return response;
+	}
 
-        GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
-        if (userInfo == null) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
-        }
+	/**
+	 * Get the frontend URL for redirects
+	 */
+	public String getFrontendUrl() {
+		return oauthConfig.getFrontendUrl();
+	}
 
-        Object result = processUserAuthentication(userInfo, isSignup);
+	/**
+	 * Handle OAuth callback from Google
+	 * @param code Authorization code from Google
+	 * @param state State parameter for verification
+	 * @param deviceId Optional device ID for fingerprinting
+	 * @return Clean response object based on the operation result
+	 */
+	public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
+		// Determine signup from state for backwards compatibility
+		boolean isSignup = oauthUserManager.isSignupFlow(state);
+		return handleOAuthCallback(code, state, deviceId, isSignup);
+	}
 
-        // Convert result to Map<String, Object> for consistent JSON response
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
+	/**
+	 * Handle OAuth callback from Google with explicit signup flag
+	 * @param code Authorization code from Google
+	 * @param state State parameter for verification
+	 * @param deviceId Optional device ID for fingerprinting
+	 * @param isSignup Whether this is a signup flow (determined by calling controller)
+	 * @return Clean response object based on the operation result
+	 */
+	public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId, boolean isSignup) {
+		if (!isValidAuthorizationCode(code)) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
+		}
 
-        if (result instanceof OAuthSignupResponse) {
-            OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
-            response.put("type", "signup");
-            response.put("userId", signupResponse.getUserId());
-            response.put("email", signupResponse.getEmail());
-            response.put("name", signupResponse.getName());
-            response.put("accessToken", signupResponse.getAccessToken());
-            response.put("refreshToken", signupResponse.getRefreshToken());
-        } else if (result instanceof LoginFlowResponse) {
-            LoginFlowResponse loginResponse = (LoginFlowResponse) result;
-            response.put("type", "login");
-            response.put("userId", loginResponse.userId());
-            response.put("email", loginResponse.email());
-            response.put("name", loginResponse.name());
-            response.put("accessToken", loginResponse.tokens().accessToken());
-            response.put("refreshToken", loginResponse.tokens().refreshToken());
-            response.put("tokenType", loginResponse.tokens().tokenType());
-        }
+		// Extract redirect URL from state if present (format: type:uuid:encodedRedirect)
+		String redirectAfterAuth = extractRedirectFromState(state);
+		if (redirectAfterAuth != null) {
+			log.info("Extracted redirectAfterAuth from state: {}", redirectAfterAuth);
+		}
 
-        // Include redirect URL if present (for cross-app SSO)
-        if (redirectAfterAuth != null) {
-            response.put("redirectAfterAuth", redirectAfterAuth);
-        }
+		GoogleTokenResponse tokenResponse = exchangeCodeForToken(code, state);
+		if (tokenResponse == null) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
+		}
 
-        return response;
-    }
+		GoogleUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
+		if (userInfo == null) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
+		}
 
-    /**
-     * Extract redirect URL from OAuth state parameter
-     * State formats:
-     * - Signup with redirect: "signup:uuid:encodedRedirect"
-     * - Signup without redirect: "signup:uuid"
-     * - Signin with redirect: "uuid:encodedRedirect"
-     * - Signin without redirect: "uuid"
-     */
-    private String extractRedirectFromState(String state) {
-        if (state == null || state.isEmpty()) {
-            return null;
-        }
+		Object result = processUserAuthentication(userInfo, isSignup);
 
-        String[] parts = state.split(":", 3);
+		// Convert result to Map<String, Object> for consistent JSON response
+		Map<String, Object> response = new HashMap<>();
+		response.put("success", true);
 
-        // Determine if this is signup or signin based on prefix
-        boolean isSignup = state.startsWith("signup:");
+		if (result instanceof OAuthSignupResponse) {
+			OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
+			response.put("type", "signup");
+			response.put("userId", signupResponse.getUserId());
+			response.put("email", signupResponse.getEmail());
+			response.put("name", signupResponse.getName());
+			response.put("accessToken", signupResponse.getAccessToken());
+			response.put("refreshToken", signupResponse.getRefreshToken());
+		}
+		else if (result instanceof LoginFlowResponse) {
+			LoginFlowResponse loginResponse = (LoginFlowResponse) result;
+			response.put("type", "login");
+			response.put("userId", loginResponse.userId());
+			response.put("email", loginResponse.email());
+			response.put("name", loginResponse.name());
+			response.put("accessToken", loginResponse.tokens().accessToken());
+			response.put("refreshToken", loginResponse.tokens().refreshToken());
+			response.put("tokenType", loginResponse.tokens().tokenType());
+		}
 
-        try {
-            if (isSignup) {
-                // Signup format: signup:uuid:encodedRedirect (3 parts)
-                if (parts.length < 3) {
-                    return null; // No redirect in state
-                }
-                // Third part is the base64 encoded redirect URL
-                byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
-                return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
-            } else {
-                // Signin format: uuid:encodedRedirect (2 parts)
-                if (parts.length < 2) {
-                    return null; // No redirect in state
-                }
-                // Second part is the base64 encoded redirect URL
-                byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[1]);
-                return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
-            }
-        } catch (Exception e) {
-            log.warn("Failed to decode redirect from state: {}", e.getMessage());
-            return null;
-        }
-    }
+		// Include redirect URL if present (for cross-app SSO)
+		if (redirectAfterAuth != null) {
+			response.put("redirectAfterAuth", redirectAfterAuth);
+		}
 
-    private boolean isValidAuthorizationCode(String code) {
-        if (code == null) {
-            log.error("Missing authorization code");
-            return false;
-        }
-        return true;
-    }
+		return response;
+	}
 
-    private GoogleTokenResponse exchangeCodeForToken(String code, String state) {
-        AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
-        if (googleConfig == null) {
-            log.error("Google OAuth configuration is not available during token exchange");
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
-        }
+	/**
+	 * Extract redirect URL from OAuth state parameter State formats: - Signup with
+	 * redirect: "signup:uuid:encodedRedirect" - Signup without redirect: "signup:uuid" -
+	 * Signin with redirect: "uuid:encodedRedirect" - Signin without redirect: "uuid"
+	 */
+	private String extractRedirectFromState(String state) {
+		if (state == null || state.isEmpty()) {
+			return null;
+		}
 
-        // Use signup redirect URI if this is a signup flow, otherwise use signin redirect URI
-        boolean isSignup = oauthUserManager.isSignupFlow(state);
-        String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
-                ? googleConfig.getSignupRedirectUri()
-                : googleConfig.getRedirectUri();
+		String[] parts = state.split(":", 3);
 
-        return googleClient.exchangeCodeForToken(
-            code,
-            googleConfig.getClientId(),
-            googleConfig.getClientSecret(),
-            redirectUri
-        ).orElse(null);
-    }
+		// Determine if this is signup or signin based on prefix
+		boolean isSignup = state.startsWith("signup:");
 
-    private GoogleUserInfo getUserInfo(String accessToken) {
-        return googleClient.getUserInfo(accessToken).orElse(null);
-    }
+		try {
+			if (isSignup) {
+				// Signup format: signup:uuid:encodedRedirect (3 parts)
+				if (parts.length < 3) {
+					return null; // No redirect in state
+				}
+				// Third part is the base64 encoded redirect URL
+				byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[2]);
+				return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+			}
+			else {
+				// Signin format: uuid:encodedRedirect (2 parts)
+				if (parts.length < 2) {
+					return null; // No redirect in state
+				}
+				// Second part is the base64 encoded redirect URL
+				byte[] decoded = java.util.Base64.getUrlDecoder().decode(parts[1]);
+				return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+			}
+		}
+		catch (Exception e) {
+			log.warn("Failed to decode redirect from state: {}", e.getMessage());
+			return null;
+		}
+	}
 
-    private Object processUserAuthentication(GoogleUserInfo userInfo, boolean isSignup) {
-        Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
+	private boolean isValidAuthorizationCode(String code) {
+		if (code == null) {
+			log.error("Missing authorization code");
+			return false;
+		}
+		return true;
+	}
 
-        if (isSignup && existingUser.isPresent()) {
-            throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
-        }
+	private GoogleTokenResponse exchangeCodeForToken(String code, String state) {
+		AuthOAuthSettings googleConfig = oauthConfig.getGoogle();
+		if (googleConfig == null) {
+			log.error("Google OAuth configuration is not available during token exchange");
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Google OAuth is not configured");
+		}
 
-        if (isSignup || !existingUser.isPresent()) {
-            return handleSignupFlow(userInfo);
-        } else {
-            return handleLoginFlow(existingUser.get(), userInfo);
-        }
-    }
+		// Use signup redirect URI if this is a signup flow, otherwise use signin redirect
+		// URI
+		boolean isSignup = oauthUserManager.isSignupFlow(state);
+		String redirectUri = isSignup && googleConfig.getSignupRedirectUri() != null
+				? googleConfig.getSignupRedirectUri() : googleConfig.getRedirectUri();
 
-    /**
-     * Response wrapper for login flow that includes user data
-     */
-    public record LoginFlowResponse(
-        ApiTokenResponse tokens,
-        String userId,
-        String email,
-        String name
-    ) {}
+		return googleClient
+			.exchangeCodeForToken(code, googleConfig.getClientId(), googleConfig.getClientSecret(), redirectUri)
+			.orElse(null);
+	}
 
-    private OAuthSignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
-        return oauthUserManager.createOAuthUser(
-            userInfo.getEmail(), 
-            userInfo.getName(), 
-            userInfo.getPictureUrl(), 
-            "google", 
-            userInfo.getGoogleId(),
-            null, // deviceId not available
-            null  // ipAddress not available
-        );
-    }
+	private GoogleUserInfo getUserInfo(String accessToken) {
+		return googleClient.getUserInfo(accessToken).orElse(null);
+	}
 
-    private LoginFlowResponse handleLoginFlow(UserEntity user, GoogleUserInfo userInfo) {
-        oauthAuthenticationManager.ensureOAuthMethod(
-            user,
-            "google",
-            userInfo.getGoogleId(),
-            userInfo.getEmail()
-        );
+	private Object processUserAuthentication(GoogleUserInfo userInfo, boolean isSignup) {
+		Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
 
-        // Generate authentication tokens using unified approach
-        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
-            user.getUserId(),
-            userInfo.getEmail(),
-            List.of("google"), // Authentication method used
-            false, // Not partial auth - OAuth provides full authentication
-            null, // Device ID not available in OAuth flow
-            null, // Device fingerprint not available
-            null, // IP address not available in OAuth flow
-            "Google OAuth",
-            false // demoMode
-        );
+		if (isSignup && existingUser.isPresent()) {
+			throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
+		}
 
-        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+		if (isSignup || !existingUser.isPresent()) {
+			return handleSignupFlow(userInfo);
+		}
+		else {
+			return handleLoginFlow(existingUser.get(), userInfo);
+		}
+	}
 
-        ApiTokenResponse tokens = new ApiTokenResponse(
-            authResult.accessToken(),
-            authResult.refreshToken(),
-            "bearer"
-        );
+	/**
+	 * Response wrapper for login flow that includes user data
+	 */
+	public record LoginFlowResponse(ApiTokenResponse tokens, String userId, String email, String name) {
+	}
 
-        // Get name from user profile, fallback to Google userInfo
-        String userName = userInfo.getName();
-        if (user.getProfile() != null && user.getProfile().getName() != null) {
-            userName = user.getProfile().getName();
-        }
+	private OAuthSignupResponse handleSignupFlow(GoogleUserInfo userInfo) {
+		return oauthUserManager.createOAuthUser(userInfo.getEmail(), userInfo.getName(), userInfo.getPictureUrl(),
+				"google", userInfo.getGoogleId(), null, // deviceId not available
+				null // ipAddress not available
+		);
+	}
 
-        return new LoginFlowResponse(
-            tokens,
-            user.getUserId(),
-            userInfo.getEmail(),
-            userName
-        );
-    }
-} 
+	private LoginFlowResponse handleLoginFlow(UserEntity user, GoogleUserInfo userInfo) {
+		oauthAuthenticationManager.ensureOAuthMethod(user, "google", userInfo.getGoogleId(), userInfo.getEmail());
+
+		// Generate authentication tokens using unified approach
+		SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(user.getUserId(),
+				userInfo.getEmail(), List.of("google"), // Authentication method used
+				false, // Not partial auth - OAuth provides full authentication
+				null, // Device ID not available in OAuth flow
+				null, // Device fingerprint not available
+				null, // IP address not available in OAuth flow
+				"Google OAuth", false // demoMode
+		);
+
+		SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+
+		ApiTokenResponse tokens = new ApiTokenResponse(authResult.accessToken(), authResult.refreshToken(), "bearer");
+
+		// Get name from user profile, fallback to Google userInfo
+		String userName = userInfo.getName();
+		if (user.getProfile() != null && user.getProfile().getName() != null) {
+			userName = user.getProfile().getName();
+		}
+
+		return new LoginFlowResponse(tokens, user.getUserId(), userInfo.getEmail(), userName);
+	}
+
+}

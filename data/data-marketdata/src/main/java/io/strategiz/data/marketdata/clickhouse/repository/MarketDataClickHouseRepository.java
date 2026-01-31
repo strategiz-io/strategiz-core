@@ -135,8 +135,8 @@ public class MarketDataClickHouseRepository {
 	}
 
 	/**
-	 * Get the date range (earliest and latest) for a symbol and timeframe.
-	 * Returns map with 'earliest' and 'latest' Instant values, or empty if no data.
+	 * Get the date range (earliest and latest) for a symbol and timeframe. Returns map
+	 * with 'earliest' and 'latest' Instant values, or empty if no data.
 	 */
 	public Optional<Map<String, Instant>> getDateRangeForSymbolAndTimeframe(String symbol, String timeframe) {
 		String sql = """

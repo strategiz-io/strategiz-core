@@ -41,9 +41,7 @@ public class ClickHouseCostRepository {
 	}
 
 	private CollectionReference getClickHouseCollection() {
-		return firestore.collection(COLLECTION_PATH)
-			.document(SUBCOLLECTION_COSTS)
-			.collection(SUBCOLLECTION_TIMESCALE);
+		return firestore.collection(COLLECTION_PATH).document(SUBCOLLECTION_COSTS).collection(SUBCOLLECTION_TIMESCALE);
 	}
 
 	/**
@@ -59,8 +57,7 @@ public class ClickHouseCostRepository {
 		catch (InterruptedException | ExecutionException e) {
 			logger.error("Error saving ClickHouseDB cost: {}", e.getMessage(), e);
 			Thread.currentThread().interrupt();
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e,
-					"ClickHouseCostEntity");
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "ClickHouseCostEntity");
 		}
 	}
 

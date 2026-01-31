@@ -17,27 +17,16 @@ import java.util.Map;
 /**
  * Controller for Service Account token generation (OAuth 2.0 Client Credentials flow).
  *
- * This endpoint allows service accounts to obtain access tokens using their
- * client credentials (client_id + client_secret).
+ * This endpoint allows service accounts to obtain access tokens using their client
+ * credentials (client_id + client_secret).
  *
- * Usage:
- * POST /v1/auth/service-account/token
- * Content-Type: application/json
+ * Usage: POST /v1/auth/service-account/token Content-Type: application/json
  *
- * {
- *   "client_id": "sa_abc123",
- *   "client_secret": "your-secret-here",
- *   "grant_type": "client_credentials",
- *   "scope": "read:strategies write:test-results" (optional)
- * }
+ * { "client_id": "sa_abc123", "client_secret": "your-secret-here", "grant_type":
+ * "client_credentials", "scope": "read:strategies write:test-results" (optional) }
  *
- * Response:
- * {
- *   "access_token": "v4.local.xxx...",
- *   "token_type": "Bearer",
- *   "expires_in": 3600,
- *   "scope": "read:strategies write:test-results"
- * }
+ * Response: { "access_token": "v4.local.xxx...", "token_type": "Bearer", "expires_in":
+ * 3600, "scope": "read:strategies write:test-results" }
  */
 @RestController
 @RequestMapping("/v1/auth/service-account")
@@ -60,11 +49,12 @@ public class ServiceAccountTokenController extends BaseController {
 	/**
 	 * Generate access token for service account (OAuth 2.0 Client Credentials flow).
 	 *
-	 * This is a PUBLIC endpoint - no authentication required.
-	 * Authentication is done via client_id + client_secret in the request body.
+	 * This is a PUBLIC endpoint - no authentication required. Authentication is done via
+	 * client_id + client_secret in the request body.
 	 */
 	@PostMapping("/token")
-	@Operation(summary = "Get access token", description = "Exchange client credentials for an access token (OAuth 2.0 Client Credentials flow)")
+	@Operation(summary = "Get access token",
+			description = "Exchange client credentials for an access token (OAuth 2.0 Client Credentials flow)")
 	public ResponseEntity<Map<String, Object>> getToken(@RequestBody TokenRequest request,
 			HttpServletRequest httpRequest) {
 
@@ -155,8 +145,8 @@ public class ServiceAccountTokenController extends BaseController {
 	// =====================================================
 
 	/**
-	 * OAuth 2.0 Client Credentials token request.
-	 * Uses snake_case for OAuth 2.0 compliance.
+	 * OAuth 2.0 Client Credentials token request. Uses snake_case for OAuth 2.0
+	 * compliance.
 	 */
 	public static class TokenRequest {
 

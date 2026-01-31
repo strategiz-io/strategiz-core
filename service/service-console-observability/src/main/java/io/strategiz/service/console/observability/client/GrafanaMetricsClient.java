@@ -14,216 +14,228 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.*;
 
 /**
- * Client for querying metrics from Grafana Cloud Prometheus API.
- * Fetches metrics exported via OpenTelemetry from both Java and Python services.
+ * Client for querying metrics from Grafana Cloud Prometheus API. Fetches metrics exported
+ * via OpenTelemetry from both Java and Python services.
  */
 @Component
 public class GrafanaMetricsClient {
 
-    private static final Logger log = LoggerFactory.getLogger(GrafanaMetricsClient.class);
+	private static final Logger log = LoggerFactory.getLogger(GrafanaMetricsClient.class);
 
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+	private final RestTemplate restTemplate;
 
-    @Value("${grafana.prometheus.url:https://prometheus-prod-01-eu-west-0.grafana.net/api/prom}")
-    private String prometheusUrl;
+	private final ObjectMapper objectMapper;
 
-    @Value("${grafana.prometheus.auth:}")
-    private String prometheusAuth;
+	@Value("${grafana.prometheus.url:https://prometheus-prod-01-eu-west-0.grafana.net/api/prom}")
+	private String prometheusUrl;
 
-    public GrafanaMetricsClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-    }
+	@Value("${grafana.prometheus.auth:}")
+	private String prometheusAuth;
 
-    /**
-     * Query Prometheus for a metric
-     * @param query PromQL query string
-     * @return Query result
-     */
-    public PrometheusQueryResult query(String query) {
-        try {
-            String url = UriComponentsBuilder.fromHttpUrl(prometheusUrl + "/api/v1/query")
-                    .queryParam("query", query)
-                    .toUriString();
+	public GrafanaMetricsClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+		this.restTemplate = restTemplate;
+		this.objectMapper = objectMapper;
+	}
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            if (prometheusAuth != null && !prometheusAuth.isEmpty()) {
-                headers.set("Authorization", "Basic " + prometheusAuth);
-            }
+	/**
+	 * Query Prometheus for a metric
+	 * @param query PromQL query string
+	 * @return Query result
+	 */
+	public PrometheusQueryResult query(String query) {
+		try {
+			String url = UriComponentsBuilder.fromHttpUrl(prometheusUrl + "/api/v1/query")
+				.queryParam("query", query)
+				.toUriString();
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			if (prometheusAuth != null && !prometheusAuth.isEmpty()) {
+				headers.set("Authorization", "Basic " + prometheusAuth);
+			}
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return parseQueryResult(response.getBody());
-            }
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-            log.warn("Failed to query Prometheus: status={}", response.getStatusCode());
-            return new PrometheusQueryResult(Collections.emptyList());
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				return parseQueryResult(response.getBody());
+			}
 
-        } catch (Exception e) {
-            log.error("Error querying Prometheus: query={}", query, e);
-            return new PrometheusQueryResult(Collections.emptyList());
-        }
-    }
+			log.warn("Failed to query Prometheus: status={}", response.getStatusCode());
+			return new PrometheusQueryResult(Collections.emptyList());
 
-    /**
-     * Query Prometheus for a range of values
-     * @param query PromQL query
-     * @param start Start time (Unix timestamp)
-     * @param end End time (Unix timestamp)
-     * @param step Step interval (e.g., "15s", "1m")
-     * @return Range query result
-     */
-    public PrometheusQueryResult queryRange(String query, long start, long end, String step) {
-        try {
-            String url = UriComponentsBuilder.fromHttpUrl(prometheusUrl + "/api/v1/query_range")
-                    .queryParam("query", query)
-                    .queryParam("start", start)
-                    .queryParam("end", end)
-                    .queryParam("step", step)
-                    .toUriString();
+		}
+		catch (Exception e) {
+			log.error("Error querying Prometheus: query={}", query, e);
+			return new PrometheusQueryResult(Collections.emptyList());
+		}
+	}
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            if (prometheusAuth != null && !prometheusAuth.isEmpty()) {
-                headers.set("Authorization", "Basic " + prometheusAuth);
-            }
+	/**
+	 * Query Prometheus for a range of values
+	 * @param query PromQL query
+	 * @param start Start time (Unix timestamp)
+	 * @param end End time (Unix timestamp)
+	 * @param step Step interval (e.g., "15s", "1m")
+	 * @return Range query result
+	 */
+	public PrometheusQueryResult queryRange(String query, long start, long end, String step) {
+		try {
+			String url = UriComponentsBuilder.fromHttpUrl(prometheusUrl + "/api/v1/query_range")
+				.queryParam("query", query)
+				.queryParam("start", start)
+				.queryParam("end", end)
+				.queryParam("step", step)
+				.toUriString();
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			if (prometheusAuth != null && !prometheusAuth.isEmpty()) {
+				headers.set("Authorization", "Basic " + prometheusAuth);
+			}
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return parseQueryResult(response.getBody());
-            }
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-            log.warn("Failed to query Prometheus range: status={}", response.getStatusCode());
-            return new PrometheusQueryResult(Collections.emptyList());
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				return parseQueryResult(response.getBody());
+			}
 
-        } catch (Exception e) {
-            log.error("Error querying Prometheus range: query={}", query, e);
-            return new PrometheusQueryResult(Collections.emptyList());
-        }
-    }
+			log.warn("Failed to query Prometheus range: status={}", response.getStatusCode());
+			return new PrometheusQueryResult(Collections.emptyList());
 
-    private PrometheusQueryResult parseQueryResult(String json) {
-        try {
-            JsonNode root = objectMapper.readTree(json);
-            JsonNode data = root.get("data");
+		}
+		catch (Exception e) {
+			log.error("Error querying Prometheus range: query={}", query, e);
+			return new PrometheusQueryResult(Collections.emptyList());
+		}
+	}
 
-            if (data == null || !data.has("result")) {
-                return new PrometheusQueryResult(Collections.emptyList());
-            }
+	private PrometheusQueryResult parseQueryResult(String json) {
+		try {
+			JsonNode root = objectMapper.readTree(json);
+			JsonNode data = root.get("data");
 
-            JsonNode results = data.get("result");
-            List<MetricResult> metrics = new ArrayList<>();
+			if (data == null || !data.has("result")) {
+				return new PrometheusQueryResult(Collections.emptyList());
+			}
 
-            for (JsonNode result : results) {
-                JsonNode metric = result.get("metric");
-                JsonNode value = result.get("value");
-                JsonNode values = result.get("values");
+			JsonNode results = data.get("result");
+			List<MetricResult> metrics = new ArrayList<>();
 
-                Map<String, String> labels = new HashMap<>();
-                if (metric != null) {
-                    metric.fields().forEachRemaining(entry ->
-                        labels.put(entry.getKey(), entry.getValue().asText())
-                    );
-                }
+			for (JsonNode result : results) {
+				JsonNode metric = result.get("metric");
+				JsonNode value = result.get("value");
+				JsonNode values = result.get("values");
 
-                if (value != null && value.isArray() && value.size() == 2) {
-                    // Instant query result
-                    long timestamp = value.get(0).asLong();
-                    double val = Double.parseDouble(value.get(1).asText());
-                    metrics.add(new MetricResult(labels, List.of(new MetricValue(timestamp, val))));
-                } else if (values != null && values.isArray()) {
-                    // Range query result
-                    List<MetricValue> valueList = new ArrayList<>();
-                    for (JsonNode v : values) {
-                        if (v.isArray() && v.size() == 2) {
-                            long timestamp = v.get(0).asLong();
-                            double val = Double.parseDouble(v.get(1).asText());
-                            valueList.add(new MetricValue(timestamp, val));
-                        }
-                    }
-                    metrics.add(new MetricResult(labels, valueList));
-                }
-            }
+				Map<String, String> labels = new HashMap<>();
+				if (metric != null) {
+					metric.fields().forEachRemaining(entry -> labels.put(entry.getKey(), entry.getValue().asText()));
+				}
 
-            return new PrometheusQueryResult(metrics);
+				if (value != null && value.isArray() && value.size() == 2) {
+					// Instant query result
+					long timestamp = value.get(0).asLong();
+					double val = Double.parseDouble(value.get(1).asText());
+					metrics.add(new MetricResult(labels, List.of(new MetricValue(timestamp, val))));
+				}
+				else if (values != null && values.isArray()) {
+					// Range query result
+					List<MetricValue> valueList = new ArrayList<>();
+					for (JsonNode v : values) {
+						if (v.isArray() && v.size() == 2) {
+							long timestamp = v.get(0).asLong();
+							double val = Double.parseDouble(v.get(1).asText());
+							valueList.add(new MetricValue(timestamp, val));
+						}
+					}
+					metrics.add(new MetricResult(labels, valueList));
+				}
+			}
 
-        } catch (Exception e) {
-            log.error("Error parsing Prometheus response", e);
-            return new PrometheusQueryResult(Collections.emptyList());
-        }
-    }
+			return new PrometheusQueryResult(metrics);
 
-    /**
-     * Prometheus query result
-     */
-    public static class PrometheusQueryResult {
-        private final List<MetricResult> results;
+		}
+		catch (Exception e) {
+			log.error("Error parsing Prometheus response", e);
+			return new PrometheusQueryResult(Collections.emptyList());
+		}
+	}
 
-        public PrometheusQueryResult(List<MetricResult> results) {
-            this.results = results;
-        }
+	/**
+	 * Prometheus query result
+	 */
+	public static class PrometheusQueryResult {
 
-        public List<MetricResult> getResults() {
-            return results;
-        }
+		private final List<MetricResult> results;
 
-        public boolean isEmpty() {
-            return results.isEmpty();
-        }
+		public PrometheusQueryResult(List<MetricResult> results) {
+			this.results = results;
+		}
 
-        public Optional<Double> getFirstValue() {
-            if (results.isEmpty() || results.get(0).getValues().isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(results.get(0).getValues().get(0).getValue());
-        }
-    }
+		public List<MetricResult> getResults() {
+			return results;
+		}
 
-    /**
-     * Individual metric result with labels and values
-     */
-    public static class MetricResult {
-        private final Map<String, String> labels;
-        private final List<MetricValue> values;
+		public boolean isEmpty() {
+			return results.isEmpty();
+		}
 
-        public MetricResult(Map<String, String> labels, List<MetricValue> values) {
-            this.labels = labels;
-            this.values = values;
-        }
+		public Optional<Double> getFirstValue() {
+			if (results.isEmpty() || results.get(0).getValues().isEmpty()) {
+				return Optional.empty();
+			}
+			return Optional.of(results.get(0).getValues().get(0).getValue());
+		}
 
-        public Map<String, String> getLabels() {
-            return labels;
-        }
+	}
 
-        public List<MetricValue> getValues() {
-            return values;
-        }
-    }
+	/**
+	 * Individual metric result with labels and values
+	 */
+	public static class MetricResult {
 
-    /**
-     * Metric value with timestamp
-     */
-    public static class MetricValue {
-        private final long timestamp;
-        private final double value;
+		private final Map<String, String> labels;
 
-        public MetricValue(long timestamp, double value) {
-            this.timestamp = timestamp;
-            this.value = value;
-        }
+		private final List<MetricValue> values;
 
-        public long getTimestamp() {
-            return timestamp;
-        }
+		public MetricResult(Map<String, String> labels, List<MetricValue> values) {
+			this.labels = labels;
+			this.values = values;
+		}
 
-        public double getValue() {
-            return value;
-        }
-    }
+		public Map<String, String> getLabels() {
+			return labels;
+		}
+
+		public List<MetricValue> getValues() {
+			return values;
+		}
+
+	}
+
+	/**
+	 * Metric value with timestamp
+	 */
+	public static class MetricValue {
+
+		private final long timestamp;
+
+		private final double value;
+
+		public MetricValue(long timestamp, double value) {
+			this.timestamp = timestamp;
+			this.value = value;
+		}
+
+		public long getTimestamp() {
+			return timestamp;
+		}
+
+		public double getValue() {
+			return value;
+		}
+
+	}
+
 }

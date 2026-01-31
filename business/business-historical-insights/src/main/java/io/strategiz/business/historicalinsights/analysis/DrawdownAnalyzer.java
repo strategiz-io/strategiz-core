@@ -14,15 +14,13 @@ import java.util.List;
  * Analyzes historical price data to calculate comprehensive drawdown statistics.
  * Drawdowns are peak-to-trough declines during a specific period.
  *
- * Key metrics calculated:
- * - Maximum drawdown (worst peak-to-trough decline)
- * - Average drawdown
- * - Drawdown duration and recovery times
- * - Significant drawdown events
+ * Key metrics calculated: - Maximum drawdown (worst peak-to-trough decline) - Average
+ * drawdown - Drawdown duration and recovery times - Significant drawdown events
  */
 public class DrawdownAnalyzer {
 
-	private static final double MIN_DRAWDOWN_THRESHOLD = 5.0; // 5% minimum to count as significant
+	private static final double MIN_DRAWDOWN_THRESHOLD = 5.0; // 5% minimum to count as
+																// significant
 
 	/**
 	 * Analyze drawdowns in the given price data.

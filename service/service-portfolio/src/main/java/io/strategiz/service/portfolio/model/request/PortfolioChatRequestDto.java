@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 /**
- * Request DTO for portfolio AI chat.
- * Supports conversational interaction about the user's portfolio.
+ * Request DTO for portfolio AI chat. Supports conversational interaction about the user's
+ * portfolio.
  */
 public class PortfolioChatRequestDto {
 

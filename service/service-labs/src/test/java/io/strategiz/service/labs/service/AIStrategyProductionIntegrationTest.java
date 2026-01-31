@@ -23,22 +23,18 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Production Integration Tests for AI Strategy Generation.
  *
- * These tests run against the REAL API (local or production) to verify:
- * 1. Both GENERATIVE_AI and AUTONOMOUS modes generate valid strategies
- * 2. Generated strategies BEAT buy-and-hold performance
- * 3. Tests pass for multiple symbols
+ * These tests run against the REAL API (local or production) to verify: 1. Both
+ * GENERATIVE_AI and AUTONOMOUS modes generate valid strategies 2. Generated strategies
+ * BEAT buy-and-hold performance 3. Tests pass for multiple symbols
  *
- * Configuration:
- * - STRATEGIZ_API_URL: Base URL (default: http://localhost:8080)
- * - STRATEGIZ_AUTH_TOKEN: Authentication token (required)
- * - STRATEGIZ_PROD_TEST: Set to "true" to enable these tests
+ * Configuration: - STRATEGIZ_API_URL: Base URL (default: http://localhost:8080) -
+ * STRATEGIZ_AUTH_TOKEN: Authentication token (required) - STRATEGIZ_PROD_TEST: Set to
+ * "true" to enable these tests
  *
- * Run with:
- *   STRATEGIZ_PROD_TEST=true STRATEGIZ_AUTH_TOKEN=your-token \
- *   mvn test -Dtest=AIStrategyProductionIntegrationTest
+ * Run with: STRATEGIZ_PROD_TEST=true STRATEGIZ_AUTH_TOKEN=your-token \ mvn test
+ * -Dtest=AIStrategyProductionIntegrationTest
  *
- * For local testing, start the server first:
- *   mvn spring-boot:run -pl application-api
+ * For local testing, start the server first: mvn spring-boot:run -pl application-api
  */
 @EnabledIfEnvironmentVariable(named = "STRATEGIZ_PROD_TEST", matches = "true")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -46,17 +42,26 @@ import static org.junit.jupiter.api.Assertions.*;
 class AIStrategyProductionIntegrationTest {
 
 	private static final String DEFAULT_API_URL = "http://localhost:8080";
+
 	private static final ObjectMapper objectMapper = new ObjectMapper();
+
 	private static HttpClient httpClient;
+
 	private static String apiUrl;
+
 	private static String authToken;
 
 	// Track results across all tests for final summary
 	private static final ConcurrentHashMap<String, TestResult> generativeResults = new ConcurrentHashMap<>();
+
 	private static final ConcurrentHashMap<String, TestResult> autonomousResults = new ConcurrentHashMap<>();
+
 	private static final AtomicInteger generativePassed = new AtomicInteger(0);
+
 	private static final AtomicInteger generativeFailed = new AtomicInteger(0);
+
 	private static final AtomicInteger autonomousPassed = new AtomicInteger(0);
+
 	private static final AtomicInteger autonomousFailed = new AtomicInteger(0);
 
 	// Symbols to test - covers stocks, ETFs, and different market caps
@@ -68,9 +73,7 @@ class AIStrategyProductionIntegrationTest {
 	@BeforeAll
 	static void setup() {
 		// Initialize HTTP client
-		httpClient = HttpClient.newBuilder()
-				.connectTimeout(Duration.ofSeconds(30))
-				.build();
+		httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
 
 		// Get configuration from environment
 		apiUrl = System.getenv("STRATEGIZ_API_URL");
@@ -80,8 +83,8 @@ class AIStrategyProductionIntegrationTest {
 
 		authToken = System.getenv("STRATEGIZ_AUTH_TOKEN");
 		if (authToken == null || authToken.isEmpty()) {
-			fail("STRATEGIZ_AUTH_TOKEN environment variable is required. " +
-					"Get a token by logging into the app and extracting it from browser dev tools.");
+			fail("STRATEGIZ_AUTH_TOKEN environment variable is required. "
+					+ "Get a token by logging into the app and extracting it from browser dev tools.");
 		}
 
 		System.out.println("\n" + "=".repeat(80));
@@ -104,11 +107,8 @@ class AIStrategyProductionIntegrationTest {
 		for (String symbol : TEST_SYMBOLS) {
 			TestResult result = generativeResults.get(symbol);
 			if (result != null) {
-				System.out.printf("  %s: %s (Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%)%n",
-						symbol,
-						result.passed ? "✅ PASS" : "❌ FAIL",
-						result.strategyReturn,
-						result.buyAndHoldReturn,
+				System.out.printf("  %s: %s (Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%)%n", symbol,
+						result.passed ? "✅ PASS" : "❌ FAIL", result.strategyReturn, result.buyAndHoldReturn,
 						result.outperformance);
 			}
 			else {
@@ -121,11 +121,8 @@ class AIStrategyProductionIntegrationTest {
 		for (String symbol : TEST_SYMBOLS) {
 			TestResult result = autonomousResults.get(symbol);
 			if (result != null) {
-				System.out.printf("  %s: %s (Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%)%n",
-						symbol,
-						result.passed ? "✅ PASS" : "❌ FAIL",
-						result.strategyReturn,
-						result.buyAndHoldReturn,
+				System.out.printf("  %s: %s (Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%)%n", symbol,
+						result.passed ? "✅ PASS" : "❌ FAIL", result.strategyReturn, result.buyAndHoldReturn,
 						result.outperformance);
 			}
 			else {
@@ -135,8 +132,8 @@ class AIStrategyProductionIntegrationTest {
 		System.out.printf("  TOTAL: %d passed, %d failed%n", autonomousPassed.get(), autonomousFailed.get());
 
 		System.out.println("\n" + "=".repeat(80));
-		boolean allPassed = generativeFailed.get() == 0 && autonomousFailed.get() == 0
-				&& generativePassed.get() > 0 && autonomousPassed.get() > 0;
+		boolean allPassed = generativeFailed.get() == 0 && autonomousFailed.get() == 0 && generativePassed.get() > 0
+				&& autonomousPassed.get() > 0;
 		System.out.println(allPassed ? "✅ ALL TESTS PASSED" : "❌ SOME TESTS FAILED");
 		System.out.println("=".repeat(80) + "\n");
 	}
@@ -194,29 +191,29 @@ class AIStrategyProductionIntegrationTest {
 
 				if (passed) {
 					generativePassed.incrementAndGet();
-					System.out.printf("  ✅ PASS: %s GENERATIVE_AI beats buy-and-hold by %.2f%%%n",
-							symbol, outperformance);
+					System.out.printf("  ✅ PASS: %s GENERATIVE_AI beats buy-and-hold by %.2f%%%n", symbol,
+							outperformance);
 				}
 				else {
 					generativeFailed.incrementAndGet();
-					System.out.printf("  ❌ FAIL: %s GENERATIVE_AI underperformed by %.2f%%%n",
-							symbol, outperformance);
+					System.out.printf("  ❌ FAIL: %s GENERATIVE_AI underperformed by %.2f%%%n", symbol, outperformance);
 				}
 
 				assertTrue(passed,
-						String.format("%s GENERATIVE_AI: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%). " +
-								"Outperformance: %.2f%% (required: >= %.2f%%)",
+						String.format(
+								"%s GENERATIVE_AI: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%). "
+										+ "Outperformance: %.2f%% (required: >= %.2f%%)",
 								symbol, strategyReturn, buyAndHoldReturn, outperformance, MIN_OUTPERFORMANCE));
 
 			}
 			catch (Exception e) {
 				generativeFailed.incrementAndGet();
 				generativeResults.put(symbol, new TestResult(false, 0, 0, 0));
-				System.out.printf("  ❌ ERROR: %s GENERATIVE_AI failed with exception: %s%n",
-						symbol, e.getMessage());
+				System.out.printf("  ❌ ERROR: %s GENERATIVE_AI failed with exception: %s%n", symbol, e.getMessage());
 				throw e;
 			}
 		}
+
 	}
 
 	// ========================================================================
@@ -261,8 +258,8 @@ class AIStrategyProductionIntegrationTest {
 				double buyAndHoldReturn = perf.path("buyAndHoldReturn").asDouble(0);
 				double outperformance = perf.path("outperformance").asDouble(strategyReturn - buyAndHoldReturn);
 
-				System.out.printf("  Results: Strategy=%.2f%%, B&H=%.2f%%, Outperformance=%.2f%%%n",
-						strategyReturn, buyAndHoldReturn, outperformance);
+				System.out.printf("  Results: Strategy=%.2f%%, B&H=%.2f%%, Outperformance=%.2f%%%n", strategyReturn,
+						buyAndHoldReturn, outperformance);
 
 				// Record result and assert
 				boolean passed = outperformance >= MIN_OUTPERFORMANCE;
@@ -270,29 +267,28 @@ class AIStrategyProductionIntegrationTest {
 
 				if (passed) {
 					autonomousPassed.incrementAndGet();
-					System.out.printf("  ✅ PASS: %s AUTONOMOUS beats buy-and-hold by %.2f%%%n",
-							symbol, outperformance);
+					System.out.printf("  ✅ PASS: %s AUTONOMOUS beats buy-and-hold by %.2f%%%n", symbol, outperformance);
 				}
 				else {
 					autonomousFailed.incrementAndGet();
-					System.out.printf("  ❌ FAIL: %s AUTONOMOUS underperformed by %.2f%%%n",
-							symbol, outperformance);
+					System.out.printf("  ❌ FAIL: %s AUTONOMOUS underperformed by %.2f%%%n", symbol, outperformance);
 				}
 
 				assertTrue(passed,
-						String.format("%s AUTONOMOUS: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%). " +
-								"Outperformance: %.2f%% (required: >= %.2f%%)",
+						String.format(
+								"%s AUTONOMOUS: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%). "
+										+ "Outperformance: %.2f%% (required: >= %.2f%%)",
 								symbol, strategyReturn, buyAndHoldReturn, outperformance, MIN_OUTPERFORMANCE));
 
 			}
 			catch (Exception e) {
 				autonomousFailed.incrementAndGet();
 				autonomousResults.put(symbol, new TestResult(false, 0, 0, 0));
-				System.out.printf("  ❌ ERROR: %s AUTONOMOUS failed with exception: %s%n",
-						symbol, e.getMessage());
+				System.out.printf("  ❌ ERROR: %s AUTONOMOUS failed with exception: %s%n", symbol, e.getMessage());
 				throw e;
 			}
 		}
+
 	}
 
 	// ========================================================================
@@ -331,56 +327,46 @@ class AIStrategyProductionIntegrationTest {
 	// ========================================================================
 
 	private JsonNode callGenerateStrategy(String symbol, String autonomousMode) throws Exception {
-		String requestBody = objectMapper.writeValueAsString(Map.of(
-				"prompt", "Generate a trading strategy for " + symbol,
-				"autonomousMode", autonomousMode,
-				"useHistoricalInsights", true,
-				"context", Map.of(
-						"symbols", List.of(symbol),
-						"timeframe", "1D"),
-				"historicalInsightsOptions", Map.of(
-						"lookbackDays", 750,
-						"fastMode", true)));
+		String requestBody = objectMapper.writeValueAsString(
+				Map.of("prompt", "Generate a trading strategy for " + symbol, "autonomousMode", autonomousMode,
+						"useHistoricalInsights", true, "context", Map.of("symbols", List.of(symbol), "timeframe", "1D"),
+						"historicalInsightsOptions", Map.of("lookbackDays", 750, "fastMode", true)));
 
 		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(apiUrl + "/v1/labs/ai/generate-strategy"))
-				.header("Content-Type", "application/json")
-				.header("Authorization", "Bearer " + authToken)
-				.timeout(Duration.ofMinutes(5)) // Long timeout for AI operations
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody))
-				.build();
+			.uri(URI.create(apiUrl + "/v1/labs/ai/generate-strategy"))
+			.header("Content-Type", "application/json")
+			.header("Authorization", "Bearer " + authToken)
+			.timeout(Duration.ofMinutes(5)) // Long timeout for AI operations
+			.POST(HttpRequest.BodyPublishers.ofString(requestBody))
+			.build();
 
 		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
 		if (response.statusCode() != 200) {
-			throw new RuntimeException("Generate strategy failed with status " + response.statusCode()
-					+ ": " + response.body());
+			throw new RuntimeException(
+					"Generate strategy failed with status " + response.statusCode() + ": " + response.body());
 		}
 
 		return objectMapper.readTree(response.body());
 	}
 
 	private JsonNode callExecuteCode(String code, String symbol) throws Exception {
-		String requestBody = objectMapper.writeValueAsString(Map.of(
-				"code", code,
-				"language", "python",
-				"symbol", symbol,
-				"timeframe", "1D",
-				"period", "3y"));
+		String requestBody = objectMapper.writeValueAsString(
+				Map.of("code", code, "language", "python", "symbol", symbol, "timeframe", "1D", "period", "3y"));
 
 		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(apiUrl + "/v1/strategies/execute-code"))
-				.header("Content-Type", "application/json")
-				.header("Authorization", "Bearer " + authToken)
-				.timeout(Duration.ofMinutes(2))
-				.POST(HttpRequest.BodyPublishers.ofString(requestBody))
-				.build();
+			.uri(URI.create(apiUrl + "/v1/strategies/execute-code"))
+			.header("Content-Type", "application/json")
+			.header("Authorization", "Bearer " + authToken)
+			.timeout(Duration.ofMinutes(2))
+			.POST(HttpRequest.BodyPublishers.ofString(requestBody))
+			.build();
 
 		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
 		if (response.statusCode() != 200) {
-			throw new RuntimeException("Execute code failed with status " + response.statusCode()
-					+ ": " + response.body());
+			throw new RuntimeException(
+					"Execute code failed with status " + response.statusCode() + ": " + response.body());
 		}
 
 		return objectMapper.readTree(response.body());

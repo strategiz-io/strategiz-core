@@ -24,9 +24,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Service for managing user-to-owner subscriptions.
- * Users subscribe to OWNERS (not individual strategies) to deploy all of the owner's PUBLIC
- * strategies.
+ * Service for managing user-to-owner subscriptions. Users subscribe to OWNERS (not
+ * individual strategies) to deploy all of the owner's PUBLIC strategies.
  */
 @Service
 public class UserSubscriptionService extends BaseService {
@@ -86,7 +85,8 @@ public class UserSubscriptionService extends BaseService {
 		}
 
 		// Get owner settings and validate
-		Optional<OwnerSubscriptionSettings> ownerSettingsOpt = ownerSubscriptionSettingsRepository.findByUserId(ownerId);
+		Optional<OwnerSubscriptionSettings> ownerSettingsOpt = ownerSubscriptionSettingsRepository
+			.findByUserId(ownerId);
 		if (ownerSettingsOpt.isEmpty() || !ownerSettingsOpt.get().isEnabled()) {
 			throw new StrategizException(ProfileErrors.OWNER_NOT_ACCEPTING_SUBSCRIPTIONS, MODULE_NAME,
 					"Owner is not accepting subscriptions");
@@ -116,7 +116,8 @@ public class UserSubscriptionService extends BaseService {
 	}
 
 	/**
-	 * Create a subscription record after successful Stripe payment. Called from Stripe webhook.
+	 * Create a subscription record after successful Stripe payment. Called from Stripe
+	 * webhook.
 	 * @param subscriberId The subscriber's user ID
 	 * @param ownerId The owner's user ID
 	 * @param stripeSubscriptionId The Stripe subscription ID
@@ -314,8 +315,7 @@ public class UserSubscriptionService extends BaseService {
 			// This is a new subscription - create it
 			Optional<OwnerSubscriptionSettings> ownerSettingsOpt = ownerSubscriptionSettingsRepository
 				.findByUserId(ownerId);
-			BigDecimal price = ownerSettingsOpt.map(OwnerSubscriptionSettings::getMonthlyPrice)
-				.orElse(BigDecimal.ZERO);
+			BigDecimal price = ownerSettingsOpt.map(OwnerSubscriptionSettings::getMonthlyPrice).orElse(BigDecimal.ZERO);
 
 			createSubscription(subscriberId, ownerId, stripeSubscriptionId, price);
 			return;
@@ -379,7 +379,9 @@ public class UserSubscriptionService extends BaseService {
 		if (ownerOpt.isPresent()) {
 			UserEntity owner = ownerOpt.get();
 			response.setOwnerDisplayName(owner.getProfile().getName());
-			response.setOwnerUsername(owner.getProfile().getName()); // Use name as username for now
+			response.setOwnerUsername(owner.getProfile().getName()); // Use name as
+																		// username for
+																		// now
 			response.setOwnerAvatarUrl(owner.getProfile().getPhotoURL());
 		}
 
@@ -398,7 +400,10 @@ public class UserSubscriptionService extends BaseService {
 		if (subscriberOpt.isPresent()) {
 			UserEntity subscriber = subscriberOpt.get();
 			response.setSubscriberDisplayName(subscriber.getProfile().getName());
-			response.setSubscriberUsername(subscriber.getProfile().getName()); // Use name as username for now
+			response.setSubscriberUsername(subscriber.getProfile().getName()); // Use name
+																				// as
+																				// username
+																				// for now
 			response.setSubscriberAvatarUrl(subscriber.getProfile().getPhotoURL());
 		}
 		return response;

@@ -1,8 +1,8 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Represents the market behavior characteristics of a symbol.
- * Includes trend direction, strength, and whether the symbol exhibits mean-reverting behavior.
+ * Represents the market behavior characteristics of a symbol. Includes trend direction,
+ * strength, and whether the symbol exhibits mean-reverting behavior.
  */
 public class MarketCharacteristics {
 

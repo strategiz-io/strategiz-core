@@ -20,8 +20,8 @@ import java.util.*;
  * months, all symbols) - POST /v1/marketdata/admin/backfill/test - Test backfill (3
  * symbols x 1 week) - POST /v1/marketdata/admin/backfill/custom - Custom backfill
  * (specific symbols/dates) - POST /v1/marketdata/admin/incremental - Force incremental
- * collection - POST /v1/marketdata/admin/incremental/all-timeframes - Incremental for
- * all timeframes - GET /v1/marketdata/admin/status - Get collection status/stats
+ * collection - POST /v1/marketdata/admin/incremental/all-timeframes - Incremental for all
+ * timeframes - GET /v1/marketdata/admin/status - Get collection status/stats
  *
  * Security: Should be restricted to admin users only (add security annotations)
  *
@@ -53,15 +53,16 @@ public class MarketDataBatchController {
 	/**
 	 * Execute full backfill - configurable years of data for all symbols
 	 *
-	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1D",
-	 * "1h", "1W", "1M"], "years": 7 } (optional)
+	 * POST /v1/marketdata/admin/backfill/full Request body: { "timeframes": ["1D", "1h",
+	 * "1W", "1M"], "years": 7 } (optional)
 	 *
 	 * Processes all timeframes synchronously and returns results when complete.
 	 *
 	 * WARNING: This is resource-intensive and may take several hours
 	 */
 	@PostMapping("/backfill/full")
-	public ResponseEntity<Map<String, Object>> executeFullBackfill(@RequestBody(required = false) BackfillRequest request) {
+	public ResponseEntity<Map<String, Object>> executeFullBackfill(
+			@RequestBody(required = false) BackfillRequest request) {
 
 		List<String> timeframes = request != null && request.timeframes != null && !request.timeframes.isEmpty()
 				? request.timeframes : Arrays.asList("1D", "1h", "1W", "1M");
@@ -81,7 +82,8 @@ public class MarketDataBatchController {
 			String tf = timeframe.trim();
 			if (!Timeframe.isValid(tf)) {
 				log.warn("Skipping invalid timeframe: {} - must use short format (1H, 1D, 1W, 1M)", timeframe);
-			} else {
+			}
+			else {
 				validTimeframes.add(tf);
 			}
 		}
@@ -108,41 +110,41 @@ public class MarketDataBatchController {
 
 		try {
 			for (String timeframe : validTimeframes) {
-			try {
-				log.info("--- Processing timeframe: {} ---", timeframe);
-				long tfStartTime = System.currentTimeMillis();
+				try {
+					log.info("--- Processing timeframe: {} ---", timeframe);
+					long tfStartTime = System.currentTimeMillis();
 
-				MarketDataCollectionService.CollectionResult result = collectionService.backfillIntradayData(
-						startDate, endDate, timeframe);
+					MarketDataCollectionService.CollectionResult result = collectionService
+						.backfillIntradayData(startDate, endDate, timeframe);
 
-				long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+					long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
 
-				totalSymbolsProcessed += result.totalSymbolsProcessed;
-				totalDataPointsStored += result.totalDataPointsStored;
-				totalErrors += result.errorCount;
+					totalSymbolsProcessed += result.totalSymbolsProcessed;
+					totalDataPointsStored += result.totalDataPointsStored;
+					totalErrors += result.errorCount;
 
-				Map<String, Object> tfResult = new HashMap<>();
-				tfResult.put("timeframe", timeframe);
-				tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
-				tfResult.put("dataPointsStored", result.totalDataPointsStored);
-				tfResult.put("errors", result.errorCount);
-				tfResult.put("durationSeconds", tfDuration);
-				timeframeResults.add(tfResult);
+					Map<String, Object> tfResult = new HashMap<>();
+					tfResult.put("timeframe", timeframe);
+					tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
+					tfResult.put("dataPointsStored", result.totalDataPointsStored);
+					tfResult.put("errors", result.errorCount);
+					tfResult.put("durationSeconds", tfDuration);
+					timeframeResults.add(tfResult);
 
-				log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
-						timeframe, tfDuration, result.totalSymbolsProcessed, result.totalDataPointsStored,
-						result.errorCount);
+					log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---", timeframe,
+							tfDuration, result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount);
 
-			} catch (Exception e) {
-				log.error("Failed to process timeframe {}: {}", timeframe, e.getMessage(), e);
-				totalErrors++;
+				}
+				catch (Exception e) {
+					log.error("Failed to process timeframe {}: {}", timeframe, e.getMessage(), e);
+					totalErrors++;
 
-				Map<String, Object> tfResult = new HashMap<>();
-				tfResult.put("timeframe", timeframe);
-				tfResult.put("error", e.getMessage());
-				timeframeResults.add(tfResult);
+					Map<String, Object> tfResult = new HashMap<>();
+					tfResult.put("timeframe", timeframe);
+					tfResult.put("error", e.getMessage());
+					timeframeResults.add(tfResult);
+				}
 			}
-		}
 
 			long overallDuration = (System.currentTimeMillis() - overallStartTime) / 1000;
 
@@ -381,8 +383,8 @@ public class MarketDataBatchController {
 	 * POST /v1/marketdata/admin/incremental/all-timeframes Request body: {
 	 * "lookbackHours": 2 } (optional, defaults to 2 hours)
 	 *
-	 * This pulls the latest delta data across all 9 timeframes: 1Min, 5Min, 15Min,
-	 * 30Min, 1H, 4H, 1D, 1W, 1M
+	 * This pulls the latest delta data across all 9 timeframes: 1Min, 5Min, 15Min, 30Min,
+	 * 1H, 4H, 1D, 1W, 1M
 	 */
 	@PostMapping("/incremental/all-timeframes")
 	public ResponseEntity<Map<String, Object>> executeAllTimeframesIncremental(
@@ -414,42 +416,42 @@ public class MarketDataBatchController {
 
 		try {
 			for (String timeframe : allTimeframes) {
-			try {
-				log.info("--- Collecting timeframe: {} ---", timeframe);
-				long tfStartTime = System.currentTimeMillis();
+				try {
+					log.info("--- Collecting timeframe: {} ---", timeframe);
+					long tfStartTime = System.currentTimeMillis();
 
-				MarketDataCollectionService.CollectionResult result = collectionService.backfillIntradayData(startDate,
-						endDate, timeframe);
+					MarketDataCollectionService.CollectionResult result = collectionService
+						.backfillIntradayData(startDate, endDate, timeframe);
 
-				long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
+					long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
 
-				totalSymbolsProcessed += result.totalSymbolsProcessed;
-				totalDataPointsStored += result.totalDataPointsStored;
-				totalErrors += result.errorCount;
-				timeframesProcessed++;
+					totalSymbolsProcessed += result.totalSymbolsProcessed;
+					totalDataPointsStored += result.totalDataPointsStored;
+					totalErrors += result.errorCount;
+					timeframesProcessed++;
 
-				Map<String, Object> tfResult = new HashMap<>();
-				tfResult.put("timeframe", timeframe);
-				tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
-				tfResult.put("dataPointsStored", result.totalDataPointsStored);
-				tfResult.put("errors", result.errorCount);
-				tfResult.put("durationSeconds", tfDuration);
-				timeframeResults.add(tfResult);
+					Map<String, Object> tfResult = new HashMap<>();
+					tfResult.put("timeframe", timeframe);
+					tfResult.put("symbolsProcessed", result.totalSymbolsProcessed);
+					tfResult.put("dataPointsStored", result.totalDataPointsStored);
+					tfResult.put("errors", result.errorCount);
+					tfResult.put("durationSeconds", tfDuration);
+					timeframeResults.add(tfResult);
 
-				log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---", timeframe, tfDuration,
-						result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount);
+					log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---", timeframe,
+							tfDuration, result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount);
 
+				}
+				catch (Exception e) {
+					log.error("Failed to collect timeframe {}: {}", timeframe, e.getMessage(), e);
+					totalErrors++;
+
+					Map<String, Object> tfResult = new HashMap<>();
+					tfResult.put("timeframe", timeframe);
+					tfResult.put("error", e.getMessage());
+					timeframeResults.add(tfResult);
+				}
 			}
-			catch (Exception e) {
-				log.error("Failed to collect timeframe {}: {}", timeframe, e.getMessage(), e);
-				totalErrors++;
-
-				Map<String, Object> tfResult = new HashMap<>();
-				tfResult.put("timeframe", timeframe);
-				tfResult.put("error", e.getMessage());
-				timeframeResults.add(tfResult);
-			}
-		}
 
 			long totalDuration = (System.currentTimeMillis() - startTime) / 1000;
 
@@ -495,10 +497,10 @@ public class MarketDataBatchController {
 	 *
 	 * GET /v1/marketdata/admin/backfill/status
 	 *
-	 * Returns: - status: IDLE, RUNNING, COMPLETED, FAILED - timeframe: Current
-	 * timeframe being processed - symbolsProcessed: Number of symbols completed -
-	 * totalSymbols: Total symbols in job - startTime: Job start time - currentSymbol:
-	 * Symbol currently being processed - errorMessage: Error details if failed
+	 * Returns: - status: IDLE, RUNNING, COMPLETED, FAILED - timeframe: Current timeframe
+	 * being processed - symbolsProcessed: Number of symbols completed - totalSymbols:
+	 * Total symbols in job - startTime: Job start time - currentSymbol: Symbol currently
+	 * being processed - errorMessage: Error details if failed
 	 */
 	@GetMapping("/backfill/status")
 	public ResponseEntity<Map<String, Object>> getBackfillStatus() {
@@ -524,8 +526,8 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/backfill/cancel
 	 *
-	 * Requests cancellation of the running backfill. The job will stop processing new symbols
-	 * but will finish the current symbol being processed.
+	 * Requests cancellation of the running backfill. The job will stop processing new
+	 * symbols but will finish the current symbol being processed.
 	 */
 	@PostMapping("/backfill/cancel")
 	public ResponseEntity<Map<String, Object>> cancelBackfill() {
@@ -592,8 +594,8 @@ public class MarketDataBatchController {
 	 *
 	 * GET /v1/marketdata/admin/cleanup/analyze?timeframe=1D
 	 *
-	 * Returns: - Corrupted row counts - Timestamp distribution by hour - Helps decide
-	 * if cleanup is needed
+	 * Returns: - Corrupted row counts - Timestamp distribution by hour - Helps decide if
+	 * cleanup is needed
 	 */
 	@GetMapping("/cleanup/analyze")
 	public ResponseEntity<Map<String, Object>> analyzeCorruption(
@@ -697,7 +699,8 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/cleanup/all
 	 *
-	 * Deletes corrupted data from 1D, 1W, 1M (non-midnight UTC) and 1H (non-hour) timeframes.
+	 * Deletes corrupted data from 1D, 1W, 1M (non-midnight UTC) and 1H (non-hour)
+	 * timeframes.
 	 */
 	@PostMapping("/cleanup/all")
 	public ResponseEntity<Map<String, Object>> deleteAllCorruptedBars() {
@@ -733,8 +736,8 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/cleanup/optimize
 	 *
-	 * Forces ClickHouse to merge data parts and apply ALTER TABLE DELETE mutations.
-	 * This can be resource-intensive on large tables.
+	 * Forces ClickHouse to merge data parts and apply ALTER TABLE DELETE mutations. This
+	 * can be resource-intensive on large tables.
 	 */
 	@PostMapping("/cleanup/optimize")
 	public ResponseEntity<Map<String, Object>> optimizeTable() {
@@ -771,9 +774,8 @@ public class MarketDataBatchController {
 	 *
 	 * POST /v1/marketdata/admin/migrate/timeframe-format
 	 *
-	 * Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M
-	 * - Minutes/hours: lowercase (1m, 30m, 1h, 4h)
-	 * - Day/week/month: uppercase (1D, 1W, 1M)
+	 * Target format: 1m, 30m, 1h, 4h, 1D, 1W, 1M - Minutes/hours: lowercase (1m, 30m, 1h,
+	 * 4h) - Day/week/month: uppercase (1D, 1W, 1M)
 	 */
 	@PostMapping("/migrate/timeframe-format")
 	public ResponseEntity<Map<String, Object>> migrateTimeframeFormat() {
@@ -790,12 +792,11 @@ public class MarketDataBatchController {
 			response.put("status", "success");
 			response.put("message", "Timeframe format migration submitted");
 			response.put("targetFormat", "1m, 30m, 1h, 4h, 1D, 1W, 1M");
-			response.put("conversions", java.util.List.of(
-					"1Hour->1h", "1H->1h", "4Hour->4h", "4H->4h",
-					"1Day->1D", "1Week->1W", "1Month->1M",
-					"1Min->1m", "30Min->30m"));
+			response.put("conversions", java.util.List.of("1Hour->1h", "1H->1h", "4Hour->4h", "4H->4h", "1Day->1D",
+					"1Week->1W", "1Month->1M", "1Min->1m", "30Min->30m"));
 			response.put("durationSeconds", duration);
-			response.put("note", "Migration is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately, then verify with analyze endpoint.");
+			response.put("note",
+					"Migration is async in ClickHouse. Run OPTIMIZE TABLE to apply immediately, then verify with analyze endpoint.");
 
 			log.info("Timeframe format migration completed in {}s", duration);
 
@@ -811,8 +812,8 @@ public class MarketDataBatchController {
 	}
 
 	/**
-	 * Get distinct timeframes in the database with their counts.
-	 * Useful for diagnosing data format issues.
+	 * Get distinct timeframes in the database with their counts. Useful for diagnosing
+	 * data format issues.
 	 *
 	 * GET /v1/marketdata/admin/timeframes
 	 */

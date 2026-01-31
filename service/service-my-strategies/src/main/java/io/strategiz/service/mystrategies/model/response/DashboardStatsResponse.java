@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Dashboard statistics response for My Strategies page.
- * Provides a comprehensive overview of all user strategies, alerts, and bots.
+ * Dashboard statistics response for My Strategies page. Provides a comprehensive overview
+ * of all user strategies, alerts, and bots.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DashboardStatsResponse {

@@ -12,14 +12,15 @@ import org.springframework.core.env.Environment;
 @Configuration
 public class ActuatorConfig {
 
-    /**
-     * Customizes the meter registry with application information
-     */
-    @Bean
-    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags(Environment environment) {
-        return registry -> registry.config()
-                .commonTags("application", "strategiz-core")
-                .commonTags("environment", environment.getActiveProfiles().length > 0 ? 
-                        environment.getActiveProfiles()[0] : "default");
-    }
+	/**
+	 * Customizes the meter registry with application information
+	 */
+	@Bean
+	public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags(Environment environment) {
+		return registry -> registry.config()
+			.commonTags("application", "strategiz-core")
+			.commonTags("environment",
+					environment.getActiveProfiles().length > 0 ? environment.getActiveProfiles()[0] : "default");
+	}
+
 }

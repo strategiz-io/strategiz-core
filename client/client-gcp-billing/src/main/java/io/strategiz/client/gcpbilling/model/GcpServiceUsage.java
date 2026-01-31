@@ -6,11 +6,6 @@ import java.time.Instant;
 /**
  * Usage metrics for a specific GCP service
  */
-public record GcpServiceUsage(
-        String serviceName,
-        String metricName,
-        BigDecimal usage,
-        String unit,
-        BigDecimal estimatedCost,
-        Instant timestamp
-) {}
+public record GcpServiceUsage(String serviceName, String metricName, BigDecimal usage, String unit,
+		BigDecimal estimatedCost, Instant timestamp) {
+}

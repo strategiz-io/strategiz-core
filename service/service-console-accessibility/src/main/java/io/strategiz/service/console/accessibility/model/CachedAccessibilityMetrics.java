@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * DTO for cached accessibility metrics from CI/CD or on-demand scans.
- * Used as request body for POST /cache endpoint.
+ * DTO for cached accessibility metrics from CI/CD or on-demand scans. Used as request
+ * body for POST /cache endpoint.
  */
 public class CachedAccessibilityMetrics {
 

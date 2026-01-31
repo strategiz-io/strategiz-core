@@ -44,7 +44,8 @@ public class TestDiscoveryService {
 
 	private static final Pattern PLAYWRIGHT_DESCRIBE_PATTERN = Pattern.compile("describe\\(['\"](.+?)['\"]");
 
-	private static final Pattern JUNIT_TEST_PATTERN = Pattern.compile("@Test\\s+.*?(?:public|private|protected)?\\s+void\\s+(\\w+)");
+	private static final Pattern JUNIT_TEST_PATTERN = Pattern
+		.compile("@Test\\s+.*?(?:public|private|protected)?\\s+void\\s+(\\w+)");
 
 	private static final Pattern JUNIT_CLASS_PATTERN = Pattern.compile("class\\s+(\\w+Test)\\s");
 
@@ -480,7 +481,8 @@ public class TestDiscoveryService {
 
 	private void scanPlaywrightDirectory(Path e2ePath, String appId, Map<String, List<TestCaseEntity>> journeyTests) {
 		try (Stream<Path> files = Files.walk(e2ePath)) {
-			List<Path> specFiles = files.filter(p -> p.toString().endsWith(".spec.ts") || p.toString().endsWith(".spec.js"))
+			List<Path> specFiles = files
+				.filter(p -> p.toString().endsWith(".spec.ts") || p.toString().endsWith(".spec.js"))
 				.toList();
 
 			for (Path specFile : specFiles) {

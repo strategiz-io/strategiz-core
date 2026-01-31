@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * GitHub App authentication client
- * Handles JWT generation and installation token management
+ * GitHub App authentication client Handles JWT generation and installation token
+ * management
  *
  * Only created when GitHub App is enabled via github.app.enabled=true
  */
@@ -33,198 +33,210 @@ import java.util.Map;
 @ConditionalOnProperty(name = "github.app.enabled", havingValue = "true")
 public class GitHubAppAuthClient {
 
-    private static final Logger log = LoggerFactory.getLogger(GitHubAppAuthClient.class);
-    private static final String GITHUB_API_URL = "https://api.github.com";
+	private static final Logger log = LoggerFactory.getLogger(GitHubAppAuthClient.class);
 
-    private final GitHubAppConfig config;
-    private final RestTemplate restTemplate;
-    private PrivateKey privateKey;
-    private String cachedToken;
-    private Instant tokenExpiry;
+	private static final String GITHUB_API_URL = "https://api.github.com";
 
-    public GitHubAppAuthClient(GitHubAppConfig config, RestTemplate restTemplate) {
-        this.config = config;
-        this.restTemplate = restTemplate;
-        this.privateKey = loadPrivateKey();
-    }
+	private final GitHubAppConfig config;
 
-    /**
-     * Get installation access token for GitHub API calls
-     * Generates new token if expired or not cached
-     */
-    public String getInstallationToken(String owner, String repo) {
-        if (cachedToken != null && tokenExpiry != null && Instant.now().isBefore(tokenExpiry)) {
-            return cachedToken;
-        }
+	private final RestTemplate restTemplate;
 
-        try {
-            // Step 1: Generate JWT
-            String jwt = generateJWT();
+	private PrivateKey privateKey;
 
-            // Step 2: Find installation ID for the repository
-            Long installationId = getInstallationId(jwt, owner, repo);
-            if (installationId == null) {
-                log.error("No installation found for repository {}/{}", owner, repo);
-                return null;
-            }
+	private String cachedToken;
 
-            // Step 3: Get installation access token
-            String token = getInstallationAccessToken(jwt, installationId);
-            if (token != null) {
-                cachedToken = token;
-                // GitHub installation tokens expire after 1 hour, cache for 50 minutes
-                tokenExpiry = Instant.now().plus(50, ChronoUnit.MINUTES);
-            }
+	private Instant tokenExpiry;
 
-            return token;
+	public GitHubAppAuthClient(GitHubAppConfig config, RestTemplate restTemplate) {
+		this.config = config;
+		this.restTemplate = restTemplate;
+		this.privateKey = loadPrivateKey();
+	}
 
-        } catch (Exception e) {
-            log.error("Error getting installation token: {}", e.getMessage(), e);
-            return null;
-        }
-    }
+	/**
+	 * Get installation access token for GitHub API calls Generates new token if expired
+	 * or not cached
+	 */
+	public String getInstallationToken(String owner, String repo) {
+		if (cachedToken != null && tokenExpiry != null && Instant.now().isBefore(tokenExpiry)) {
+			return cachedToken;
+		}
 
-    /**
-     * Generate JWT signed with GitHub App private key
-     */
-    private String generateJWT() {
-        Instant now = Instant.now();
-        Instant expiry = now.plus(10, ChronoUnit.MINUTES);
+		try {
+			// Step 1: Generate JWT
+			String jwt = generateJWT();
 
-        return Jwts.builder()
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(expiry))
-                .setIssuer(config.getAppId())
-                .signWith(privateKey, SignatureAlgorithm.RS256)
-                .compact();
-    }
+			// Step 2: Find installation ID for the repository
+			Long installationId = getInstallationId(jwt, owner, repo);
+			if (installationId == null) {
+				log.error("No installation found for repository {}/{}", owner, repo);
+				return null;
+			}
 
-    /**
-     * Get installation ID for a specific repository
-     */
-    private Long getInstallationId(String jwt, String owner, String repo) {
-        try {
-            // First, try to get installation for the specific repo
-            String url = String.format("%s/repos/%s/%s/installation", GITHUB_API_URL, owner, repo);
+			// Step 3: Get installation access token
+			String token = getInstallationAccessToken(jwt, installationId);
+			if (token != null) {
+				cachedToken = token;
+				// GitHub installation tokens expire after 1 hour, cache for 50 minutes
+				tokenExpiry = Instant.now().plus(50, ChronoUnit.MINUTES);
+			}
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + jwt);
-            headers.set("Accept", "application/vnd.github+json");
+			return token;
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+		}
+		catch (Exception e) {
+			log.error("Error getting installation token: {}", e.getMessage(), e);
+			return null;
+		}
+	}
 
-            Map<String, Object> installation = response.getBody();
-            if (installation != null && installation.containsKey("id")) {
-                return ((Number) installation.get("id")).longValue();
-            }
+	/**
+	 * Generate JWT signed with GitHub App private key
+	 */
+	private String generateJWT() {
+		Instant now = Instant.now();
+		Instant expiry = now.plus(10, ChronoUnit.MINUTES);
 
-        } catch (Exception e) {
-            log.debug("Could not get installation for {}/{}, trying to list all installations", owner, repo);
+		return Jwts.builder()
+			.setIssuedAt(Date.from(now))
+			.setExpiration(Date.from(expiry))
+			.setIssuer(config.getAppId())
+			.signWith(privateKey, SignatureAlgorithm.RS256)
+			.compact();
+	}
 
-            // Fallback: List all installations and find the right one
-            try {
-                String url = String.format("%s/app/installations", GITHUB_API_URL);
+	/**
+	 * Get installation ID for a specific repository
+	 */
+	private Long getInstallationId(String jwt, String owner, String repo) {
+		try {
+			// First, try to get installation for the specific repo
+			String url = String.format("%s/repos/%s/%s/installation", GITHUB_API_URL, owner, repo);
 
-                HttpHeaders headers = new HttpHeaders();
-                headers.set("Authorization", "Bearer " + jwt);
-                headers.set("Accept", "application/vnd.github+json");
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Bearer " + jwt);
+			headers.set("Accept", "application/vnd.github+json");
 
-                HttpEntity<String> entity = new HttpEntity<>(headers);
-                ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
 
-                List<Map<String, Object>> installations = response.getBody();
-                if (installations != null && !installations.isEmpty()) {
-                    // Return the first installation ID
-                    Map<String, Object> firstInstallation = installations.get(0);
-                    return ((Number) firstInstallation.get("id")).longValue();
-                }
+			Map<String, Object> installation = response.getBody();
+			if (installation != null && installation.containsKey("id")) {
+				return ((Number) installation.get("id")).longValue();
+			}
 
-            } catch (Exception ex) {
-                log.error("Could not list installations: {}", ex.getMessage());
-            }
-        }
+		}
+		catch (Exception e) {
+			log.debug("Could not get installation for {}/{}, trying to list all installations", owner, repo);
 
-        return null;
-    }
+			// Fallback: List all installations and find the right one
+			try {
+				String url = String.format("%s/app/installations", GITHUB_API_URL);
 
-    /**
-     * Get installation access token using JWT
-     */
-    private String getInstallationAccessToken(String jwt, Long installationId) {
-        try {
-            String url = String.format("%s/app/installations/%d/access_tokens", GITHUB_API_URL, installationId);
+				HttpHeaders headers = new HttpHeaders();
+				headers.set("Authorization", "Bearer " + jwt);
+				headers.set("Accept", "application/vnd.github+json");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + jwt);
-            headers.set("Accept", "application/vnd.github+json");
+				HttpEntity<String> entity = new HttpEntity<>(headers);
+				ResponseEntity<List> response = restTemplate.exchange(url, HttpMethod.GET, entity, List.class);
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
+				List<Map<String, Object>> installations = response.getBody();
+				if (installations != null && !installations.isEmpty()) {
+					// Return the first installation ID
+					Map<String, Object> firstInstallation = installations.get(0);
+					return ((Number) firstInstallation.get("id")).longValue();
+				}
 
-            Map<String, Object> tokenResponse = response.getBody();
-            if (tokenResponse != null && tokenResponse.containsKey("token")) {
-                log.info("Successfully obtained installation access token");
-                return (String) tokenResponse.get("token");
-            }
+			}
+			catch (Exception ex) {
+				log.error("Could not list installations: {}", ex.getMessage());
+			}
+		}
 
-        } catch (Exception e) {
-            log.error("Error getting installation access token: {}", e.getMessage());
-        }
+		return null;
+	}
 
-        return null;
-    }
+	/**
+	 * Get installation access token using JWT
+	 */
+	private String getInstallationAccessToken(String jwt, Long installationId) {
+		try {
+			String url = String.format("%s/app/installations/%d/access_tokens", GITHUB_API_URL, installationId);
 
-    /**
-     * Load private key from PEM format string
-     * Handles both standard PEM format and escaped newlines from Secret Manager
-     */
-    private PrivateKey loadPrivateKey() {
-        try {
-            String privateKeyPem = config.getPrivateKey();
-            if (privateKeyPem == null || privateKeyPem.isEmpty()) {
-                throw new IllegalStateException("GitHub App private key not configured");
-            }
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Bearer " + jwt);
+			headers.set("Accept", "application/vnd.github+json");
 
-            // Normalize PEM format - replace literal \n with actual newlines
-            // This handles keys stored in Secret Manager where newlines may be escaped
-            privateKeyPem = privateKeyPem.replace("\\n", "\n");
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.POST, entity, Map.class);
 
-            // Ensure proper PEM headers/footers
-            if (!privateKeyPem.contains("-----BEGIN")) {
-                throw new IllegalStateException("Private key must be in PEM format with BEGIN/END markers");
-            }
+			Map<String, Object> tokenResponse = response.getBody();
+			if (tokenResponse != null && tokenResponse.containsKey("token")) {
+				log.info("Successfully obtained installation access token");
+				return (String) tokenResponse.get("token");
+			}
 
-            // Parse PEM format
-            try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyPem))) {
-                Object object = pemParser.readObject();
-                if (object == null) {
-                    throw new IllegalStateException("Failed to parse private key - PEM parser returned null");
-                }
+		}
+		catch (Exception e) {
+			log.error("Error getting installation access token: {}", e.getMessage());
+		}
 
-                JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+		return null;
+	}
 
-                if (object instanceof PrivateKeyInfo) {
-                    PrivateKey key = converter.getPrivateKey((PrivateKeyInfo) object);
-                    log.info("Successfully loaded GitHub App private key");
-                    return key;
-                } else {
-                    throw new IllegalStateException("Invalid private key format - expected PrivateKeyInfo, got: " + object.getClass().getName());
-                }
-            }
+	/**
+	 * Load private key from PEM format string Handles both standard PEM format and
+	 * escaped newlines from Secret Manager
+	 */
+	private PrivateKey loadPrivateKey() {
+		try {
+			String privateKeyPem = config.getPrivateKey();
+			if (privateKeyPem == null || privateKeyPem.isEmpty()) {
+				throw new IllegalStateException("GitHub App private key not configured");
+			}
 
-        } catch (Exception e) {
-            log.error("Error loading private key: {}", e.getMessage(), e);
-            throw new IllegalStateException("Failed to load GitHub App private key", e);
-        }
-    }
+			// Normalize PEM format - replace literal \n with actual newlines
+			// This handles keys stored in Secret Manager where newlines may be escaped
+			privateKeyPem = privateKeyPem.replace("\\n", "\n");
 
-    /**
-     * Clear cached token (force refresh on next call)
-     */
-    public void clearCache() {
-        cachedToken = null;
-        tokenExpiry = null;
-    }
+			// Ensure proper PEM headers/footers
+			if (!privateKeyPem.contains("-----BEGIN")) {
+				throw new IllegalStateException("Private key must be in PEM format with BEGIN/END markers");
+			}
+
+			// Parse PEM format
+			try (PEMParser pemParser = new PEMParser(new StringReader(privateKeyPem))) {
+				Object object = pemParser.readObject();
+				if (object == null) {
+					throw new IllegalStateException("Failed to parse private key - PEM parser returned null");
+				}
+
+				JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+
+				if (object instanceof PrivateKeyInfo) {
+					PrivateKey key = converter.getPrivateKey((PrivateKeyInfo) object);
+					log.info("Successfully loaded GitHub App private key");
+					return key;
+				}
+				else {
+					throw new IllegalStateException("Invalid private key format - expected PrivateKeyInfo, got: "
+							+ object.getClass().getName());
+				}
+			}
+
+		}
+		catch (Exception e) {
+			log.error("Error loading private key: {}", e.getMessage(), e);
+			throw new IllegalStateException("Failed to load GitHub App private key", e);
+		}
+	}
+
+	/**
+	 * Clear cached token (force refresh on next call)
+	 */
+	public void clearCache() {
+		cachedToken = null;
+		tokenExpiry = null;
+	}
 
 }

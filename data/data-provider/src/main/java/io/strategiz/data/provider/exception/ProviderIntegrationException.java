@@ -3,8 +3,8 @@ package io.strategiz.data.provider.exception;
 import io.strategiz.framework.exception.StrategizException;
 
 /**
- * Exception class for provider integration operations.
- * Extends StrategizException for integration with the global exception handling framework.
+ * Exception class for provider integration operations. Extends StrategizException for
+ * integration with the global exception handling framework.
  */
 public class ProviderIntegrationException extends StrategizException {
 

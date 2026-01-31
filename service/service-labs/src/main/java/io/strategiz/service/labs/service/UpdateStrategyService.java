@@ -23,265 +23,261 @@ import java.util.Optional;
 @Service
 public class UpdateStrategyService extends BaseService {
 
-    private final UpdateStrategyRepository updateStrategyRepository;
-    private final ReadStrategyRepository readStrategyRepository;
-    private final StrategyNameValidationService nameValidationService;
+	private final UpdateStrategyRepository updateStrategyRepository;
 
-    @Override
-    protected String getModuleName() {
-        return "service-labs";
-    }
+	private final ReadStrategyRepository readStrategyRepository;
 
-    @Autowired
-    public UpdateStrategyService(UpdateStrategyRepository updateStrategyRepository,
-                               ReadStrategyRepository readStrategyRepository,
-                               StrategyNameValidationService nameValidationService) {
-        this.updateStrategyRepository = updateStrategyRepository;
-        this.readStrategyRepository = readStrategyRepository;
-        this.nameValidationService = nameValidationService;
-    }
-    
-    /**
-     * Update a strategy
-     * 
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param request The update request
-     * @return The updated strategy
-     */
-    public Strategy updateStrategy(String strategyId, String userId, CreateStrategyRequest request) {
-        log.info("Updating strategy: {} for user: {}", strategyId, userId);
+	private final StrategyNameValidationService nameValidationService;
 
-        // First check if strategy exists
-        Strategy existing = readStrategyRepository.findById(strategyId)
-                .orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, getModuleName(),
-                        "Strategy not found: " + strategyId));
+	@Override
+	protected String getModuleName() {
+		return "service-labs";
+	}
 
-        // Check if user is the owner (only owner can edit)
-        if (!existing.isOwner(userId)) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MODIFICATION_DENIED,
-                    "Only the strategy owner can modify this strategy");
-        }
+	@Autowired
+	public UpdateStrategyService(UpdateStrategyRepository updateStrategyRepository,
+			ReadStrategyRepository readStrategyRepository, StrategyNameValidationService nameValidationService) {
+		this.updateStrategyRepository = updateStrategyRepository;
+		this.readStrategyRepository = readStrategyRepository;
+		this.nameValidationService = nameValidationService;
+	}
 
-        // Validate name uniqueness if name changed
-        if (!StrategyNameUtils.areNamesEqual(existing.getName(), request.getName())) {
-            nameValidationService.validateDraftNameUniqueness(userId, request.getName(), strategyId);
-        }
+	/**
+	 * Update a strategy
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param request The update request
+	 * @return The updated strategy
+	 */
+	public Strategy updateStrategy(String strategyId, String userId, CreateStrategyRequest request) {
+		log.info("Updating strategy: {} for user: {}", strategyId, userId);
 
-        // Update fields from request
-        existing.setName(request.getName());
-        existing.setNormalizedName(StrategyNameUtils.normalizeName(request.getName()));
-        existing.setDescription(request.getDescription());
-        existing.setCode(request.getCode());
-        existing.setLanguage(request.getLanguage());
-        existing.setType(request.getType() != null ? request.getType() : StrategyConstants.DEFAULT_TYPE);
-        existing.setTags(request.getTags());
-        existing.setParameters(request.getParameters());
+		// First check if strategy exists
+		Strategy existing = readStrategyRepository.findById(strategyId)
+			.orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, getModuleName(),
+					"Strategy not found: " + strategyId));
 
-        // Update publish status if provided
-        if (request.getIsPublished() != null) {
-            existing.setIsPublished(request.getIsPublished());
-        }
+		// Check if user is the owner (only owner can edit)
+		if (!existing.isOwner(userId)) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_MODIFICATION_DENIED,
+					"Only the strategy owner can modify this strategy");
+		}
 
-        // Update public status if provided (validate DRAFT + PUBLIC combination)
-        if (request.getIsPublic() != null) {
-            // Cannot set draft strategy to public - must publish first
-            if (!Boolean.TRUE.equals(existing.getIsPublished()) && Boolean.TRUE.equals(request.getIsPublic())) {
-                throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
-                        "Cannot set draft strategy to public. Publish the strategy first.");
-            }
-            existing.setIsPublic(request.getIsPublic());
-        }
+		// Validate name uniqueness if name changed
+		if (!StrategyNameUtils.areNamesEqual(existing.getName(), request.getName())) {
+			nameValidationService.validateDraftNameUniqueness(userId, request.getName(), strategyId);
+		}
 
-        // Update listed status if provided
-        if (request.getIsListed() != null) {
-            existing.setIsListed(request.getIsListed());
-        }
+		// Update fields from request
+		existing.setName(request.getName());
+		existing.setNormalizedName(StrategyNameUtils.normalizeName(request.getName()));
+		existing.setDescription(request.getDescription());
+		existing.setCode(request.getCode());
+		existing.setLanguage(request.getLanguage());
+		existing.setType(request.getType() != null ? request.getType() : StrategyConstants.DEFAULT_TYPE);
+		existing.setTags(request.getTags());
+		existing.setParameters(request.getParameters());
 
-        existing.setPerformance(request.getPerformance());
+		// Update publish status if provided
+		if (request.getIsPublished() != null) {
+			existing.setIsPublished(request.getIsPublished());
+		}
 
-        // Parse and set seedFundingDate if provided
-        if (request.getSeedFundingDate() != null && !request.getSeedFundingDate().isEmpty()) {
-            try {
-                java.time.Instant instant = java.time.Instant.parse(request.getSeedFundingDate());
-                existing.setSeedFundingDate(com.google.cloud.Timestamp.fromProto(
-                    com.google.protobuf.Timestamp.newBuilder()
-                        .setSeconds(instant.getEpochSecond())
-                        .setNanos(instant.getNano())
-                        .build()
-                ));
-            } catch (Exception e) {
-                log.warn("Invalid seedFundingDate format, skipping: {}", request.getSeedFundingDate());
-            }
-        }
+		// Update public status if provided (validate DRAFT + PUBLIC combination)
+		if (request.getIsPublic() != null) {
+			// Cannot set draft strategy to public - must publish first
+			if (!Boolean.TRUE.equals(existing.getIsPublished()) && Boolean.TRUE.equals(request.getIsPublic())) {
+				throwModuleException(ServiceStrategyErrorDetails.INVALID_STATUS_COMBINATION,
+						"Cannot set draft strategy to public. Publish the strategy first.");
+			}
+			existing.setIsPublic(request.getIsPublic());
+		}
 
-        // Validate the updated strategy
-        validateUpdateRequest(request);
-        
-        // Update the strategy
-        Strategy updated = updateStrategyRepository.update(strategyId, userId, existing);
+		// Update listed status if provided
+		if (request.getIsListed() != null) {
+			existing.setIsListed(request.getIsListed());
+		}
 
-        log.info("Successfully updated strategy: {} for user: {}", strategyId, userId);
-        return updated;
-    }
+		existing.setPerformance(request.getPerformance());
 
-    /**
-     * Update strategy status
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param status The new status
-     * @return true if updated successfully
-     */
-    public boolean updateStrategyStatus(String strategyId, String userId, String status) {
-        log.info("Updating strategy {} status to: {} for user: {}", strategyId, status, userId);
+		// Parse and set seedFundingDate if provided
+		if (request.getSeedFundingDate() != null && !request.getSeedFundingDate().isEmpty()) {
+			try {
+				java.time.Instant instant = java.time.Instant.parse(request.getSeedFundingDate());
+				existing
+					.setSeedFundingDate(com.google.cloud.Timestamp.fromProto(com.google.protobuf.Timestamp.newBuilder()
+						.setSeconds(instant.getEpochSecond())
+						.setNanos(instant.getNano())
+						.build()));
+			}
+			catch (Exception e) {
+				log.warn("Invalid seedFundingDate format, skipping: {}", request.getSeedFundingDate());
+			}
+		}
 
-        // Validate status
-        if (!isValidStatus(status)) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_STATUS,
-                    "Invalid status: " + status);
-        }
+		// Validate the updated strategy
+		validateUpdateRequest(request);
 
-        boolean updated = updateStrategyRepository.updateStatus(strategyId, userId, status);
+		// Update the strategy
+		Strategy updated = updateStrategyRepository.update(strategyId, userId, existing);
 
-        if (updated) {
-            log.info("Successfully updated strategy {} status to: {}", strategyId, status);
-        } else {
-            log.warn("Failed to update strategy {} status", strategyId);
-        }
+		log.info("Successfully updated strategy: {} for user: {}", strategyId, userId);
+		return updated;
+	}
 
-        return updated;
-    }
+	/**
+	 * Update strategy status
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param status The new status
+	 * @return true if updated successfully
+	 */
+	public boolean updateStrategyStatus(String strategyId, String userId, String status) {
+		log.info("Updating strategy {} status to: {} for user: {}", strategyId, status, userId);
 
-    /**
-     * Update strategy code
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param code The new code
-     * @return The updated strategy
-     */
-    public Optional<Strategy> updateStrategyCode(String strategyId, String userId, String code) {
-        log.info("Updating strategy {} code for user: {}", strategyId, userId);
+		// Validate status
+		if (!isValidStatus(status)) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_STATUS, "Invalid status: " + status);
+		}
 
-        // Validate code length
-        if (code != null && code.length() > StrategyConstants.MAX_CODE_LENGTH) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_CODE_TOO_LONG,
-                    "Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
-        }
+		boolean updated = updateStrategyRepository.updateStatus(strategyId, userId, status);
 
-        return updateStrategyRepository.updateCode(strategyId, userId, code);
-    }
+		if (updated) {
+			log.info("Successfully updated strategy {} status to: {}", strategyId, status);
+		}
+		else {
+			log.warn("Failed to update strategy {} status", strategyId);
+		}
 
-    /**
-     * Update strategy tags
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param tags The new tags
-     * @return The updated strategy
-     */
-    public Optional<Strategy> updateStrategyTags(String strategyId, String userId, List<String> tags) {
-        log.info("Updating strategy {} tags for user: {}", strategyId, userId);
+		return updated;
+	}
 
-        // Validate tags count
-        if (tags != null && tags.size() > StrategyConstants.MAX_TAGS) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
-                    "Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
-        }
+	/**
+	 * Update strategy code
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param code The new code
+	 * @return The updated strategy
+	 */
+	public Optional<Strategy> updateStrategyCode(String strategyId, String userId, String code) {
+		log.info("Updating strategy {} code for user: {}", strategyId, userId);
 
-        return updateStrategyRepository.updateTags(strategyId, userId, tags);
-    }
+		// Validate code length
+		if (code != null && code.length() > StrategyConstants.MAX_CODE_LENGTH) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_CODE_TOO_LONG,
+					"Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
+		}
 
-    /**
-     * Update strategy performance metrics
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param performance The performance metrics
-     * @return The updated strategy
-     */
-    public Optional<Strategy> updateStrategyPerformance(String strategyId, String userId, StrategyPerformance performance) {
-        log.info("Updating strategy {} performance metrics for user: {}", strategyId, userId);
+		return updateStrategyRepository.updateCode(strategyId, userId, code);
+	}
 
-        // Validate performance data if provided
-        if (performance != null) {
-            // Basic validation - ensure critical fields are present
-            if (performance.getTotalReturn() == null && performance.getTotalTrades() == null) {
-                throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_PERFORMANCE,
-                        "Performance data must include at least totalReturn or totalTrades");
-            }
-        }
+	/**
+	 * Update strategy tags
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param tags The new tags
+	 * @return The updated strategy
+	 */
+	public Optional<Strategy> updateStrategyTags(String strategyId, String userId, List<String> tags) {
+		log.info("Updating strategy {} tags for user: {}", strategyId, userId);
 
-        return updateStrategyRepository.updatePerformance(strategyId, userId, performance);
-    }
+		// Validate tags count
+		if (tags != null && tags.size() > StrategyConstants.MAX_TAGS) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
+					"Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
+		}
 
-    /**
-     * Update strategy backtest results
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user ID
-     * @param backtestResults The backtest results
-     * @return The updated strategy
-     */
-    public Optional<Strategy> updateStrategyBacktestResults(String strategyId, String userId, Map<String, Object> backtestResults) {
-        log.info("Updating strategy {} backtest results for user: {}", strategyId, userId);
-        return updateStrategyRepository.updateBacktestResults(strategyId, userId, backtestResults);
-    }
-    
-    private void validateUpdateRequest(CreateStrategyRequest request) {
-        // Validate name length
-        if (request.getName() != null && request.getName().length() > StrategyConstants.MAX_NAME_LENGTH) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NAME_TOO_LONG,
-                    "Strategy name exceeds maximum length of " + StrategyConstants.MAX_NAME_LENGTH);
-        }
+		return updateStrategyRepository.updateTags(strategyId, userId, tags);
+	}
 
-        // Validate description length
-        if (request.getDescription() != null && request.getDescription().length() > StrategyConstants.MAX_DESCRIPTION_LENGTH) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_DESCRIPTION_TOO_LONG,
-                    "Strategy description exceeds maximum length of " + StrategyConstants.MAX_DESCRIPTION_LENGTH);
-        }
+	/**
+	 * Update strategy performance metrics
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param performance The performance metrics
+	 * @return The updated strategy
+	 */
+	public Optional<Strategy> updateStrategyPerformance(String strategyId, String userId,
+			StrategyPerformance performance) {
+		log.info("Updating strategy {} performance metrics for user: {}", strategyId, userId);
 
-        // Validate code length
-        if (request.getCode() != null && request.getCode().length() > StrategyConstants.MAX_CODE_LENGTH) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_CODE_TOO_LONG,
-                    "Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
-        }
+		// Validate performance data if provided
+		if (performance != null) {
+			// Basic validation - ensure critical fields are present
+			if (performance.getTotalReturn() == null && performance.getTotalTrades() == null) {
+				throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_PERFORMANCE,
+						"Performance data must include at least totalReturn or totalTrades");
+			}
+		}
 
-        // Validate language
-        if (!isValidLanguage(request.getLanguage())) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE,
-                    "Invalid language: " + request.getLanguage());
-        }
+		return updateStrategyRepository.updatePerformance(strategyId, userId, performance);
+	}
 
-        // Validate type if provided
-        if (request.getType() != null && !isValidType(request.getType())) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_TYPE,
-                    "Invalid type: " + request.getType());
-        }
+	/**
+	 * Update strategy backtest results
+	 * @param strategyId The strategy ID
+	 * @param userId The user ID
+	 * @param backtestResults The backtest results
+	 * @return The updated strategy
+	 */
+	public Optional<Strategy> updateStrategyBacktestResults(String strategyId, String userId,
+			Map<String, Object> backtestResults) {
+		log.info("Updating strategy {} backtest results for user: {}", strategyId, userId);
+		return updateStrategyRepository.updateBacktestResults(strategyId, userId, backtestResults);
+	}
 
-        // Validate tags count
-        if (request.getTags() != null && request.getTags().size() > StrategyConstants.MAX_TAGS) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
-                    "Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
-        }
-    }
-    
-    private boolean isValidStatus(String status) {
-        return StrategyConstants.STATUS_DRAFT.equals(status) || 
-               StrategyConstants.STATUS_ACTIVE.equals(status) || 
-               StrategyConstants.STATUS_ARCHIVED.equals(status);
-    }
-    
-    private boolean isValidLanguage(String language) {
-        return StrategyConstants.LANGUAGE_PYTHON.equals(language) ||
-               StrategyConstants.LANGUAGE_JAVA.equals(language) ||
-               StrategyConstants.LANGUAGE_PINESCRIPT.equals(language);
-    }
-    
-    private boolean isValidType(String type) {
-        return StrategyConstants.TYPE_TECHNICAL.equals(type) ||
-               StrategyConstants.TYPE_FUNDAMENTAL.equals(type) ||
-               StrategyConstants.TYPE_HYBRID.equals(type);
-    }
+	private void validateUpdateRequest(CreateStrategyRequest request) {
+		// Validate name length
+		if (request.getName() != null && request.getName().length() > StrategyConstants.MAX_NAME_LENGTH) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NAME_TOO_LONG,
+					"Strategy name exceeds maximum length of " + StrategyConstants.MAX_NAME_LENGTH);
+		}
+
+		// Validate description length
+		if (request.getDescription() != null
+				&& request.getDescription().length() > StrategyConstants.MAX_DESCRIPTION_LENGTH) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_DESCRIPTION_TOO_LONG,
+					"Strategy description exceeds maximum length of " + StrategyConstants.MAX_DESCRIPTION_LENGTH);
+		}
+
+		// Validate code length
+		if (request.getCode() != null && request.getCode().length() > StrategyConstants.MAX_CODE_LENGTH) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_CODE_TOO_LONG,
+					"Strategy code exceeds maximum length of " + StrategyConstants.MAX_CODE_LENGTH);
+		}
+
+		// Validate language
+		if (!isValidLanguage(request.getLanguage())) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_LANGUAGE,
+					"Invalid language: " + request.getLanguage());
+		}
+
+		// Validate type if provided
+		if (request.getType() != null && !isValidType(request.getType())) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_INVALID_TYPE,
+					"Invalid type: " + request.getType());
+		}
+
+		// Validate tags count
+		if (request.getTags() != null && request.getTags().size() > StrategyConstants.MAX_TAGS) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_TOO_MANY_TAGS,
+					"Too many tags. Maximum allowed: " + StrategyConstants.MAX_TAGS);
+		}
+	}
+
+	private boolean isValidStatus(String status) {
+		return StrategyConstants.STATUS_DRAFT.equals(status) || StrategyConstants.STATUS_ACTIVE.equals(status)
+				|| StrategyConstants.STATUS_ARCHIVED.equals(status);
+	}
+
+	private boolean isValidLanguage(String language) {
+		return StrategyConstants.LANGUAGE_PYTHON.equals(language) || StrategyConstants.LANGUAGE_JAVA.equals(language)
+				|| StrategyConstants.LANGUAGE_PINESCRIPT.equals(language);
+	}
+
+	private boolean isValidType(String type) {
+		return StrategyConstants.TYPE_TECHNICAL.equals(type) || StrategyConstants.TYPE_FUNDAMENTAL.equals(type)
+				|| StrategyConstants.TYPE_HYBRID.equals(type);
+	}
+
 }

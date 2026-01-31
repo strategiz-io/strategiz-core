@@ -18,65 +18,58 @@ import org.springframework.stereotype.Component;
 /**
  * Aspect that enforces {@link RequireScope} annotation on controller methods.
  *
- * <p>This provides Layer 1 authorization - fast, local scope checking from the PASETO token. No
- * external calls are made.
+ * <p>
+ * This provides Layer 1 authorization - fast, local scope checking from the PASETO token.
+ * No external calls are made.
  *
- * <p>Order: 100 (runs after authentication check, before FGA check)
+ * <p>
+ * Order: 100 (runs after authentication check, before FGA check)
  */
 @Aspect
 @Component
 @Order(100)
 public class ScopeAuthorizationAspect {
 
-  private static final Logger log = LoggerFactory.getLogger(ScopeAuthorizationAspect.class);
+	private static final Logger log = LoggerFactory.getLogger(ScopeAuthorizationAspect.class);
 
-  private static final String MODULE_NAME = "authorization";
+	private static final String MODULE_NAME = "authorization";
 
-  /**
-   * Checks scope requirements before method execution.
-   *
-   * @param joinPoint the join point
-   * @param requireScope the require scope annotation
-   */
-  @Before("@annotation(requireScope)")
-  public void checkScope(JoinPoint joinPoint, RequireScope requireScope) {
-    AuthenticatedUser user = SecurityContextHolder.requireAuthenticatedUser();
+	/**
+	 * Checks scope requirements before method execution.
+	 * @param joinPoint the join point
+	 * @param requireScope the require scope annotation
+	 */
+	@Before("@annotation(requireScope)")
+	public void checkScope(JoinPoint joinPoint, RequireScope requireScope) {
+		AuthenticatedUser user = SecurityContextHolder.requireAuthenticatedUser();
 
-    String[] requiredScopes = requireScope.value();
-    ScopeMode mode = requireScope.mode();
+		String[] requiredScopes = requireScope.value();
+		ScopeMode mode = requireScope.mode();
 
-    boolean hasScope = switch (mode) {
-      case ANY -> user.hasAnyScope(requiredScopes);
-      case ALL -> user.hasAllScopes(requiredScopes);
-    };
+		boolean hasScope = switch (mode) {
+			case ANY -> user.hasAnyScope(requiredScopes);
+			case ALL -> user.hasAllScopes(requiredScopes);
+		};
 
-    if (!hasScope) {
-      // Log details for debugging, but don't expose in error message
-      log.warn(
-          "Authorization failed: user={} missing scopes={} (has={}, mode={})",
-          user.getUserId(),
-          Arrays.toString(requiredScopes),
-          user.getScopes(),
-          mode);
-      throw new StrategizException(AuthorizationErrorDetails.INSUFFICIENT_PERMISSIONS, MODULE_NAME);
-    }
+		if (!hasScope) {
+			// Log details for debugging, but don't expose in error message
+			log.warn("Authorization failed: user={} missing scopes={} (has={}, mode={})", user.getUserId(),
+					Arrays.toString(requiredScopes), user.getScopes(), mode);
+			throw new StrategizException(AuthorizationErrorDetails.INSUFFICIENT_PERMISSIONS, MODULE_NAME);
+		}
 
-    log.debug(
-        "Scope check passed: user={} required={} mode={}",
-        user.getUserId(),
-        Arrays.toString(requiredScopes),
-        mode);
-  }
+		log.debug("Scope check passed: user={} required={} mode={}", user.getUserId(), Arrays.toString(requiredScopes),
+				mode);
+	}
 
-  /**
-   * Checks scope requirements at class level.
-   *
-   * @param joinPoint the join point
-   * @param requireScope the require scope annotation
-   */
-  @Before("@within(requireScope)")
-  public void checkScopeOnClass(JoinPoint joinPoint, RequireScope requireScope) {
-    checkScope(joinPoint, requireScope);
-  }
+	/**
+	 * Checks scope requirements at class level.
+	 * @param joinPoint the join point
+	 * @param requireScope the require scope annotation
+	 */
+	@Before("@within(requireScope)")
+	public void checkScopeOnClass(JoinPoint joinPoint, RequireScope requireScope) {
+		checkScope(joinPoint, requireScope);
+	}
 
 }

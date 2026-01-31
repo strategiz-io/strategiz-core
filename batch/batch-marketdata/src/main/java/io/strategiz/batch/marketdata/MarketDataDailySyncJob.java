@@ -20,18 +20,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Daily end-of-day sync job for market data collection.
  *
- * Purpose: Ensure no data gaps by running daily after market close
- * Execution: Scheduled at 5 PM ET (22:00 UTC) Monday-Friday
- * Target: All symbols for daily timeframe with 48-hour lookback
+ * Purpose: Ensure no data gaps by running daily after market close Execution: Scheduled
+ * at 5 PM ET (22:00 UTC) Monday-Friday Target: All symbols for daily timeframe with
+ * 48-hour lookback
  *
- * This job complements the incremental job by catching any data
- * that might have been missed during the day (e.g., if Cloud Run
- * instance was scaled down).
+ * This job complements the incremental job by catching any data that might have been
+ * missed during the day (e.g., if Cloud Run instance was scaled down).
  *
- * Configuration:
- * - marketdata.batch.daily-sync-enabled: Enable/disable daily sync
- * - marketdata.batch.daily-sync-cron: Cron schedule (default: 5 PM ET)
- * - marketdata.batch.daily-sync-lookback-hours: Lookback period (default: 48)
+ * Configuration: - marketdata.batch.daily-sync-enabled: Enable/disable daily sync -
+ * marketdata.batch.daily-sync-cron: Cron schedule (default: 5 PM ET) -
+ * marketdata.batch.daily-sync-lookback-hours: Lookback period (default: 48)
  */
 @Component
 @Profile("scheduler")
@@ -41,6 +39,7 @@ public class MarketDataDailySyncJob {
 	private static final Logger log = LoggerFactory.getLogger(MarketDataDailySyncJob.class);
 
 	private final MarketDataCollectionService collectionService;
+
 	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -54,8 +53,7 @@ public class MarketDataDailySyncJob {
 	// Timeframes to sync daily - focus on daily and longer
 	private static final List<String> DAILY_TIMEFRAMES = Arrays.asList("1D", "1W", "1M");
 
-	public MarketDataDailySyncJob(
-			MarketDataCollectionService collectionService,
+	public MarketDataDailySyncJob(MarketDataCollectionService collectionService,
 			JobExecutionHistoryBusiness jobExecutionHistoryBusiness) {
 		this.collectionService = collectionService;
 		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
@@ -64,29 +62,32 @@ public class MarketDataDailySyncJob {
 	}
 
 	/**
-	 * Run on startup if enabled - for catch-up scenarios.
-	 * Waits 30 seconds for app to fully initialize before running.
+	 * Run on startup if enabled - for catch-up scenarios. Waits 30 seconds for app to
+	 * fully initialize before running.
 	 */
 	@jakarta.annotation.PostConstruct
 	public void runOnStartupIfEnabled() {
 		if (dailySyncEnabled) {
-			log.info("Daily sync enabled - triggering catch-up execution on startup with {} hour lookback", lookbackHours);
+			log.info("Daily sync enabled - triggering catch-up execution on startup with {} hour lookback",
+					lookbackHours);
 			new Thread(() -> {
 				try {
 					Thread.sleep(30000); // Wait 30s for app to fully initialize
 					execute();
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					log.error("Failed to run startup daily sync: {}", e.getMessage(), e);
 				}
 			}, "daily-sync-startup").start();
-		} else {
+		}
+		else {
 			log.info("Daily sync disabled - skipping startup execution");
 		}
 	}
 
 	/**
-	 * Scheduled execution - runs at 5 PM ET (22:00 UTC) Monday-Friday.
-	 * Uses @Scheduled annotation for reliable execution.
+	 * Scheduled execution - runs at 5 PM ET (22:00 UTC) Monday-Friday. Uses @Scheduled
+	 * annotation for reliable execution.
 	 */
 	@Scheduled(cron = "${marketdata.batch.daily-sync-cron:0 0 22 * * MON-FRI}")
 	public void scheduledExecution() {
@@ -114,8 +115,7 @@ public class MarketDataDailySyncJob {
 	}
 
 	/**
-	 * Manual trigger with custom lookback period.
-	 * Useful for catching up on missed data.
+	 * Manual trigger with custom lookback period. Useful for catching up on missed data.
 	 * @param lookbackHours Number of hours to look back
 	 * @return DailySyncResult with execution details
 	 */
@@ -152,11 +152,8 @@ public class MarketDataDailySyncJob {
 		log.info("Timeframes: {}", DAILY_TIMEFRAMES);
 
 		// Record job execution start
-		String executionId = jobExecutionHistoryBusiness.recordJobStart(
-			"MARKETDATA_DAILY_SYNC",
-			"MarketData_DailySync",
-			toJson(DAILY_TIMEFRAMES)
-		);
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_DAILY_SYNC", "MarketData_DailySync",
+				toJson(DAILY_TIMEFRAMES));
 
 		long startTime = System.currentTimeMillis();
 
@@ -190,11 +187,11 @@ public class MarketDataDailySyncJob {
 					totalErrors += result.errorCount;
 					timeframesProcessed++;
 
-					log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---",
-							timeframe, tfDuration, result.totalSymbolsProcessed,
-							result.totalDataPointsStored, result.errorCount);
+					log.info("--- Timeframe {} completed in {}s: {} symbols, {} bars, {} errors ---", timeframe,
+							tfDuration, result.totalSymbolsProcessed, result.totalDataPointsStored, result.errorCount);
 
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					log.error("Failed to sync timeframe {}: {}", timeframe, e.getMessage(), e);
 					totalErrors++;
 				}
@@ -209,35 +206,25 @@ public class MarketDataDailySyncJob {
 			log.info("Total errors: {}", totalErrors);
 
 			// Record successful completion
-			jobExecutionHistoryBusiness.recordJobCompletion(
-				executionId,
-				"SUCCESS",
-				totalSymbolsProcessed,
-				totalDataPointsStored,
-				totalErrors,
-				null
-			);
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors, null);
 
 			return new DailySyncResult(true, totalSymbolsProcessed, totalDataPointsStored, totalErrors,
 					String.format("Completed in %ds", duration));
 
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Daily sync failed: {}", e.getMessage(), e);
 
 			// Record failed completion
-			jobExecutionHistoryBusiness.recordJobCompletion(
-				executionId,
-				"FAILED",
-				totalSymbolsProcessed,
-				totalDataPointsStored,
-				totalErrors + 1,
-				e.getMessage()
-			);
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors + 1, e.getMessage());
 
 			return new DailySyncResult(false, totalSymbolsProcessed, totalDataPointsStored, totalErrors + 1,
 					e.getMessage());
 
-		} finally {
+		}
+		finally {
 			isRunning.set(false);
 		}
 	}
@@ -248,7 +235,8 @@ public class MarketDataDailySyncJob {
 	private String toJson(List<String> list) {
 		try {
 			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.warn("Failed to convert to JSON: {}", e.getMessage());
 			return list != null ? list.toString() : "[]";
 		}
@@ -260,9 +248,13 @@ public class MarketDataDailySyncJob {
 	public static class DailySyncResult {
 
 		public final boolean success;
+
 		public final int symbolsProcessed;
+
 		public final int dataPointsStored;
+
 		public final int errorCount;
+
 		public final String message;
 
 		public DailySyncResult(boolean success, int symbolsProcessed, int dataPointsStored, int errorCount,

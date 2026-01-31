@@ -12,11 +12,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Scheduled job that syncs LLM cost data from provider billing APIs. Runs periodically to keep
- * cost data up-to-date for the console dashboard.
+ * Scheduled job that syncs LLM cost data from provider billing APIs. Runs periodically to
+ * keep cost data up-to-date for the console dashboard.
  *
- * Schedule: - Daily at 2 AM UTC: Full sync of previous day's costs - Hourly: Quick sync for
- * current day costs
+ * Schedule: - Daily at 2 AM UTC: Full sync of previous day's costs - Hourly: Quick sync
+ * for current day costs
  *
  * Enable with: llm.billing.enabled=true
  */

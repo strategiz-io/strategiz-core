@@ -6,8 +6,5 @@ import java.util.Map;
 /**
  * Daily cost breakdown
  */
-public record DailyCost(
-        String date,
-        BigDecimal totalCost,
-        Map<String, BigDecimal> breakdown
-) {}
+public record DailyCost(String date, BigDecimal totalCost, Map<String, BigDecimal> breakdown) {
+}

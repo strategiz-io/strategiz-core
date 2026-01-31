@@ -16,26 +16,11 @@ import java.util.Map;
  * @param requestCount Total API requests
  * @param costByService Breakdown by service (completions, embeddings, tools, etc.)
  */
-public record AiProviderCost(
-        String provider,
-        LocalDate startDate,
-        LocalDate endDate,
-        BigDecimal totalCost,
-        Map<String, BigDecimal> costByModel,
-        Long tokenUsage,
-        Long requestCount,
-        Map<String, BigDecimal> costByService
-) {
-    public static AiProviderCost empty(String provider, LocalDate startDate, LocalDate endDate) {
-        return new AiProviderCost(
-                provider,
-                startDate,
-                endDate,
-                BigDecimal.ZERO,
-                java.util.Collections.emptyMap(),
-                0L,
-                0L,
-                java.util.Collections.emptyMap()
-        );
-    }
+public record AiProviderCost(String provider, LocalDate startDate, LocalDate endDate, BigDecimal totalCost,
+		Map<String, BigDecimal> costByModel, Long tokenUsage, Long requestCount,
+		Map<String, BigDecimal> costByService) {
+	public static AiProviderCost empty(String provider, LocalDate startDate, LocalDate endDate) {
+		return new AiProviderCost(provider, startDate, endDate, BigDecimal.ZERO, java.util.Collections.emptyMap(), 0L,
+				0L, java.util.Collections.emptyMap());
+	}
 }

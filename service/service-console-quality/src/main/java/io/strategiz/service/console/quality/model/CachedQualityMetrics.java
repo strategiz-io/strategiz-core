@@ -3,8 +3,8 @@ package io.strategiz.service.console.quality.model;
 import java.time.Instant;
 
 /**
- * Cached quality metrics from build-time SonarQube analysis. Stored in Firestore
- * to avoid needing a running SonarQube server.
+ * Cached quality metrics from build-time SonarQube analysis. Stored in Firestore to avoid
+ * needing a running SonarQube server.
  *
  * Firestore path: system/quality/latest
  */

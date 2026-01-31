@@ -31,12 +31,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration tests for MFA enforcement feature.
  *
- * Tests the full stack from controller through business logic to repository,
- * verifying:
- * 1. MFA enforcement settings retrieval
- * 2. Enabling/disabling MFA enforcement
- * 3. Step-up authentication checks
- * 4. Edge cases for method removal
+ * Tests the full stack from controller through business logic to repository, verifying:
+ * 1. MFA enforcement settings retrieval 2. Enabling/disabling MFA enforcement 3. Step-up
+ * authentication checks 4. Edge cases for method removal
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -157,6 +154,7 @@ public class MfaEnforcementIntegrationTest {
 			assertEquals(3, mfaEnforcement.get("currentAcrLevel"));
 			assertEquals("Maximum", mfaEnforcement.get("strengthLabel"));
 		}
+
 	}
 
 	@Nested
@@ -246,6 +244,7 @@ public class MfaEnforcementIntegrationTest {
 			// Then
 			assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
 		}
+
 	}
 
 	@Nested
@@ -259,8 +258,8 @@ public class MfaEnforcementIntegrationTest {
 			createTestMethod(AuthenticationMethodType.TOTP);
 
 			// When
-			ResponseEntity<Map> response = restTemplate.getForEntity(
-					baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
+			ResponseEntity<Map> response = restTemplate
+				.getForEntity(baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
 
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -277,8 +276,8 @@ public class MfaEnforcementIntegrationTest {
 			mfaEnforcementBusiness.updateMfaEnforcement(testUserId, true);
 
 			// When
-			ResponseEntity<Map> response = restTemplate.getForEntity(
-					baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
+			ResponseEntity<Map> response = restTemplate
+				.getForEntity(baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
 
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -301,8 +300,8 @@ public class MfaEnforcementIntegrationTest {
 			mfaEnforcementBusiness.updateMfaEnforcement(testUserId, true);
 
 			// When
-			ResponseEntity<Map> response = restTemplate.getForEntity(
-					baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=2", Map.class);
+			ResponseEntity<Map> response = restTemplate
+				.getForEntity(baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=2", Map.class);
 
 			// Then
 			assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -310,6 +309,7 @@ public class MfaEnforcementIntegrationTest {
 			Map<String, Object> body = response.getBody();
 			assertFalse((Boolean) body.get("required"));
 		}
+
 	}
 
 	@Nested
@@ -349,6 +349,7 @@ public class MfaEnforcementIntegrationTest {
 			// Then - Enforcement should remain active
 			assertTrue(securityPreferencesRepository.isMfaEnforced(testUserId));
 		}
+
 	}
 
 	@Nested
@@ -383,8 +384,8 @@ public class MfaEnforcementIntegrationTest {
 			assertTrue((Boolean) mfa2.get("enforced"));
 
 			// Step 5: Check step-up is required with ACR 1
-			ResponseEntity<Map> stepUpResponse = restTemplate.getForEntity(
-					baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
+			ResponseEntity<Map> stepUpResponse = restTemplate
+				.getForEntity(baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
 			assertTrue((Boolean) stepUpResponse.getBody().get("required"));
 
 			// Step 6: Disable enforcement
@@ -396,10 +397,11 @@ public class MfaEnforcementIntegrationTest {
 			assertTrue((Boolean) disableResponse.getBody().get("success"));
 
 			// Step 7: Verify step-up no longer required
-			ResponseEntity<Map> stepUpResponse2 = restTemplate.getForEntity(
-					baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
+			ResponseEntity<Map> stepUpResponse2 = restTemplate
+				.getForEntity(baseUrl + "/security/step-up-check?userId=" + testUserId + "&currentAcr=1", Map.class);
 			assertFalse((Boolean) stepUpResponse2.getBody().get("required"));
 		}
+
 	}
 
 }

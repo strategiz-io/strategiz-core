@@ -1,8 +1,8 @@
 package io.strategiz.data.base.constants;
 
 /**
- * Subscription tier ID constants.
- * This is the single source of truth for tier IDs across all data modules.
+ * Subscription tier ID constants. This is the single source of truth for tier IDs across
+ * all data modules.
  *
  * For full tier details (pricing, models, credits), see
  * {@code io.strategiz.data.preferences.entity.SubscriptionTier}

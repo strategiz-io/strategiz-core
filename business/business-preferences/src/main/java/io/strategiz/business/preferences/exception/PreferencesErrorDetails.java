@@ -4,10 +4,11 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error details for user preferences operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error details for user preferences operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
- * Usage: throw new StrategizException(PreferencesErrorDetails.XXX, "business-preferences");
+ * Usage: throw new StrategizException(PreferencesErrorDetails.XXX,
+ * "business-preferences");
  */
 public enum PreferencesErrorDetails implements ErrorDetails {
 

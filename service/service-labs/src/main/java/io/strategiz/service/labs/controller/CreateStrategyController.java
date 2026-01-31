@@ -26,68 +26,71 @@ import org.springframework.web.bind.annotation.*;
 @RequireAuth(minAcr = "1")
 public class CreateStrategyController extends BaseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(CreateStrategyController.class);
+	private static final Logger logger = LoggerFactory.getLogger(CreateStrategyController.class);
 
-    private final CreateStrategyService createStrategyService;
+	private final CreateStrategyService createStrategyService;
 
-    @Autowired
-    public CreateStrategyController(CreateStrategyService createStrategyService) {
-        this.createStrategyService = createStrategyService;
-    }
-    
-    @PostMapping
-    @Operation(summary = "Create a new strategy", description = "Creates a new trading strategy for the authenticated user")
-    public ResponseEntity<CreateStrategyResponse> createStrategy(
-            @Valid @RequestBody CreateStrategyRequest request,
-            @AuthUser AuthenticatedUser user) {
+	@Autowired
+	public CreateStrategyController(CreateStrategyService createStrategyService) {
+		this.createStrategyService = createStrategyService;
+	}
 
-        String userId = user.getUserId();
-        logger.info("Creating new strategy: {} for user: {}", request.getName(), userId);
+	@PostMapping
+	@Operation(summary = "Create a new strategy",
+			description = "Creates a new trading strategy for the authenticated user")
+	public ResponseEntity<CreateStrategyResponse> createStrategy(@Valid @RequestBody CreateStrategyRequest request,
+			@AuthUser AuthenticatedUser user) {
 
-        try {
-            // Create strategy using service
-            Strategy created = createStrategyService.createStrategy(request, userId);
+		String userId = user.getUserId();
+		logger.info("Creating new strategy: {} for user: {}", request.getName(), userId);
 
-            // Return minimal response (just essential fields, not code or performance data)
-            CreateStrategyResponse response = new CreateStrategyResponse();
-            response.setId(created.getId());
-            response.setName(created.getName());
-            response.setIsPublished(created.getIsPublished());
-            response.setIsPublic(created.getIsPublic());
-            response.setIsListed(created.getIsListed());
-            response.setCreatedDate(created.getCreatedDate() != null ? created.getCreatedDate().toString() : null);
-            response.setModifiedDate(created.getModifiedDate() != null ? created.getModifiedDate().toString() : null);
+		try {
+			// Create strategy using service
+			Strategy created = createStrategyService.createStrategy(request, userId);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            logger.error("Failed to create strategy", e);
-            throw handleException(e, StrategyConstants.ERROR_STRATEGY_CREATION_FAILED);
-        }
-    }
+			// Return minimal response (just essential fields, not code or performance
+			// data)
+			CreateStrategyResponse response = new CreateStrategyResponse();
+			response.setId(created.getId());
+			response.setName(created.getName());
+			response.setIsPublished(created.getIsPublished());
+			response.setIsPublic(created.getIsPublic());
+			response.setIsListed(created.getIsListed());
+			response.setCreatedDate(created.getCreatedDate() != null ? created.getCreatedDate().toString() : null);
+			response.setModifiedDate(created.getModifiedDate() != null ? created.getModifiedDate().toString() : null);
 
-    private StrategyResponse convertToResponse(Strategy strategy) {
-        StrategyResponse response = new StrategyResponse();
-        response.setId(strategy.getId());
-        response.setName(strategy.getName());
-        response.setDescription(strategy.getDescription());
-        response.setCode(strategy.getCode());
-        response.setLanguage(strategy.getLanguage());
-        response.setType(strategy.getType());
-        response.setIsPublished(strategy.getIsPublished());
-        response.setIsPublic(strategy.getIsPublic());
-        response.setIsListed(strategy.getIsListed());
-        response.setTags(strategy.getTags());
-        response.setUserId(strategy.getOwnerId());
-        response.setParameters(strategy.getParameters());
-        response.setBacktestResults(strategy.getBacktestResults());
-        response.setPerformance(strategy.getPerformance());
-        // Convert string dates to Date objects if needed
-        // For now, leave them null as they'll be set by the repository
-        return response;
-    }
-    
-    @Override
-    protected String getModuleName() {
-        return "strategy";
-    }
+			return ResponseEntity.status(HttpStatus.CREATED).body(response);
+		}
+		catch (Exception e) {
+			logger.error("Failed to create strategy", e);
+			throw handleException(e, StrategyConstants.ERROR_STRATEGY_CREATION_FAILED);
+		}
+	}
+
+	private StrategyResponse convertToResponse(Strategy strategy) {
+		StrategyResponse response = new StrategyResponse();
+		response.setId(strategy.getId());
+		response.setName(strategy.getName());
+		response.setDescription(strategy.getDescription());
+		response.setCode(strategy.getCode());
+		response.setLanguage(strategy.getLanguage());
+		response.setType(strategy.getType());
+		response.setIsPublished(strategy.getIsPublished());
+		response.setIsPublic(strategy.getIsPublic());
+		response.setIsListed(strategy.getIsListed());
+		response.setTags(strategy.getTags());
+		response.setUserId(strategy.getOwnerId());
+		response.setParameters(strategy.getParameters());
+		response.setBacktestResults(strategy.getBacktestResults());
+		response.setPerformance(strategy.getPerformance());
+		// Convert string dates to Date objects if needed
+		// For now, leave them null as they'll be set by the repository
+		return response;
+	}
+
+	@Override
+	protected String getModuleName() {
+		return "strategy";
+	}
+
 }

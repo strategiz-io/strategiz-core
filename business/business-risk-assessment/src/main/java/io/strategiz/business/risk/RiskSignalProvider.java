@@ -3,11 +3,15 @@ package io.strategiz.business.risk;
 /**
  * Pluggable interface for risk signal providers.
  *
- * <p>Each implementation evaluates a specific risk dimension (geo-anomaly,
- * login velocity, time-of-day, etc.) and returns a {@link RiskSignal}.</p>
+ * <p>
+ * Each implementation evaluates a specific risk dimension (geo-anomaly, login velocity,
+ * time-of-day, etc.) and returns a {@link RiskSignal}.
+ * </p>
  *
- * <p>Implementations are discovered as Spring beans via {@code @Component}.
- * To add a new risk check, simply create a new class implementing this interface.</p>
+ * <p>
+ * Implementations are discovered as Spring beans via {@code @Component}. To add a new
+ * risk check, simply create a new class implementing this interface.
+ * </p>
  */
 public interface RiskSignalProvider {
 

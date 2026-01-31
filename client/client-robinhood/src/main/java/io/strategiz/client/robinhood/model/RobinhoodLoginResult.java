@@ -1,116 +1,122 @@
 package io.strategiz.client.robinhood.model;
 
 /**
- * Result of Robinhood login attempt.
- * Encapsulates the various states that can occur during login:
- * - Success with tokens
- * - MFA required (SMS or email challenge)
- * - Device approval required
- * - Error
+ * Result of Robinhood login attempt. Encapsulates the various states that can occur
+ * during login: - Success with tokens - MFA required (SMS or email challenge) - Device
+ * approval required - Error
  */
 public class RobinhoodLoginResult {
 
-    public enum Status {
-        SUCCESS,
-        MFA_REQUIRED,
-        DEVICE_APPROVAL_REQUIRED,
-        ERROR
-    }
+	public enum Status {
 
-    private Status status;
-    private String accessToken;
-    private String refreshToken;
-    private Integer expiresIn;
-    private RobinhoodChallenge challenge;
-    private String challengeType; // "sms" or "email"
-    private String deviceToken;
-    private String errorMessage;
-    private String errorCode;
+		SUCCESS, MFA_REQUIRED, DEVICE_APPROVAL_REQUIRED, ERROR
 
-    // Factory methods
-    public static RobinhoodLoginResult success(String accessToken, String refreshToken, Integer expiresIn) {
-        RobinhoodLoginResult result = new RobinhoodLoginResult();
-        result.status = Status.SUCCESS;
-        result.accessToken = accessToken;
-        result.refreshToken = refreshToken;
-        result.expiresIn = expiresIn;
-        return result;
-    }
+	}
 
-    public static RobinhoodLoginResult mfaRequired(RobinhoodChallenge challenge, String challengeType, String deviceToken) {
-        RobinhoodLoginResult result = new RobinhoodLoginResult();
-        result.status = Status.MFA_REQUIRED;
-        result.challenge = challenge;
-        result.challengeType = challengeType;
-        result.deviceToken = deviceToken;
-        return result;
-    }
+	private Status status;
 
-    public static RobinhoodLoginResult deviceApprovalRequired(String deviceToken) {
-        RobinhoodLoginResult result = new RobinhoodLoginResult();
-        result.status = Status.DEVICE_APPROVAL_REQUIRED;
-        result.deviceToken = deviceToken;
-        return result;
-    }
+	private String accessToken;
 
-    public static RobinhoodLoginResult error(String errorMessage, String errorCode) {
-        RobinhoodLoginResult result = new RobinhoodLoginResult();
-        result.status = Status.ERROR;
-        result.errorMessage = errorMessage;
-        result.errorCode = errorCode;
-        return result;
-    }
+	private String refreshToken;
 
-    // Getters
-    public Status getStatus() {
-        return status;
-    }
+	private Integer expiresIn;
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+	private RobinhoodChallenge challenge;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	private String challengeType; // "sms" or "email"
 
-    public Integer getExpiresIn() {
-        return expiresIn;
-    }
+	private String deviceToken;
 
-    public RobinhoodChallenge getChallenge() {
-        return challenge;
-    }
+	private String errorMessage;
 
-    public String getChallengeType() {
-        return challengeType;
-    }
+	private String errorCode;
 
-    public String getDeviceToken() {
-        return deviceToken;
-    }
+	// Factory methods
+	public static RobinhoodLoginResult success(String accessToken, String refreshToken, Integer expiresIn) {
+		RobinhoodLoginResult result = new RobinhoodLoginResult();
+		result.status = Status.SUCCESS;
+		result.accessToken = accessToken;
+		result.refreshToken = refreshToken;
+		result.expiresIn = expiresIn;
+		return result;
+	}
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	public static RobinhoodLoginResult mfaRequired(RobinhoodChallenge challenge, String challengeType,
+			String deviceToken) {
+		RobinhoodLoginResult result = new RobinhoodLoginResult();
+		result.status = Status.MFA_REQUIRED;
+		result.challenge = challenge;
+		result.challengeType = challengeType;
+		result.deviceToken = deviceToken;
+		return result;
+	}
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+	public static RobinhoodLoginResult deviceApprovalRequired(String deviceToken) {
+		RobinhoodLoginResult result = new RobinhoodLoginResult();
+		result.status = Status.DEVICE_APPROVAL_REQUIRED;
+		result.deviceToken = deviceToken;
+		return result;
+	}
 
-    public boolean isSuccess() {
-        return status == Status.SUCCESS;
-    }
+	public static RobinhoodLoginResult error(String errorMessage, String errorCode) {
+		RobinhoodLoginResult result = new RobinhoodLoginResult();
+		result.status = Status.ERROR;
+		result.errorMessage = errorMessage;
+		result.errorCode = errorCode;
+		return result;
+	}
 
-    public boolean isMfaRequired() {
-        return status == Status.MFA_REQUIRED;
-    }
+	// Getters
+	public Status getStatus() {
+		return status;
+	}
 
-    public boolean isDeviceApprovalRequired() {
-        return status == Status.DEVICE_APPROVAL_REQUIRED;
-    }
+	public String getAccessToken() {
+		return accessToken;
+	}
 
-    public boolean isError() {
-        return status == Status.ERROR;
-    }
+	public String getRefreshToken() {
+		return refreshToken;
+	}
+
+	public Integer getExpiresIn() {
+		return expiresIn;
+	}
+
+	public RobinhoodChallenge getChallenge() {
+		return challenge;
+	}
+
+	public String getChallengeType() {
+		return challengeType;
+	}
+
+	public String getDeviceToken() {
+		return deviceToken;
+	}
+
+	public String getErrorMessage() {
+		return errorMessage;
+	}
+
+	public String getErrorCode() {
+		return errorCode;
+	}
+
+	public boolean isSuccess() {
+		return status == Status.SUCCESS;
+	}
+
+	public boolean isMfaRequired() {
+		return status == Status.MFA_REQUIRED;
+	}
+
+	public boolean isDeviceApprovalRequired() {
+		return status == Status.DEVICE_APPROVAL_REQUIRED;
+	}
+
+	public boolean isError() {
+		return status == Status.ERROR;
+	}
+
 }

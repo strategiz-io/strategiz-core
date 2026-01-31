@@ -19,8 +19,7 @@ import java.time.format.DateTimeParseException;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FmpNewsArticle {
 
-	private static final DateTimeFormatter FMP_DATE_FORMAT = DateTimeFormatter
-		.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final DateTimeFormatter FMP_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	@JsonProperty("symbol")
 	private String symbol;

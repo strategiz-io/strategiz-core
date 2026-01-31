@@ -14,23 +14,11 @@ import io.strategiz.data.auth.entity.RecoveryStatus;
  * @param phoneNumberHint masked phone number hint
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record RecoveryStatusResponse(
-        boolean found,
-        RecoveryStatus status,
-        Boolean mfaRequired,
-        Boolean emailVerified,
-        Boolean smsVerified,
-        String phoneNumberHint
-) {
-    public static RecoveryStatusResponse from(
-            io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryStatusResult result) {
-        return new RecoveryStatusResponse(
-                result.found(),
-                result.status(),
-                result.mfaRequired(),
-                result.emailVerified(),
-                result.smsVerified(),
-                result.phoneNumberHint()
-        );
-    }
+public record RecoveryStatusResponse(boolean found, RecoveryStatus status, Boolean mfaRequired, Boolean emailVerified,
+		Boolean smsVerified, String phoneNumberHint) {
+	public static RecoveryStatusResponse from(
+			io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryStatusResult result) {
+		return new RecoveryStatusResponse(result.found(), result.status(), result.mfaRequired(), result.emailVerified(),
+				result.smsVerified(), result.phoneNumberHint());
+	}
 }

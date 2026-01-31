@@ -9,11 +9,12 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 /**
- * Flags logins outside typical business hours (2am-5am local time)
- * as slightly higher risk, since most legitimate logins happen during
- * waking hours.
+ * Flags logins outside typical business hours (2am-5am local time) as slightly higher
+ * risk, since most legitimate logins happen during waking hours.
  *
- * <p>Scoring: Login during 2am-5am = +15</p>
+ * <p>
+ * Scoring: Login during 2am-5am = +15
+ * </p>
  */
 @Component
 public class TimeOfDayProvider implements RiskSignalProvider {
@@ -42,8 +43,7 @@ public class TimeOfDayProvider implements RiskSignalProvider {
 		int hour = localTime.getHour();
 
 		if (hour >= 2 && hour < 5) {
-			return new RiskSignal(name(), 15, MAX_SCORE,
-					"Login at unusual hour: " + hour + ":00 local time");
+			return new RiskSignal(name(), 15, MAX_SCORE, "Login at unusual hour: " + hour + ":00 local time");
 		}
 
 		return RiskSignal.clean(name(), MAX_SCORE);

@@ -17,8 +17,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Provides market signals context for the Scout Agent. Includes real-time market data, sector
- * performance, technical indicators, and news from Financial Modeling Prep API.
+ * Provides market signals context for the Scout Agent. Includes real-time market data,
+ * sector performance, technical indicators, and news from Financial Modeling Prep API.
  */
 @Component
 @ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")

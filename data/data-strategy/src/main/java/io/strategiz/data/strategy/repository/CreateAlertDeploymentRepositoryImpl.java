@@ -12,37 +12,38 @@ import java.util.UUID;
 @Repository
 public class CreateAlertDeploymentRepositoryImpl implements CreateAlertDeploymentRepository {
 
-    private final AlertDeploymentBaseRepository baseRepository;
+	private final AlertDeploymentBaseRepository baseRepository;
 
-    @Autowired
-    public CreateAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
+	@Autowired
+	public CreateAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-    @Override
-    public AlertDeployment create(AlertDeployment strategyAlert) {
-        // Generate ID if not provided
-        if (strategyAlert.getId() == null || strategyAlert.getId().isEmpty()) {
-            strategyAlert.setId(UUID.randomUUID().toString());
-        }
+	@Override
+	public AlertDeployment create(AlertDeployment strategyAlert) {
+		// Generate ID if not provided
+		if (strategyAlert.getId() == null || strategyAlert.getId().isEmpty()) {
+			strategyAlert.setId(UUID.randomUUID().toString());
+		}
 
-        // Set default status if not provided
-        if (strategyAlert.getStatus() == null || strategyAlert.getStatus().isEmpty()) {
-            strategyAlert.setStatus("ACTIVE");
-        }
+		// Set default status if not provided
+		if (strategyAlert.getStatus() == null || strategyAlert.getStatus().isEmpty()) {
+			strategyAlert.setStatus("ACTIVE");
+		}
 
-        // Set default trigger count if not provided
-        if (strategyAlert.getTriggerCount() == null) {
-            strategyAlert.setTriggerCount(0);
-        }
+		// Set default trigger count if not provided
+		if (strategyAlert.getTriggerCount() == null) {
+			strategyAlert.setTriggerCount(0);
+		}
 
-        // Use BaseRepository's save method (requires userId)
-        return baseRepository.save(strategyAlert, strategyAlert.getUserId());
-    }
+		// Use BaseRepository's save method (requires userId)
+		return baseRepository.save(strategyAlert, strategyAlert.getUserId());
+	}
 
-    @Override
-    public AlertDeployment createWithUserId(AlertDeployment strategyAlert, String userId) {
-        strategyAlert.setUserId(userId);
-        return create(strategyAlert);
-    }
+	@Override
+	public AlertDeployment createWithUserId(AlertDeployment strategyAlert, String userId) {
+		strategyAlert.setUserId(userId);
+		return create(strategyAlert);
+	}
+
 }

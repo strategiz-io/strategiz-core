@@ -11,114 +11,119 @@ import java.util.Objects;
  * Data model for portfolio risk analysis.
  */
 public class RiskAnalysisData {
-    
-    /**
-     * Overall portfolio volatility score
-     */
-    @JsonProperty("volatility")
-    @NotNull
-    private VolatilityMetric volatility;
-    
-    /**
-     * Portfolio diversification score
-     */
-    @JsonProperty("diversification")
-    @NotNull
-    private DiversificationMetric diversification;
-    
-    /**
-     * Correlation metrics between assets
-     */
-    @JsonProperty("correlation")
-    @NotNull
-    private CorrelationMetric correlation;
 
-    // Constructors
-    public RiskAnalysisData() {}
+	/**
+	 * Overall portfolio volatility score
+	 */
+	@JsonProperty("volatility")
+	@NotNull
+	private VolatilityMetric volatility;
 
-    public RiskAnalysisData(VolatilityMetric volatility, DiversificationMetric diversification, CorrelationMetric correlation) {
-        this.volatility = volatility;
-        this.diversification = diversification;
-        this.correlation = correlation;
-    }
+	/**
+	 * Portfolio diversification score
+	 */
+	@JsonProperty("diversification")
+	@NotNull
+	private DiversificationMetric diversification;
 
-    // Getters and Setters
-    public VolatilityMetric getVolatility() {
-        return volatility;
-    }
+	/**
+	 * Correlation metrics between assets
+	 */
+	@JsonProperty("correlation")
+	@NotNull
+	private CorrelationMetric correlation;
 
-    public void setVolatility(VolatilityMetric volatility) {
-        this.volatility = volatility;
-    }
+	// Constructors
+	public RiskAnalysisData() {
+	}
 
-    public DiversificationMetric getDiversification() {
-        return diversification;
-    }
+	public RiskAnalysisData(VolatilityMetric volatility, DiversificationMetric diversification,
+			CorrelationMetric correlation) {
+		this.volatility = volatility;
+		this.diversification = diversification;
+		this.correlation = correlation;
+	}
 
-    public void setDiversification(DiversificationMetric diversification) {
-        this.diversification = diversification;
-    }
+	// Getters and Setters
+	public VolatilityMetric getVolatility() {
+		return volatility;
+	}
 
-    public CorrelationMetric getCorrelation() {
-        return correlation;
-    }
+	public void setVolatility(VolatilityMetric volatility) {
+		this.volatility = volatility;
+	}
 
-    public void setCorrelation(CorrelationMetric correlation) {
-        this.correlation = correlation;
-    }
+	public DiversificationMetric getDiversification() {
+		return diversification;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RiskAnalysisData that = (RiskAnalysisData) o;
-        return Objects.equals(volatility, that.volatility) &&
-               Objects.equals(diversification, that.diversification) &&
-               Objects.equals(correlation, that.correlation);
-    }
+	public void setDiversification(DiversificationMetric diversification) {
+		this.diversification = diversification;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(volatility, diversification, correlation);
-    }
+	public CorrelationMetric getCorrelation() {
+		return correlation;
+	}
 
-    @Override
-    public String toString() {
-        return "RiskAnalysisData{" +
-               "volatility=" + volatility +
-               ", diversification=" + diversification +
-               ", correlation=" + correlation +
-               '}';
-    }
+	public void setCorrelation(CorrelationMetric correlation) {
+		this.correlation = correlation;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		RiskAnalysisData that = (RiskAnalysisData) o;
+		return Objects.equals(volatility, that.volatility) && Objects.equals(diversification, that.diversification)
+				&& Objects.equals(correlation, that.correlation);
+	}
 
-    public static class Builder {
-        private VolatilityMetric volatility;
-        private DiversificationMetric diversification;
-        private CorrelationMetric correlation;
+	@Override
+	public int hashCode() {
+		return Objects.hash(volatility, diversification, correlation);
+	}
 
-        public Builder withVolatility(VolatilityMetric volatility) {
-            this.volatility = volatility;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "RiskAnalysisData{" + "volatility=" + volatility + ", diversification=" + diversification
+				+ ", correlation=" + correlation + '}';
+	}
 
-        public Builder withDiversification(DiversificationMetric diversification) {
-            this.diversification = diversification;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withCorrelation(CorrelationMetric correlation) {
-            this.correlation = correlation;
-            return this;
-        }
+	public static class Builder {
 
-        public RiskAnalysisData build() {
-            return new RiskAnalysisData(volatility, diversification, correlation);
-        }
-    }
+		private VolatilityMetric volatility;
+
+		private DiversificationMetric diversification;
+
+		private CorrelationMetric correlation;
+
+		public Builder withVolatility(VolatilityMetric volatility) {
+			this.volatility = volatility;
+			return this;
+		}
+
+		public Builder withDiversification(DiversificationMetric diversification) {
+			this.diversification = diversification;
+			return this;
+		}
+
+		public Builder withCorrelation(CorrelationMetric correlation) {
+			this.correlation = correlation;
+			return this;
+		}
+
+		public RiskAnalysisData build() {
+			return new RiskAnalysisData(volatility, diversification, correlation);
+		}
+
+	}
+
 }

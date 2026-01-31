@@ -9,5 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.business.strategy.execution")
 public class BusinessStrategyExecutionConfig {
-    // Configuration for strategy execution module
+
+	// Configuration for strategy execution module
+
 }

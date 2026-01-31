@@ -8,85 +8,89 @@ import java.util.Objects;
  * Data point for historical portfolio value
  */
 public class PortfolioValueDataPoint {
-    /**
-     * Timestamp of the data point
-     */
-    private LocalDateTime timestamp;
-    
-    /**
-     * Portfolio total value at this timestamp
-     */
-    private BigDecimal value;
 
-    // Constructors
-    public PortfolioValueDataPoint() {}
+	/**
+	 * Timestamp of the data point
+	 */
+	private LocalDateTime timestamp;
 
-    public PortfolioValueDataPoint(LocalDateTime timestamp, BigDecimal value) {
-        this.timestamp = timestamp;
-        this.value = value;
-    }
+	/**
+	 * Portfolio total value at this timestamp
+	 */
+	private BigDecimal value;
 
-    // Getters and Setters
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+	// Constructors
+	public PortfolioValueDataPoint() {
+	}
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+	public PortfolioValueDataPoint(LocalDateTime timestamp, BigDecimal value) {
+		this.timestamp = timestamp;
+		this.value = value;
+	}
 
-    public BigDecimal getValue() {
-        return value;
-    }
+	// Getters and Setters
+	public LocalDateTime getTimestamp() {
+		return timestamp;
+	}
 
-    public void setValue(BigDecimal value) {
-        this.value = value;
-    }
+	public void setTimestamp(LocalDateTime timestamp) {
+		this.timestamp = timestamp;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PortfolioValueDataPoint that = (PortfolioValueDataPoint) o;
-        return Objects.equals(timestamp, that.timestamp) &&
-               Objects.equals(value, that.value);
-    }
+	public BigDecimal getValue() {
+		return value;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(timestamp, value);
-    }
+	public void setValue(BigDecimal value) {
+		this.value = value;
+	}
 
-    @Override
-    public String toString() {
-        return "PortfolioValueDataPoint{" +
-               "timestamp=" + timestamp +
-               ", value=" + value +
-               '}';
-    }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		PortfolioValueDataPoint that = (PortfolioValueDataPoint) o;
+		return Objects.equals(timestamp, that.timestamp) && Objects.equals(value, that.value);
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	@Override
+	public int hashCode() {
+		return Objects.hash(timestamp, value);
+	}
 
-    public static class Builder {
-        private LocalDateTime timestamp;
-        private BigDecimal value;
+	@Override
+	public String toString() {
+		return "PortfolioValueDataPoint{" + "timestamp=" + timestamp + ", value=" + value + '}';
+	}
 
-        public Builder withTimestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withValue(BigDecimal value) {
-            this.value = value;
-            return this;
-        }
+	public static class Builder {
 
-        public PortfolioValueDataPoint build() {
-            return new PortfolioValueDataPoint(timestamp, value);
-        }
-    }
+		private LocalDateTime timestamp;
+
+		private BigDecimal value;
+
+		public Builder withTimestamp(LocalDateTime timestamp) {
+			this.timestamp = timestamp;
+			return this;
+		}
+
+		public Builder withValue(BigDecimal value) {
+			this.value = value;
+			return this;
+		}
+
+		public PortfolioValueDataPoint build() {
+			return new PortfolioValueDataPoint(timestamp, value);
+		}
+
+	}
+
 }

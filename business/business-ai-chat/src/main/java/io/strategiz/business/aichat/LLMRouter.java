@@ -54,7 +54,8 @@ public class LLMRouter {
 		// Check if model is enabled via feature flags (provider + model level)
 		if (!featureFlagService.isAIModelEnabled(targetModel)) {
 			logger.warn("Model {} is disabled via feature flags", targetModel);
-			return Mono.just(LLMResponse.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
+			return Mono.just(LLMResponse
+				.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
 		}
 
 		LLMProvider provider = getProviderForModel(targetModel);
@@ -81,7 +82,8 @@ public class LLMRouter {
 		// Check if model is enabled via feature flags (provider + model level)
 		if (!featureFlagService.isAIModelEnabled(targetModel)) {
 			logger.warn("Model {} is disabled via feature flags", targetModel);
-			return Flux.just(LLMResponse.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
+			return Flux.just(LLMResponse
+				.error("Model " + targetModel + " is currently unavailable. Please select a different model."));
 		}
 
 		LLMProvider provider = getProviderForModel(targetModel);
@@ -107,10 +109,8 @@ public class LLMRouter {
 				"Fast and capable, balanced performance"));
 		models.add(new ModelInfo("gemini-2.5-pro", "Gemini 2.5 Pro", "google",
 				"High-capability model for complex reasoning"));
-		models.add(new ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "google",
-				"Stable production model"));
-		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google",
-				"Fast and efficient"));
+		models.add(new ModelInfo("gemini-1.5-pro", "Gemini 1.5 Pro", "google", "Stable production model"));
+		models.add(new ModelInfo("gemini-1.5-flash", "Gemini 1.5 Flash", "google", "Fast and efficient"));
 
 		// OpenAI models (via direct API)
 		models.add(new ModelInfo("gpt-4o-mini", "GPT-4o Mini", "openai", "Fast & affordable"));
@@ -122,8 +122,7 @@ public class LLMRouter {
 		// Claude 4.5 models (latest, via direct Anthropic API)
 		models.add(new ModelInfo("claude-haiku-4-5", "Claude Haiku 4.5", "anthropic", "Fast & affordable"));
 		models.add(new ModelInfo("claude-sonnet-4-5", "Claude Sonnet 4.5", "anthropic", "Best balanced model"));
-		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic",
-				"Most capable for complex tasks"));
+		models.add(new ModelInfo("claude-opus-4-5", "Claude Opus 4.5", "anthropic", "Most capable for complex tasks"));
 
 		// Claude 3.5 models (previous generation, great for lower tiers)
 		models.add(new ModelInfo("claude-3-5-haiku", "Claude 3.5 Haiku", "anthropic", "Fast & very affordable"));

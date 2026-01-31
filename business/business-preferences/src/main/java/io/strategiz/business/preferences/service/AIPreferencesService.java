@@ -55,22 +55,16 @@ public class AIPreferencesService {
 		// Validate temperature if provided
 		if (preferences.getTemperature() != null) {
 			if (preferences.getTemperature() < 0 || preferences.getTemperature() > 2) {
-				throw new StrategizException(
-						PreferencesErrorDetails.INVALID_TEMPERATURE,
-						"business-preferences",
-						"Temperature must be between 0 and 2"
-				);
+				throw new StrategizException(PreferencesErrorDetails.INVALID_TEMPERATURE, "business-preferences",
+						"Temperature must be between 0 and 2");
 			}
 		}
 
 		// Validate maxTokens if provided
 		if (preferences.getMaxTokens() != null) {
 			if (preferences.getMaxTokens() < 1 || preferences.getMaxTokens() > 100000) {
-				throw new StrategizException(
-						PreferencesErrorDetails.INVALID_MAX_TOKENS,
-						"business-preferences",
-						"Max tokens must be between 1 and 100000"
-				);
+				throw new StrategizException(PreferencesErrorDetails.INVALID_MAX_TOKENS, "business-preferences",
+						"Max tokens must be between 1 and 100000");
 			}
 		}
 
@@ -103,11 +97,8 @@ public class AIPreferencesService {
 	 */
 	private void validateModel(String model) {
 		if (!VALID_MODELS.contains(model)) {
-			throw new StrategizException(
-					PreferencesErrorDetails.INVALID_MODEL,
-					"business-preferences",
-					"Invalid model: " + model + ". Valid models are: " + String.join(", ", VALID_MODELS)
-			);
+			throw new StrategizException(PreferencesErrorDetails.INVALID_MODEL, "business-preferences",
+					"Invalid model: " + model + ". Valid models are: " + String.join(", ", VALID_MODELS));
 		}
 	}
 

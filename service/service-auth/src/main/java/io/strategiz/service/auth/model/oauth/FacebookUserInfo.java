@@ -4,35 +4,40 @@ package io.strategiz.service.auth.model.oauth;
  * Model for Facebook user information
  */
 public class FacebookUserInfo {
-    private final String facebookId;
-    private final String email;
-    private final String name;
-    private final String pictureUrl;
 
-    public FacebookUserInfo(String facebookId, String email, String name) {
-        this(facebookId, email, name, null);
-    }
+	private final String facebookId;
 
-    public FacebookUserInfo(String facebookId, String email, String name, String pictureUrl) {
-        this.facebookId = facebookId;
-        this.email = email;
-        this.name = name;
-        this.pictureUrl = pictureUrl;
-    }
+	private final String email;
 
-    public String getFacebookId() {
-        return facebookId;
-    }
+	private final String name;
 
-    public String getEmail() {
-        return email;
-    }
+	private final String pictureUrl;
 
-    public String getName() {
-        return name;
-    }
+	public FacebookUserInfo(String facebookId, String email, String name) {
+		this(facebookId, email, name, null);
+	}
 
-    public String getPictureUrl() {
-        return pictureUrl;
-    }
-} 
+	public FacebookUserInfo(String facebookId, String email, String name, String pictureUrl) {
+		this.facebookId = facebookId;
+		this.email = email;
+		this.name = name;
+		this.pictureUrl = pictureUrl;
+	}
+
+	public String getFacebookId() {
+		return facebookId;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getPictureUrl() {
+		return pictureUrl;
+	}
+
+}

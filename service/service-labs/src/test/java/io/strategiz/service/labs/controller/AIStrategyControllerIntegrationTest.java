@@ -36,9 +36,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Controller tests for AI Strategy Controller endpoints.
- * Tests all /v1/labs/ai/* endpoints for proper request handling,
- * validation, and response formatting.
+ * Controller tests for AI Strategy Controller endpoints. Tests all /v1/labs/ai/*
+ * endpoints for proper request handling, validation, and response formatting.
  *
  * Uses standalone MockMvc setup for fast, isolated controller testing.
  */
@@ -73,16 +72,12 @@ class AIStrategyControllerIntegrationTest {
 	@BeforeEach
 	void setUp() {
 		objectMapper = new ObjectMapper();
-		mockMvc = MockMvcBuilders
-			.standaloneSetup(aiStrategyController)
+		mockMvc = MockMvcBuilders.standaloneSetup(aiStrategyController)
 			.setCustomArgumentResolvers(new AuthUserArgumentResolver())
 			.build();
 
 		// Set up authenticated user in security context
-		AuthenticatedUser testUser = AuthenticatedUser.builder()
-			.userId(TEST_USER_ID)
-			.acr("1")
-			.build();
+		AuthenticatedUser testUser = AuthenticatedUser.builder().userId(TEST_USER_ID).acr("1").build();
 		SecurityContextHolder.getContext().setAuthenticatedUser(testUser);
 
 		// Default: Labs AI is enabled
@@ -114,8 +109,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.generateStrategy(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -139,8 +134,8 @@ class AIStrategyControllerIntegrationTest {
 			request.setPrompt("Buy AAPL when RSI is below 30");
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -161,8 +156,8 @@ class AIStrategyControllerIntegrationTest {
 			request.setPrompt("Buy AAPL when RSI is below 30");
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -184,8 +179,8 @@ class AIStrategyControllerIntegrationTest {
 			request.setUseHistoricalInsights(true);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -204,8 +199,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.generateStrategy(any())).thenThrow(new RuntimeException("LLM service unavailable"));
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -213,6 +208,7 @@ class AIStrategyControllerIntegrationTest {
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error").exists());
 		}
+
 	}
 
 	// ============================================================
@@ -240,8 +236,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.refineStrategy(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/refine-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/refine-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -250,6 +246,7 @@ class AIStrategyControllerIntegrationTest {
 
 			verify(aiStrategyService).refineStrategy(any(AIStrategyRequest.class));
 		}
+
 	}
 
 	// ============================================================
@@ -274,8 +271,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.parseCodeToVisual(anyString(), any())).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/parse-code")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/parse-code").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
@@ -290,8 +287,8 @@ class AIStrategyControllerIntegrationTest {
 			// No code provided
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/parse-code")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/parse-code").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
@@ -306,13 +303,14 @@ class AIStrategyControllerIntegrationTest {
 			request.put("code", "");
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/parse-code")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/parse-code").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error").value("Code is required"));
 		}
+
 	}
 
 	// ============================================================
@@ -333,13 +331,14 @@ class AIStrategyControllerIntegrationTest {
 
 			AIStrategyResponse mockResponse = new AIStrategyResponse();
 			mockResponse.setSuccess(true);
-			mockResponse.setExplanation("This condition triggers when RSI is oversold and MACD shows bullish momentum.");
+			mockResponse
+				.setExplanation("This condition triggers when RSI is oversold and MACD shows bullish momentum.");
 
 			when(aiStrategyService.explainElement(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/explain")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/explain").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
@@ -355,13 +354,14 @@ class AIStrategyControllerIntegrationTest {
 			// No elementToExplain
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/explain")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/explain").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error").value("Element to explain is required"));
 		}
+
 	}
 
 	// ============================================================
@@ -387,8 +387,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.optimizeFromBacktest(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
@@ -404,13 +404,14 @@ class AIStrategyControllerIntegrationTest {
 			// No backtest results
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error").value("Backtest results are required"));
 		}
+
 	}
 
 	// ============================================================
@@ -433,8 +434,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.optimizeStrategy(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -449,8 +450,8 @@ class AIStrategyControllerIntegrationTest {
 			AIStrategyRequest request = createOptimizationRequest(5); // Only 5 trades
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -467,8 +468,8 @@ class AIStrategyControllerIntegrationTest {
 			request.getBacktestResults().setSharpeRatio(Double.NaN);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -486,8 +487,8 @@ class AIStrategyControllerIntegrationTest {
 			request.setContext(null); // No context
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/optimize-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/optimize-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
@@ -495,6 +496,7 @@ class AIStrategyControllerIntegrationTest {
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.error").value(containsString("ENHANCE_EXISTING mode requires")));
 		}
+
 	}
 
 	// ============================================================
@@ -518,8 +520,8 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.previewIndicators(anyString())).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/preview-indicators")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/preview-indicators").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
@@ -534,8 +536,8 @@ class AIStrategyControllerIntegrationTest {
 			Map<String, String> request = new HashMap<>();
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/preview-indicators")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/preview-indicators").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
@@ -551,14 +553,15 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.previewIndicators(anyString())).thenThrow(new RuntimeException("Service error"));
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/preview-indicators")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/preview-indicators").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.detectedIndicators").isArray())
 				.andExpect(jsonPath("$.detectedIndicators", hasSize(0)));
 		}
+
 	}
 
 	// ============================================================
@@ -575,17 +578,14 @@ class AIStrategyControllerIntegrationTest {
 			// Arrange
 			Map<String, String> request = Map.of("query", "How would this do in the 2022 crash?");
 
-			Map<String, Object> mockResponse = Map.of(
-				"startDate", "2022-01-01",
-				"endDate", "2022-12-31",
-				"description", "2022 market downturn"
-			);
+			Map<String, Object> mockResponse = Map.of("startDate", "2022-01-01", "endDate", "2022-12-31", "description",
+					"2022 market downturn");
 
 			when(aiStrategyService.parseBacktestQuery(anyString())).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/parse-backtest-query")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/parse-backtest-query").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.startDate").value("2022-01-01"))
@@ -599,12 +599,13 @@ class AIStrategyControllerIntegrationTest {
 			Map<String, String> request = new HashMap<>();
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/parse-backtest-query")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/parse-backtest-query").contentType(MediaType.APPLICATION_JSON)
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.error").value("Query is required"));
 		}
+
 	}
 
 	// ============================================================
@@ -627,18 +628,17 @@ class AIStrategyControllerIntegrationTest {
 			when(aiStrategyService.generateStrategy(any(AIStrategyRequest.class))).thenReturn(mockResponse);
 
 			// Act & Assert
-			mockMvc.perform(post(BASE_URL + "/generate-strategy")
-					.contentType(MediaType.APPLICATION_JSON)
+			mockMvc
+				.perform(post(BASE_URL + "/generate-strategy").contentType(MediaType.APPLICATION_JSON)
 					.header("X-User-Id", "test-user-123")
 					.header("X-Auth-Acr", "1")
 					.content(objectMapper.writeValueAsString(request)))
 				.andExpect(status().isOk());
 
 			// Verify model was passed to service
-			verify(aiStrategyService).generateStrategy(argThat(req ->
-				"claude-3-5-sonnet".equals(req.getModel())
-			));
+			verify(aiStrategyService).generateStrategy(argThat(req -> "claude-3-5-sonnet".equals(req.getModel())));
 		}
+
 	}
 
 	// ============================================================
@@ -649,10 +649,8 @@ class AIStrategyControllerIntegrationTest {
 		AIStrategyResponse response = new AIStrategyResponse();
 		response.setSuccess(true);
 		response.setPythonCode("# Generated strategy\nSYMBOL = 'AAPL'\nSTOP_LOSS = 0.05");
-		response.setVisualConfig(Map.of(
-			"symbol", "AAPL",
-			"rules", List.of(Map.of("condition", "RSI < 30", "action", "BUY"))
-		));
+		response.setVisualConfig(
+				Map.of("symbol", "AAPL", "rules", List.of(Map.of("condition", "RSI < 30", "action", "BUY"))));
 		response.setDetectedIndicators(List.of("RSI", "MACD"));
 		response.setRiskLevel(AIStrategyResponse.RiskLevel.MEDIUM);
 		response.setExplanation("This strategy buys AAPL when RSI indicates oversold conditions.");

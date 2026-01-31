@@ -20,15 +20,16 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Firebase implementation of SmsOtpCodeRepository.
- * Manages SMS OTP codes in the sms_otp_codes collection.
+ * Firebase implementation of SmsOtpCodeRepository. Manages SMS OTP codes in the
+ * sms_otp_codes collection.
  *
- * <p>This implementation provides production-ready SMS OTP code storage
- * with support for distributed deployments (unlike in-memory storage).</p>
+ * <p>
+ * This implementation provides production-ready SMS OTP code storage with support for
+ * distributed deployments (unlike in-memory storage).
+ * </p>
  */
 @Repository
-public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
-		implements SmsOtpCodeRepository {
+public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity> implements SmsOtpCodeRepository {
 
 	private static final Logger log = LoggerFactory.getLogger(SmsOtpCodeRepositoryImpl.class);
 
@@ -90,8 +91,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpCodeEntity", phoneNumber);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "SmsOtpCodeEntity",
+					phoneNumber);
 		}
 	}
 
@@ -132,8 +133,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpCodeEntity", phoneNumber);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "SmsOtpCodeEntity",
+					phoneNumber);
 		}
 	}
 
@@ -165,8 +166,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpCodeEntity", phoneNumber);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "SmsOtpCodeEntity",
+					phoneNumber);
 		}
 	}
 
@@ -187,8 +188,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpCodeEntity", id);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "SmsOtpCodeEntity",
+					id);
 		}
 	}
 
@@ -214,8 +215,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpCodeEntity", phoneNumber);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "SmsOtpCodeEntity",
+					phoneNumber);
 		}
 	}
 
@@ -248,8 +249,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e,
-					"SmsOtpCodeEntity", "expired");
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "SmsOtpCodeEntity",
+					"expired");
 		}
 	}
 
@@ -272,8 +273,8 @@ public class SmsOtpCodeRepositoryImpl extends BaseRepository<SmsOtpCodeEntity>
 					"SmsOtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"SmsOtpCodeEntity", phoneNumber);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "SmsOtpCodeEntity",
+					phoneNumber);
 		}
 	}
 

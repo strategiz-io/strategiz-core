@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes specific to Robinhood API client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes specific to Robinhood API client operations. Implements ErrorDetails for
+ * integration with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(RobinhoodErrors.ROBINHOOD_API_ERROR, MODULE_NAME);
  */
@@ -47,4 +47,3 @@ public enum RobinhoodErrors implements ErrorDetails {
 	}
 
 }
-

@@ -6,8 +6,8 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Represents the result of backtesting a single strategy configuration.
- * Used by the StrategyOptimizationEngine to track and rank strategy performance.
+ * Represents the result of backtesting a single strategy configuration. Used by the
+ * StrategyOptimizationEngine to track and rank strategy performance.
  */
 public class StrategyTestResult implements Comparable<StrategyTestResult> {
 

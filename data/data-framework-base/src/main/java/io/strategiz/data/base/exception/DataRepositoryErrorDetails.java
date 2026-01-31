@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error details for data repository operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error details for data repository operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
  * All data layer exceptions should use these error codes for consistent error handling.
  */
@@ -28,8 +28,7 @@ public enum DataRepositoryErrorDetails implements ErrorDetails {
 	// === Validation Errors ===
 	INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "invalid-argument"),
 	INVALID_ENTITY_STATE(HttpStatus.BAD_REQUEST, "invalid-entity-state"),
-	ENTITY_NULL(HttpStatus.BAD_REQUEST, "entity-null"),
-	USER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "user-id-required"),
+	ENTITY_NULL(HttpStatus.BAD_REQUEST, "entity-null"), USER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "user-id-required"),
 	ENTITY_ID_REQUIRED(HttpStatus.BAD_REQUEST, "entity-id-required"),
 	AUDIT_FIELDS_MISSING(HttpStatus.BAD_REQUEST, "audit-fields-missing"),
 	COLLECTION_ANNOTATION_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "collection-annotation-missing"),

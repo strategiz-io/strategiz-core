@@ -10,16 +10,14 @@ import io.strategiz.data.base.annotation.Collection;
 import java.util.List;
 
 /**
- * Service Account entity for machine-to-machine authentication.
- * Stored in Firestore collection: service_accounts
+ * Service Account entity for machine-to-machine authentication. Stored in Firestore
+ * collection: service_accounts
  *
- * Service accounts enable programmatic API access for:
- * - CI/CD pipelines
- * - Integration testing
- * - External service integrations
- * - Automated scripts
+ * Service accounts enable programmatic API access for: - CI/CD pipelines - Integration
+ * testing - External service integrations - Automated scripts
  *
- * Extends BaseEntity which provides audit fields (createdBy, modifiedBy, createdDate, modifiedDate).
+ * Extends BaseEntity which provides audit fields (createdBy, modifiedBy, createdDate,
+ * modifiedDate).
  */
 @Collection("service_accounts")
 public class ServiceAccountEntity extends BaseEntity {
@@ -47,7 +45,8 @@ public class ServiceAccountEntity extends BaseEntity {
 
 	@PropertyName("scopes")
 	@JsonProperty("scopes")
-	private List<String> scopes; // Authorized scopes (e.g., ["read:strategies", "write:test-results"])
+	private List<String> scopes; // Authorized scopes (e.g., ["read:strategies",
+									// "write:test-results"])
 
 	@PropertyName("enabled")
 	@JsonProperty("enabled")

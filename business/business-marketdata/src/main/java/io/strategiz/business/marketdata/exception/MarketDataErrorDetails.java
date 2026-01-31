@@ -8,37 +8,39 @@ import org.springframework.http.HttpStatus;
  */
 public enum MarketDataErrorDetails implements ErrorDetails {
 
-    // Collection errors
-    SYMBOL_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-symbol-processing-failed"),
-    BACKFILL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-backfill-failed"),
+	// Collection errors
+	SYMBOL_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-symbol-processing-failed"),
+	BACKFILL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-backfill-failed"),
 
-    // Data retrieval errors
-    DATA_FETCH_FAILED(HttpStatus.BAD_GATEWAY, "marketdata-fetch-failed"),
+	// Data retrieval errors
+	DATA_FETCH_FAILED(HttpStatus.BAD_GATEWAY, "marketdata-fetch-failed"),
 
-    // Storage errors
-    DATA_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-storage-failed"),
+	// Storage errors
+	DATA_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-storage-failed"),
 
-    // Validation errors
-    INVALID_INPUT(HttpStatus.BAD_REQUEST, "marketdata-invalid-input"),
+	// Validation errors
+	INVALID_INPUT(HttpStatus.BAD_REQUEST, "marketdata-invalid-input"),
 
-    // General errors
-    MARKETDATA_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-general-error");
+	// General errors
+	MARKETDATA_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "marketdata-general-error");
 
-    private final HttpStatus httpStatus;
-    private final String propertyKey;
+	private final HttpStatus httpStatus;
 
-    MarketDataErrorDetails(HttpStatus httpStatus, String propertyKey) {
-        this.httpStatus = httpStatus;
-        this.propertyKey = propertyKey;
-    }
+	private final String propertyKey;
 
-    @Override
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
-    }
+	MarketDataErrorDetails(HttpStatus httpStatus, String propertyKey) {
+		this.httpStatus = httpStatus;
+		this.propertyKey = propertyKey;
+	}
 
-    @Override
-    public String getPropertyKey() {
-        return propertyKey;
-    }
+	@Override
+	public HttpStatus getHttpStatus() {
+		return httpStatus;
+	}
+
+	@Override
+	public String getPropertyKey() {
+		return propertyKey;
+	}
+
 }

@@ -236,7 +236,8 @@ public class StripeService {
 		}
 
 		// Downgrade to trial tier (blocked status since subscription was canceled)
-		return new SubscriptionUpdate(userId, "trial", "trial_expired", subscription.getCustomer(), null, null, null, false);
+		return new SubscriptionUpdate(userId, "trial", "trial_expired", subscription.getCustomer(), null, null, null,
+				false);
 	}
 
 	private SubscriptionUpdate handlePaymentSucceeded(Invoice invoice) {
@@ -310,7 +311,8 @@ public class StripeService {
 			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
 				.setMode(SessionCreateParams.Mode.PAYMENT)
 				.setCustomer(stripeCustomerId)
-				.setSuccessUrl(config.getAppBaseUrl() + "/marketplace/purchase-success?session_id={CHECKOUT_SESSION_ID}")
+				.setSuccessUrl(
+						config.getAppBaseUrl() + "/marketplace/purchase-success?session_id={CHECKOUT_SESSION_ID}")
 				.setCancelUrl(config.getAppBaseUrl() + "/marketplace?canceled=true")
 				.addLineItem(SessionCreateParams.LineItem.builder()
 					.setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -344,14 +346,15 @@ public class StripeService {
 	}
 
 	/**
-	 * Create a Stripe checkout session for strategy subscription (monthly).
-	 * Used when a user subscribes to a strategy owner.
+	 * Create a Stripe checkout session for strategy subscription (monthly). Used when a
+	 * user subscribes to a strategy owner.
 	 * @param userId The internal user ID (subscriber)
 	 * @param userEmail The user's email
 	 * @param strategyId The strategy ID being subscribed to
 	 * @param strategyName The name of the strategy
 	 * @param ownerId The current owner ID (receives payments)
-	 * @param priceInCents The monthly subscription price in cents (e.g., 1900 for $19.00/mo)
+	 * @param priceInCents The monthly subscription price in cents (e.g., 1900 for
+	 * $19.00/mo)
 	 * @param currency The currency code (e.g., "USD")
 	 * @param customerId Existing Stripe customer ID (optional)
 	 * @return Checkout session details
@@ -377,7 +380,8 @@ public class StripeService {
 			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
 				.setMode(SessionCreateParams.Mode.SUBSCRIPTION)
 				.setCustomer(stripeCustomerId)
-				.setSuccessUrl(config.getAppBaseUrl() + "/marketplace/subscribe-success?session_id={CHECKOUT_SESSION_ID}")
+				.setSuccessUrl(
+						config.getAppBaseUrl() + "/marketplace/subscribe-success?session_id={CHECKOUT_SESSION_ID}")
 				.setCancelUrl(config.getAppBaseUrl() + "/marketplace/strategies/" + strategyId + "?canceled=true")
 				.addLineItem(SessionCreateParams.LineItem.builder()
 					.setPriceData(SessionCreateParams.LineItem.PriceData.builder()
@@ -421,8 +425,8 @@ public class StripeService {
 	}
 
 	/**
-	 * Update subscription metadata. Used when ownership transfers to route payments
-	 * to new owner.
+	 * Update subscription metadata. Used when ownership transfers to route payments to
+	 * new owner.
 	 * @param stripeSubscriptionId The Stripe subscription ID
 	 * @param metadata Map of metadata to update
 	 */
@@ -517,9 +521,8 @@ public class StripeService {
 	}
 
 	/**
-	 * Create a Stripe checkout session for STRAT pack purchase.
-	 * STRAT packs are one-time purchases that credit STRAT tokens to user's wallet.
-	 *
+	 * Create a Stripe checkout session for STRAT pack purchase. STRAT packs are one-time
+	 * purchases that credit STRAT tokens to user's wallet.
 	 * @param userId The internal user ID
 	 * @param userEmail The user's email
 	 * @param packId The STRAT pack ID being purchased
@@ -531,8 +534,9 @@ public class StripeService {
 	 * @param cancelUrl Optional custom cancel URL
 	 * @return Checkout session details
 	 */
-	public CheckoutResult createStratPackCheckoutSession(String userId, String userEmail, String packId, String packName,
-			long priceInCents, long stratAmount, String customerId, String successUrl, String cancelUrl) {
+	public CheckoutResult createStratPackCheckoutSession(String userId, String userEmail, String packId,
+			String packName, long priceInCents, long stratAmount, String customerId, String successUrl,
+			String cancelUrl) {
 
 		if (!config.isConfigured()) {
 			throw new StrategizException(StripeErrorDetails.NOT_CONFIGURED, "client-stripe");
@@ -550,7 +554,8 @@ public class StripeService {
 			// Default URLs if not provided
 			String finalSuccessUrl = successUrl != null ? successUrl
 					: config.getAppBaseUrl() + "/wallet?purchase=success&session_id={CHECKOUT_SESSION_ID}";
-			String finalCancelUrl = cancelUrl != null ? cancelUrl : config.getAppBaseUrl() + "/wallet?purchase=canceled";
+			String finalCancelUrl = cancelUrl != null ? cancelUrl
+					: config.getAppBaseUrl() + "/wallet?purchase=canceled";
 
 			// Build checkout session for one-time STRAT pack payment
 			SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()

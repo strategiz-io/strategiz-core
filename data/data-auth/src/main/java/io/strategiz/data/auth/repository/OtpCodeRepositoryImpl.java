@@ -19,8 +19,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Firebase implementation of OtpCodeRepository.
- * Manages OTP codes in the otp_codes collection.
+ * Firebase implementation of OtpCodeRepository. Manages OTP codes in the otp_codes
+ * collection.
  */
 @Repository
 public class OtpCodeRepositoryImpl extends BaseRepository<OtpCodeEntity> implements OtpCodeRepository {
@@ -88,9 +88,7 @@ public class OtpCodeRepositoryImpl extends BaseRepository<OtpCodeEntity> impleme
 	@Override
 	public Optional<OtpCodeEntity> findBySessionId(String sessionId) {
 		try {
-			Query query = getCollection().whereEqualTo("sessionId", sessionId)
-				.whereEqualTo("isActive", true)
-				.limit(1);
+			Query query = getCollection().whereEqualTo("sessionId", sessionId).whereEqualTo("isActive", true).limit(1);
 
 			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
@@ -164,7 +162,8 @@ public class OtpCodeRepositoryImpl extends BaseRepository<OtpCodeEntity> impleme
 					"OtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "OtpCodeEntity", email);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "OtpCodeEntity",
+					email);
 		}
 	}
 
@@ -197,7 +196,8 @@ public class OtpCodeRepositoryImpl extends BaseRepository<OtpCodeEntity> impleme
 					"OtpCodeEntity");
 		}
 		catch (ExecutionException e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "OtpCodeEntity", "expired");
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "OtpCodeEntity",
+					"expired");
 		}
 	}
 

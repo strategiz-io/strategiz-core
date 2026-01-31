@@ -18,97 +18,97 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Helper class for Google OAuth token operations
- * Following Single Responsibility Principle - only handles token exchange
+ * Helper class for Google OAuth token operations Following Single Responsibility
+ * Principle - only handles token exchange
  */
 @Component
 public class GoogleTokenHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(GoogleTokenHelper.class);
-    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
+	private static final Logger logger = LoggerFactory.getLogger(GoogleTokenHelper.class);
 
-    private final RestTemplate restTemplate;
+	private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-    public GoogleTokenHelper(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+	private final RestTemplate restTemplate;
 
-    /**
-     * Exchange authorization code for access token
-     *
-     * @param code Authorization code from Google
-     * @param clientId Google OAuth client ID
-     * @param clientSecret Google OAuth client secret
-     * @param redirectUri Redirect URI used in authorization
-     * @return Google access token response
-     */
-    public Optional<GoogleTokenResponse> exchangeCodeForToken(String code, String clientId,
-                                                             String clientSecret, String redirectUri) {
-        try {
-            logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
-            logger.info("Using client_id: {}...", clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
+	public GoogleTokenHelper(RestTemplate restTemplate) {
+		this.restTemplate = restTemplate;
+	}
 
-            HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(code, clientId, clientSecret, redirectUri);
-            ResponseEntity<Map<String, Object>> response = makeTokenRequest(request);
+	/**
+	 * Exchange authorization code for access token
+	 * @param code Authorization code from Google
+	 * @param clientId Google OAuth client ID
+	 * @param clientSecret Google OAuth client secret
+	 * @param redirectUri Redirect URI used in authorization
+	 * @return Google access token response
+	 */
+	public Optional<GoogleTokenResponse> exchangeCodeForToken(String code, String clientId, String clientSecret,
+			String redirectUri) {
+		try {
+			logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
+			logger.info("Using client_id: {}...",
+					clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
 
-            if (isSuccessfulResponse(response)) {
-                logger.info("Successfully exchanged code for token");
-                return extractTokenFromResponse(response);
-            }
+			HttpEntity<MultiValueMap<String, String>> request = buildTokenRequest(code, clientId, clientSecret,
+					redirectUri);
+			ResponseEntity<Map<String, Object>> response = makeTokenRequest(request);
 
-            // Log the actual error response from Google
-            logger.error("Failed to get access token from Google. Status: {}, Body: {}",
-                response.getStatusCode(), response.getBody());
-            return Optional.empty();
+			if (isSuccessfulResponse(response)) {
+				logger.info("Successfully exchanged code for token");
+				return extractTokenFromResponse(response);
+			}
 
-        } catch (Exception e) {
-            logger.error("Error exchanging code for token: {}", e.getMessage(), e);
-            return Optional.empty();
-        }
-    }
+			// Log the actual error response from Google
+			logger.error("Failed to get access token from Google. Status: {}, Body: {}", response.getStatusCode(),
+					response.getBody());
+			return Optional.empty();
 
-    private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(String code, String clientId, 
-                                                                       String clientSecret, String redirectUri) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("code", code);
-        body.add("client_id", clientId);
-        body.add("client_secret", clientSecret);
-        body.add("redirect_uri", redirectUri);
-        body.add("grant_type", "authorization_code");
-        
-        return new HttpEntity<>(body, headers);
-    }
+		}
+		catch (Exception e) {
+			logger.error("Error exchanging code for token: {}", e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
 
-    private ResponseEntity<Map<String, Object>> makeTokenRequest(HttpEntity<MultiValueMap<String, String>> request) {
-        return restTemplate.exchange(
-                TOKEN_URL,
-                HttpMethod.POST,
-                request,
-                new ParameterizedTypeReference<Map<String, Object>>() {}
-        );
-    }
+	private HttpEntity<MultiValueMap<String, String>> buildTokenRequest(String code, String clientId,
+			String clientSecret, String redirectUri) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-    private boolean isSuccessfulResponse(ResponseEntity<Map<String, Object>> response) {
-        return response.getStatusCode().is2xxSuccessful() && 
-               response.getBody() != null && 
-               response.getBody().containsKey("access_token");
-    }
+		MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+		body.add("code", code);
+		body.add("client_id", clientId);
+		body.add("client_secret", clientSecret);
+		body.add("redirect_uri", redirectUri);
+		body.add("grant_type", "authorization_code");
 
-    private Optional<GoogleTokenResponse> extractTokenFromResponse(ResponseEntity<Map<String, Object>> response) {
-        Map<String, Object> body = response.getBody();
-        String accessToken = (String) body.get("access_token");
-        String tokenType = (String) body.get("token_type");
-        Object expiresInObj = body.get("expires_in");
-        Integer expiresIn = expiresInObj instanceof Integer ? (Integer) expiresInObj : null;
-        String refreshToken = (String) body.get("refresh_token");
-        String scope = (String) body.get("scope");
-        
-        if (accessToken != null) {
-            return Optional.of(new GoogleTokenResponse(accessToken, tokenType, expiresIn, refreshToken, scope));
-        }
-        return Optional.empty();
-    }
-} 
+		return new HttpEntity<>(body, headers);
+	}
+
+	private ResponseEntity<Map<String, Object>> makeTokenRequest(HttpEntity<MultiValueMap<String, String>> request) {
+		return restTemplate.exchange(TOKEN_URL, HttpMethod.POST, request,
+				new ParameterizedTypeReference<Map<String, Object>>() {
+				});
+	}
+
+	private boolean isSuccessfulResponse(ResponseEntity<Map<String, Object>> response) {
+		return response.getStatusCode().is2xxSuccessful() && response.getBody() != null
+				&& response.getBody().containsKey("access_token");
+	}
+
+	private Optional<GoogleTokenResponse> extractTokenFromResponse(ResponseEntity<Map<String, Object>> response) {
+		Map<String, Object> body = response.getBody();
+		String accessToken = (String) body.get("access_token");
+		String tokenType = (String) body.get("token_type");
+		Object expiresInObj = body.get("expires_in");
+		Integer expiresIn = expiresInObj instanceof Integer ? (Integer) expiresInObj : null;
+		String refreshToken = (String) body.get("refresh_token");
+		String scope = (String) body.get("scope");
+
+		if (accessToken != null) {
+			return Optional.of(new GoogleTokenResponse(accessToken, tokenType, expiresIn, refreshToken, scope));
+		}
+		return Optional.empty();
+	}
+
+}

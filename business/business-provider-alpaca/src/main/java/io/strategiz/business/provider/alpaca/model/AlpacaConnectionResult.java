@@ -9,104 +9,112 @@ import java.util.Map;
  * Result object for Alpaca OAuth connection
  */
 public class AlpacaConnectionResult {
-    
-    private String userId;
-    private String providerId;
-    private String providerName;
-    private String accessToken;
-    private String refreshToken;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant expiresAt;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant connectedAt;
-    
-    private Map<String, Object> accountInfo;
-    private String status;
-    private String environment; // "paper" or "live"
 
-    // Constructors
-    public AlpacaConnectionResult() {}
+	private String userId;
 
-    // Getters and Setters
-    public String getUserId() {
-        return userId;
-    }
+	private String providerId;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private String providerName;
 
-    public String getProviderId() {
-        return providerId;
-    }
+	private String accessToken;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	private String refreshToken;
 
-    public String getProviderName() {
-        return providerName;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant expiresAt;
 
-    public void setProviderName(String providerName) {
-        this.providerName = providerName;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant connectedAt;
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+	private Map<String, Object> accountInfo;
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+	private String status;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	private String environment; // "paper" or "live"
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
+	// Constructors
+	public AlpacaConnectionResult() {
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	// Getters and Setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Instant getConnectedAt() {
-        return connectedAt;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setConnectedAt(Instant connectedAt) {
-        this.connectedAt = connectedAt;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public Map<String, Object> getAccountInfo() {
-        return accountInfo;
-    }
+	public String getProviderName() {
+		return providerName;
+	}
 
-    public void setAccountInfo(Map<String, Object> accountInfo) {
-        this.accountInfo = accountInfo;
-    }
+	public void setProviderName(String providerName) {
+		this.providerName = providerName;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getAccessToken() {
+		return accessToken;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
+	}
 
-    public String getEnvironment() {
-        return environment;
-    }
+	public String getRefreshToken() {
+		return refreshToken;
+	}
 
-    public void setEnvironment(String environment) {
-        this.environment = environment;
-    }
+	public void setRefreshToken(String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Instant getConnectedAt() {
+		return connectedAt;
+	}
+
+	public void setConnectedAt(Instant connectedAt) {
+		this.connectedAt = connectedAt;
+	}
+
+	public Map<String, Object> getAccountInfo() {
+		return accountInfo;
+	}
+
+	public void setAccountInfo(Map<String, Object> accountInfo) {
+		this.accountInfo = accountInfo;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+	public String getEnvironment() {
+		return environment;
+	}
+
+	public void setEnvironment(String environment) {
+		this.environment = environment;
+	}
+
 }

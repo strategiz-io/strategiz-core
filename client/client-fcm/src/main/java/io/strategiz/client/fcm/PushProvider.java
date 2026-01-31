@@ -6,8 +6,8 @@ import io.strategiz.client.fcm.model.PushMessage;
 import java.util.List;
 
 /**
- * Interface for push notification providers.
- * Allows different implementations (FCM, APNS, etc.) to be swapped.
+ * Interface for push notification providers. Allows different implementations (FCM, APNS,
+ * etc.) to be swapped.
  */
 public interface PushProvider {
 

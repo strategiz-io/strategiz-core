@@ -19,13 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Admin controller for running integration tests against production APIs.
  *
- * Provides endpoints to:
- * - Trigger integration test suites
- * - View test results
- * - Check test run status
+ * Provides endpoints to: - Trigger integration test suites - View test results - Check
+ * test run status
  *
- * Tests are executed asynchronously and results are stored in memory
- * (could be extended to persist in Firestore).
+ * Tests are executed asynchronously and results are stored in memory (could be extended
+ * to persist in Firestore).
  */
 @RestController
 @RequestMapping("/v1/console/test-runner")
@@ -160,7 +158,8 @@ public class AdminTestRunnerController extends BaseController {
 				runAuthTests(testRun, accessToken);
 			}
 
-			// AI Strategy Tests (comprehensive - tests both modes with buy-and-hold verification)
+			// AI Strategy Tests (comprehensive - tests both modes with buy-and-hold
+			// verification)
 			if ("all".equals(suite) || "ai-strategy".equals(suite)) {
 				runGenerativeAITests(testRun, accessToken);
 				runAutonomousModeTestsWithVerification(testRun, accessToken);
@@ -209,7 +208,8 @@ public class AdminTestRunnerController extends BaseController {
 			String clientId = serviceAccountClientId;
 			String clientSecret = serviceAccountClientSecret;
 
-			// If not configured via properties, these would need to come from Vault or env
+			// If not configured via properties, these would need to come from Vault or
+			// env
 			if (clientId == null || clientId.isEmpty() || clientSecret == null || clientSecret.isEmpty()) {
 				log.warn("Service account credentials not configured");
 				// Try environment variables as fallback
@@ -230,8 +230,8 @@ public class AdminTestRunnerController extends BaseController {
 			HttpEntity<Map<String, String>> request = new HttpEntity<>(body, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate
-				.postForObject(apiBaseUrl + "/v1/auth/service-account/token", request, Map.class);
+			Map<String, Object> response = restTemplate.postForObject(apiBaseUrl + "/v1/auth/service-account/token",
+					request, Map.class);
 
 			if (response != null && response.containsKey("access_token")) {
 				return (String) response.get("access_token");
@@ -276,8 +276,8 @@ public class AdminTestRunnerController extends BaseController {
 			try {
 				restTemplate.postForEntity(apiBaseUrl + "/v1/labs/ai/preview-indicators", request, String.class);
 				long duration = System.currentTimeMillis() - start;
-				testRun.addResult(
-						new TestResult("auth", "Token Authorization", true, "Token accepted by API", duration));
+				testRun
+					.addResult(new TestResult("auth", "Token Authorization", true, "Token accepted by API", duration));
 			}
 			catch (Exception e) {
 				if (e.getMessage() != null && e.getMessage().contains("401")) {
@@ -287,7 +287,8 @@ public class AdminTestRunnerController extends BaseController {
 				else {
 					// Other errors might still mean auth worked
 					testRun.addResult(new TestResult("auth", "Token Authorization", true,
-							"Token accepted (endpoint returned error but auth passed)", System.currentTimeMillis() - start));
+							"Token accepted (endpoint returned error but auth passed)",
+							System.currentTimeMillis() - start));
 				}
 			}
 		}
@@ -310,8 +311,8 @@ public class AdminTestRunnerController extends BaseController {
 			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate
-				.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy", request, Map.class);
+			Map<String, Object> response = restTemplate.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy",
+					request, Map.class);
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -333,8 +334,8 @@ public class AdminTestRunnerController extends BaseController {
 			}
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("autonomous-mode", "Strategy Generation", false, "Error: " + e.getMessage(),
-					System.currentTimeMillis() - start));
+			testRun.addResult(new TestResult("autonomous-mode", "Strategy Generation", false,
+					"Error: " + e.getMessage(), System.currentTimeMillis() - start));
 		}
 	}
 
@@ -448,12 +449,11 @@ public class AdminTestRunnerController extends BaseController {
 			boolean canEnable = Boolean.TRUE.equals(mfaEnforcement.get("canEnable"));
 			String strengthLabel = (String) mfaEnforcement.get("strengthLabel");
 			int minimumAcr = mfaEnforcement.get("minimumAcrLevel") instanceof Number
-					? ((Number) mfaEnforcement.get("minimumAcrLevel")).intValue()
-					: 2;
+					? ((Number) mfaEnforcement.get("minimumAcrLevel")).intValue() : 2;
 
 			testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", true,
-					String.format("enforced=%b, canEnable=%b, strength=%s, minAcr=%d", enforced, canEnable, strengthLabel,
-							minimumAcr),
+					String.format("enforced=%b, canEnable=%b, strength=%s, minAcr=%d", enforced, canEnable,
+							strengthLabel, minimumAcr),
 					duration));
 
 			// Additional test: verify ACR level is valid
@@ -469,8 +469,8 @@ public class AdminTestRunnerController extends BaseController {
 
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false, "Error: " + e.getMessage(),
-					System.currentTimeMillis() - start));
+			testRun.addResult(new TestResult("mfa-enforcement", "Get Security Settings", false,
+					"Error: " + e.getMessage(), System.currentTimeMillis() - start));
 		}
 	}
 
@@ -485,8 +485,10 @@ public class AdminTestRunnerController extends BaseController {
 
 			// Test step-up check with ACR 1 (single-factor)
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=1",
-					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=1",
+						org.springframework.http.HttpMethod.GET, request, Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -512,22 +514,25 @@ public class AdminTestRunnerController extends BaseController {
 				List<Map<String, Object>> methods = (List<Map<String, Object>>) response.get("availableMethods");
 				int methodCount = methods != null ? methods.size() : 0;
 				int minimumAcr = response.get("minimumAcrLevel") instanceof Number
-						? ((Number) response.get("minimumAcrLevel")).intValue()
-						: 2;
+						? ((Number) response.get("minimumAcrLevel")).intValue() : 2;
 
 				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", true,
-						String.format("Step-up required: minAcr=%d, availableMethods=%d", minimumAcr, methodCount), duration));
+						String.format("Step-up required: minAcr=%d, availableMethods=%d", minimumAcr, methodCount),
+						duration));
 			}
 			else {
 				testRun.addResult(new TestResult("mfa-enforcement", "Step-Up Check (ACR 1)", true,
 						"Step-up not required (MFA not enforced or no methods configured)", duration));
 			}
 
-			// Test with ACR 2 (should typically not require step-up unless ACR 3 is enforced)
+			// Test with ACR 2 (should typically not require step-up unless ACR 3 is
+			// enforced)
 			start = System.currentTimeMillis();
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response2 = restTemplate.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=2",
-					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+			Map<String, Object> response2 = restTemplate
+				.exchange(apiBaseUrl + "/v1/auth/security/step-up-check?currentAcr=2",
+						org.springframework.http.HttpMethod.GET, request, Map.class)
+				.getBody();
 
 			duration = System.currentTimeMillis() - start;
 
@@ -556,7 +561,8 @@ public class AdminTestRunnerController extends BaseController {
 
 			@SuppressWarnings("unchecked")
 			Map<String, Object> securityResponse = restTemplate
-				.exchange(apiBaseUrl + "/v1/auth/security", org.springframework.http.HttpMethod.GET, getRequest, Map.class)
+				.exchange(apiBaseUrl + "/v1/auth/security", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
 				.getBody();
 
 			if (securityResponse == null) {
@@ -571,15 +577,17 @@ public class AdminTestRunnerController extends BaseController {
 			boolean currentlyEnforced = mfaEnforcement != null && Boolean.TRUE.equals(mfaEnforcement.get("enforced"));
 
 			if (!canEnable) {
-				// Cannot enable MFA (no methods configured) - test that it fails gracefully
+				// Cannot enable MFA (no methods configured) - test that it fails
+				// gracefully
 				Map<String, Object> enableBody = Map.of("enforced", true);
 				HttpEntity<Map<String, Object>> enableRequest = new HttpEntity<>(enableBody, headers);
 
 				try {
 					@SuppressWarnings("unchecked")
-					Map<String, Object> enableResponse = restTemplate.exchange(
-							apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
-							enableRequest, Map.class).getBody();
+					Map<String, Object> enableResponse = restTemplate
+						.exchange(apiBaseUrl + "/v1/auth/security/mfa-enforcement",
+								org.springframework.http.HttpMethod.PUT, enableRequest, Map.class)
+						.getBody();
 
 					long duration = System.currentTimeMillis() - start;
 
@@ -609,18 +617,20 @@ public class AdminTestRunnerController extends BaseController {
 				HttpEntity<Map<String, Object>> toggleRequest = new HttpEntity<>(toggleBody, headers);
 
 				@SuppressWarnings("unchecked")
-				Map<String, Object> toggleResponse = restTemplate.exchange(
-						apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
-						toggleRequest, Map.class).getBody();
+				Map<String, Object> toggleResponse = restTemplate
+					.exchange(apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
+							toggleRequest, Map.class)
+					.getBody();
 
 				long duration = System.currentTimeMillis() - start;
 
 				boolean toggleSuccess = toggleResponse != null && Boolean.TRUE.equals(toggleResponse.get("success"));
 
-				testRun.addResult(new TestResult("mfa-enforcement", "Toggle Enforcement", toggleSuccess,
-						toggleSuccess ? String.format("Successfully %s MFA enforcement", newState ? "enabled" : "disabled")
-								: "Failed to toggle MFA enforcement",
-						duration));
+				testRun.addResult(
+						new TestResult("mfa-enforcement", "Toggle Enforcement", toggleSuccess,
+								toggleSuccess ? String.format("Successfully %s MFA enforcement",
+										newState ? "enabled" : "disabled") : "Failed to toggle MFA enforcement",
+								duration));
 
 				if (toggleSuccess) {
 					// Step 2: Restore original state
@@ -629,23 +639,26 @@ public class AdminTestRunnerController extends BaseController {
 					HttpEntity<Map<String, Object>> restoreRequest = new HttpEntity<>(restoreBody, headers);
 
 					@SuppressWarnings("unchecked")
-					Map<String, Object> restoreResponse = restTemplate.exchange(
-							apiBaseUrl + "/v1/auth/security/mfa-enforcement", org.springframework.http.HttpMethod.PUT,
-							restoreRequest, Map.class).getBody();
+					Map<String, Object> restoreResponse = restTemplate
+						.exchange(apiBaseUrl + "/v1/auth/security/mfa-enforcement",
+								org.springframework.http.HttpMethod.PUT, restoreRequest, Map.class)
+						.getBody();
 
 					duration = System.currentTimeMillis() - start;
 
-					boolean restoreSuccess = restoreResponse != null && Boolean.TRUE.equals(restoreResponse.get("success"));
-					testRun.addResult(new TestResult("mfa-enforcement", "Restore Original State", restoreSuccess,
-							restoreSuccess ? "Successfully restored original enforcement state" : "Failed to restore state",
+					boolean restoreSuccess = restoreResponse != null
+							&& Boolean.TRUE.equals(restoreResponse.get("success"));
+					testRun.addResult(new TestResult(
+							"mfa-enforcement", "Restore Original State", restoreSuccess, restoreSuccess
+									? "Successfully restored original enforcement state" : "Failed to restore state",
 							duration));
 				}
 			}
 
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("mfa-enforcement", "MFA Enforcement Toggle", false, "Error: " + e.getMessage(),
-					System.currentTimeMillis() - start));
+			testRun.addResult(new TestResult("mfa-enforcement", "MFA Enforcement Toggle", false,
+					"Error: " + e.getMessage(), System.currentTimeMillis() - start));
 		}
 	}
 
@@ -663,13 +676,11 @@ public class AdminTestRunnerController extends BaseController {
 	}
 
 	/**
-	 * Comprehensive GENERATIVE AI test that verifies:
-	 * 1. Strategy generation succeeds
-	 * 2. Correct mode (GENERATIVE_AI) is used
-	 * 3. Python code contains expected indicators (RSI, MACD, Bollinger Bands)
-	 * 4. Strategy uses optimal thresholds from historical insights
-	 * 5. Risk management parameters are present (stop-loss, take-profit)
-	 * 6. Strategy beats buy-and-hold
+	 * Comprehensive GENERATIVE AI test that verifies: 1. Strategy generation succeeds 2.
+	 * Correct mode (GENERATIVE_AI) is used 3. Python code contains expected indicators
+	 * (RSI, MACD, Bollinger Bands) 4. Strategy uses optimal thresholds from historical
+	 * insights 5. Risk management parameters are present (stop-loss, take-profit) 6.
+	 * Strategy beats buy-and-hold
 	 */
 
 	private void runGenerativeAITestForSymbol(TestRun testRun, String accessToken, String symbol) {
@@ -688,8 +699,8 @@ public class AdminTestRunnerController extends BaseController {
 			HttpEntity<Map<String, Object>> genRequest = new HttpEntity<>(genBody, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> genResponse = restTemplate
-				.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy", genRequest, Map.class);
+			Map<String, Object> genResponse = restTemplate.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy",
+					genRequest, Map.class);
 
 			if (genResponse == null || !Boolean.TRUE.equals(genResponse.get("success"))) {
 				String error = genResponse != null ? (String) genResponse.get("error") : "No response";
@@ -701,7 +712,8 @@ public class AdminTestRunnerController extends BaseController {
 			String modeUsed = (String) genResponse.get("autonomousModeUsed");
 			if (!"GENERATIVE_AI".equals(modeUsed)) {
 				testRun.addResult(new TestResult("generative-ai", symbol + " - Mode Check", false,
-						"Wrong mode used: " + modeUsed + " (expected GENERATIVE_AI)", System.currentTimeMillis() - start));
+						"Wrong mode used: " + modeUsed + " (expected GENERATIVE_AI)",
+						System.currentTimeMillis() - start));
 				return;
 			}
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Mode Check", true,
@@ -730,19 +742,20 @@ public class AdminTestRunnerController extends BaseController {
 					hasMACD ? "MACD indicator found in strategy" : "MACD indicator missing", 0));
 
 			// Check for Bollinger Bands
-			boolean hasBB = pythonCode.contains("Bollinger") || pythonCode.contains("bollinger") || pythonCode.contains("BB");
+			boolean hasBB = pythonCode.contains("Bollinger") || pythonCode.contains("bollinger")
+					|| pythonCode.contains("BB");
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Bollinger Bands", hasBB,
 					hasBB ? "Bollinger Bands found in strategy" : "Bollinger Bands missing", 0));
 
 			// Check for stop-loss
-			boolean hasStopLoss = pythonCode.contains("stop_loss") || pythonCode.contains("stoploss") ||
-					pythonCode.contains("stop loss") || pythonCode.contains("STOP_LOSS");
+			boolean hasStopLoss = pythonCode.contains("stop_loss") || pythonCode.contains("stoploss")
+					|| pythonCode.contains("stop loss") || pythonCode.contains("STOP_LOSS");
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Stop Loss", hasStopLoss,
 					hasStopLoss ? "Stop-loss risk management found" : "Stop-loss missing", 0));
 
 			// Check for take-profit
-			boolean hasTakeProfit = pythonCode.contains("take_profit") || pythonCode.contains("takeprofit") ||
-					pythonCode.contains("take profit") || pythonCode.contains("TAKE_PROFIT");
+			boolean hasTakeProfit = pythonCode.contains("take_profit") || pythonCode.contains("takeprofit")
+					|| pythonCode.contains("take profit") || pythonCode.contains("TAKE_PROFIT");
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Take Profit", hasTakeProfit,
 					hasTakeProfit ? "Take-profit found" : "Take-profit missing", 0));
 
@@ -751,22 +764,23 @@ public class AdminTestRunnerController extends BaseController {
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Trailing Stop", hasTrailingStop,
 					hasTrailingStop ? "Trailing stop found" : "Trailing stop missing", 0));
 
-			// Check for optimal thresholds (should use specific numbers from historical analysis)
-			boolean hasOptimalThresholds = pythonCode.matches(".*rsi.*[<>]=?\\s*\\d+.*") ||
-					pythonCode.matches(".*RSI.*[<>]=?\\s*\\d+.*");
+			// Check for optimal thresholds (should use specific numbers from historical
+			// analysis)
+			boolean hasOptimalThresholds = pythonCode.matches(".*rsi.*[<>]=?\\s*\\d+.*")
+					|| pythonCode.matches(".*RSI.*[<>]=?\\s*\\d+.*");
 			testRun.addResult(new TestResult("generative-ai", symbol + " - Optimal Thresholds", hasOptimalThresholds,
 					hasOptimalThresholds ? "RSI thresholds configured" : "No specific RSI thresholds found", 0));
 
 			// Step 2: Execute the strategy and get performance
 			long execStart = System.currentTimeMillis();
-			Map<String, Object> execBody = Map.of("code", pythonCode, "language", "python", "symbol", symbol, "timeframe",
-					"1D", "period", "3y");
+			Map<String, Object> execBody = Map.of("code", pythonCode, "language", "python", "symbol", symbol,
+					"timeframe", "1D", "period", "3y");
 
 			HttpEntity<Map<String, Object>> execRequest = new HttpEntity<>(execBody, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> execResponse = restTemplate
-				.postForObject(apiBaseUrl + "/v1/strategies/execute-code", execRequest, Map.class);
+			Map<String, Object> execResponse = restTemplate.postForObject(apiBaseUrl + "/v1/strategies/execute-code",
+					execRequest, Map.class);
 
 			if (execResponse == null) {
 				testRun.addResult(new TestResult("generative-ai", symbol + " - Execution", false,
@@ -808,18 +822,19 @@ public class AdminTestRunnerController extends BaseController {
 			boolean beatsBuyAndHold = outperformance >= 0;
 			long totalDuration = System.currentTimeMillis() - start;
 
-			String perfMessage = String.format("Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%",
-					strategyReturn, buyHoldReturn, outperformance);
+			String perfMessage = String.format("Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%", strategyReturn,
+					buyHoldReturn, outperformance);
 
 			testRun.addResult(new TestResult("generative-ai", symbol + " - BEATS BUY & HOLD", beatsBuyAndHold,
 					perfMessage, totalDuration));
 
-			log.info("GENERATIVE_AI {} comprehensive test: {} - {}", symbol, beatsBuyAndHold ? "PASSED" : "FAILED", perfMessage);
+			log.info("GENERATIVE_AI {} comprehensive test: {} - {}", symbol, beatsBuyAndHold ? "PASSED" : "FAILED",
+					perfMessage);
 
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("generative-ai", symbol + " - Error", false, "Exception: " + e.getMessage(),
-					System.currentTimeMillis() - start));
+			testRun.addResult(new TestResult("generative-ai", symbol + " - Error", false,
+					"Exception: " + e.getMessage(), System.currentTimeMillis() - start));
 			log.error("GENERATIVE_AI {} test error", symbol, e);
 		}
 	}
@@ -845,15 +860,16 @@ public class AdminTestRunnerController extends BaseController {
 			headers.setContentType(MediaType.APPLICATION_JSON);
 
 			// Step 1: Generate optimized strategy using AUTONOMOUS mode
-			Map<String, Object> genBody = Map.of("prompt", "Optimize trading strategy for " + symbol, "autonomousMode", "AUTONOMOUS", "useHistoricalInsights",
-					true, "context", Map.of("symbols", List.of(symbol), "timeframe", "1D"), "historicalInsightsOptions",
+			Map<String, Object> genBody = Map.of("prompt", "Optimize trading strategy for " + symbol, "autonomousMode",
+					"AUTONOMOUS", "useHistoricalInsights", true, "context",
+					Map.of("symbols", List.of(symbol), "timeframe", "1D"), "historicalInsightsOptions",
 					Map.of("lookbackDays", 750, "fastMode", true));
 
 			HttpEntity<Map<String, Object>> genRequest = new HttpEntity<>(genBody, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> genResponse = restTemplate
-				.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy", genRequest, Map.class);
+			Map<String, Object> genResponse = restTemplate.postForObject(apiBaseUrl + "/v1/labs/ai/generate-strategy",
+					genRequest, Map.class);
 
 			if (genResponse == null || !Boolean.TRUE.equals(genResponse.get("success"))) {
 				String error = genResponse != null ? (String) genResponse.get("error") : "No response";
@@ -877,14 +893,14 @@ public class AdminTestRunnerController extends BaseController {
 			}
 
 			// Step 2: Execute the strategy and get performance
-			Map<String, Object> execBody = Map.of("code", pythonCode, "language", "python", "symbol", symbol, "timeframe",
-					"1D", "period", "3y");
+			Map<String, Object> execBody = Map.of("code", pythonCode, "language", "python", "symbol", symbol,
+					"timeframe", "1D", "period", "3y");
 
 			HttpEntity<Map<String, Object>> execRequest = new HttpEntity<>(execBody, headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> execResponse = restTemplate
-				.postForObject(apiBaseUrl + "/v1/strategies/execute-code", execRequest, Map.class);
+			Map<String, Object> execResponse = restTemplate.postForObject(apiBaseUrl + "/v1/strategies/execute-code",
+					execRequest, Map.class);
 
 			if (execResponse == null) {
 				testRun.addResult(new TestResult("autonomous-mode", "AUTONOMOUS " + symbol, false,
@@ -912,15 +928,15 @@ public class AdminTestRunnerController extends BaseController {
 			String message = String.format("Strategy: %.2f%%, B&H: %.2f%%, Outperformance: %.2f%%", strategyReturn,
 					buyHoldReturn, outperformance);
 
-			testRun
-				.addResult(new TestResult("autonomous-mode", "AUTONOMOUS " + symbol, beatsBuyAndHold, message, duration));
+			testRun.addResult(
+					new TestResult("autonomous-mode", "AUTONOMOUS " + symbol, beatsBuyAndHold, message, duration));
 
 			log.info("AUTONOMOUS {} test: {} - {}", symbol, beatsBuyAndHold ? "PASSED" : "FAILED", message);
 
 		}
 		catch (Exception e) {
-			testRun.addResult(new TestResult("autonomous-mode", "AUTONOMOUS " + symbol, false, "Error: " + e.getMessage(),
-					System.currentTimeMillis() - start));
+			testRun.addResult(new TestResult("autonomous-mode", "AUTONOMOUS " + symbol, false,
+					"Error: " + e.getMessage(), System.currentTimeMillis() - start));
 		}
 	}
 
@@ -979,8 +995,10 @@ public class AdminTestRunnerController extends BaseController {
 			HttpEntity<Void> request = new HttpEntity<>(headers);
 
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, request, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, request,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -1017,14 +1035,16 @@ public class AdminTestRunnerController extends BaseController {
 			// Verify the update
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
 			if (response != null && testBio.equals(response.get("bio"))) {
-				testRun.addResult(
-						new TestResult("profile", "Update Bio", true, "Bio updated and persisted: " + testBio, duration));
+				testRun.addResult(new TestResult("profile", "Update Bio", true, "Bio updated and persisted: " + testBio,
+						duration));
 			}
 			else {
 				String actualBio = response != null ? String.valueOf(response.get("bio")) : "null";
@@ -1055,8 +1075,10 @@ public class AdminTestRunnerController extends BaseController {
 			// Verify the update
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -1093,8 +1115,10 @@ public class AdminTestRunnerController extends BaseController {
 			// Verify the update
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -1131,8 +1155,10 @@ public class AdminTestRunnerController extends BaseController {
 			// Verify the update
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -1174,8 +1200,10 @@ public class AdminTestRunnerController extends BaseController {
 			// Verify all fields updated
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 
@@ -1212,13 +1240,17 @@ public class AdminTestRunnerController extends BaseController {
 			// First read
 			HttpEntity<Void> getRequest = new HttpEntity<>(headers);
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response1 = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response1 = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			// Second read (to verify persistence)
 			@SuppressWarnings("unchecked")
-			Map<String, Object> response2 = restTemplate.exchange(apiBaseUrl + "/v1/users/profiles/me",
-					org.springframework.http.HttpMethod.GET, getRequest, Map.class).getBody();
+			Map<String, Object> response2 = restTemplate
+				.exchange(apiBaseUrl + "/v1/users/profiles/me", org.springframework.http.HttpMethod.GET, getRequest,
+						Map.class)
+				.getBody();
 
 			long duration = System.currentTimeMillis() - start;
 

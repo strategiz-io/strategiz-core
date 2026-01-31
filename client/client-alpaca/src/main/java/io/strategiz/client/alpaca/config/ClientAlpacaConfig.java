@@ -10,8 +10,9 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class ClientAlpacaConfig {
 
-    @Bean("alpacaRestTemplate")
-    public RestTemplate alpacaRestTemplate() {
-        return new RestTemplate();
-    }
+	@Bean("alpacaRestTemplate")
+	public RestTemplate alpacaRestTemplate() {
+		return new RestTemplate();
+	}
+
 }

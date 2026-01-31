@@ -6,9 +6,9 @@ import io.strategiz.business.historicalinsights.model.SymbolInsights;
 import java.util.Map;
 
 /**
- * AI prompts for the AI-First Strategy Builder. These prompts instruct Gemini to
- * generate trading strategies in a structured format that includes both visual
- * configuration (for the rule builder UI) and executable Python code.
+ * AI prompts for the AI-First Strategy Builder. These prompts instruct Gemini to generate
+ * trading strategies in a structured format that includes both visual configuration (for
+ * the rule builder UI) and executable Python code.
  */
 public class AIStrategyPrompts {
 
@@ -951,8 +951,8 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Prompt for parsing natural language backtest queries (e.g., "How would this do
-	 * in the 2022 crash?").
+	 * Prompt for parsing natural language backtest queries (e.g., "How would this do in
+	 * the 2022 crash?").
 	 */
 	public static final String BACKTEST_QUERY_PROMPT = """
 			Parse this natural language backtest query and extract structured parameters.
@@ -1065,7 +1065,8 @@ public class AIStrategyPrompts {
 	 * Build an explanation prompt for a specific element.
 	 */
 	public static String buildExplainPrompt(String element, String fullStrategyContext) {
-		return String.format(EXPLAIN_ELEMENT_PROMPT, element, fullStrategyContext != null ? fullStrategyContext : "N/A");
+		return String.format(EXPLAIN_ELEMENT_PROMPT, element,
+				fullStrategyContext != null ? fullStrategyContext : "N/A");
 	}
 
 	/**
@@ -1099,8 +1100,8 @@ public class AIStrategyPrompts {
 	// ========== TRADING KNOWLEDGE HEURISTICS ==========
 
 	/**
-	 * Trading knowledge heuristics to guide AI strategy generation.
-	 * These represent accumulated trading wisdom and best practices.
+	 * Trading knowledge heuristics to guide AI strategy generation. These represent
+	 * accumulated trading wisdom and best practices.
 	 */
 	public static final String TRADING_KNOWLEDGE_HEURISTICS = """
 			## TRADING KNOWLEDGE HEURISTICS
@@ -1220,12 +1221,14 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Builds an enhanced prompt for Historical Market Insights (Autonomous AI mode).
-	 * This method generates a comprehensive analysis section based on 7 years of historical data.
-	 * Analyzes volatility, indicator effectiveness, optimal parameters, and market characteristics.
-	 *
-	 * @param insights Historical market analysis results containing volatility, indicators, and trends
-	 * @return Formatted prompt section with historical insights for AI strategy generation
+	 * Builds an enhanced prompt for Historical Market Insights (Autonomous AI mode). This
+	 * method generates a comprehensive analysis section based on 7 years of historical
+	 * data. Analyzes volatility, indicator effectiveness, optimal parameters, and market
+	 * characteristics.
+	 * @param insights Historical market analysis results containing volatility,
+	 * indicators, and trends
+	 * @return Formatted prompt section with historical insights for AI strategy
+	 * generation
 	 */
 	public static String buildHistoricalInsightsPrompt(SymbolInsights insights) {
 		StringBuilder prompt = new StringBuilder();
@@ -1248,9 +1251,11 @@ public class AIStrategyPrompts {
 				}
 			}
 			if (troughCount > 0)
-				buyThreshold = (buyThreshold / troughCount) * 0.7; // Use 70% of avg for earlier entry
+				buyThreshold = (buyThreshold / troughCount) * 0.7; // Use 70% of avg for
+																	// earlier entry
 			if (peakCount > 0)
-				sellThreshold = (sellThreshold / peakCount) * 0.7; // Use 70% of avg for earlier exit
+				sellThreshold = (sellThreshold / peakCount) * 0.7; // Use 70% of avg for
+																	// earlier exit
 		}
 
 		// Default thresholds if no turning points
@@ -1267,15 +1272,14 @@ public class AIStrategyPrompts {
 		prompt.append("=".repeat(80)).append("\n\n");
 
 		prompt.append(String.format("Symbol: %s\n", insights.getSymbol()));
-		prompt.append(String.format("Analysis Period: %d days (~%.1f years)\n\n",
-				insights.getDaysAnalyzed(), insights.getDaysAnalyzed() / 365.25));
+		prompt.append(String.format("Analysis Period: %d days (~%.1f years)\n\n", insights.getDaysAnalyzed(),
+				insights.getDaysAnalyzed() / 365.25));
 
 		// Show the turning points (evidence)
 		if (insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
 			prompt.append("HISTORICAL SWING POINTS (from 7 years of data):\n");
-			java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter
-					.ofPattern("yyyy-MM-dd")
-					.withZone(java.time.ZoneId.of("UTC"));
+			java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+				.withZone(java.time.ZoneId.of("UTC"));
 
 			for (var tp : insights.getTurningPoints()) {
 				String action = tp.getType().name().equals("TROUGH") ? "BUY " : "SELL";
@@ -1293,8 +1297,10 @@ public class AIStrategyPrompts {
 		prompt.append("=".repeat(80)).append("\n");
 		prompt.append("⚠️ MANDATORY: USE THESE EXACT VALUES ⚠️\n");
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append(String.format("BUY_THRESHOLD = %.1f  (buy when price drops this %% from 20-day high)\n", buyThreshold));
-		prompt.append(String.format("SELL_THRESHOLD = %.1f  (sell when price rises this %% from 20-day low)\n", sellThreshold));
+		prompt.append(
+				String.format("BUY_THRESHOLD = %.1f  (buy when price drops this %% from 20-day high)\n", buyThreshold));
+		prompt.append(String.format("SELL_THRESHOLD = %.1f  (sell when price rises this %% from 20-day low)\n",
+				sellThreshold));
 		prompt.append(String.format("STOP_LOSS = %.1f\n", recommendedStopLoss));
 		prompt.append(String.format("TAKE_PROFIT = %.1f\n\n", sellThreshold * 1.5));
 
@@ -1309,8 +1315,10 @@ public class AIStrategyPrompts {
 		prompt.append("```python\n");
 		prompt.append(String.format("SYMBOL = '%s'\n", insights.getSymbol()));
 		prompt.append("TIMEFRAME = '1D'\n");
-		prompt.append(String.format("BUY_THRESHOLD = %.1f   # %% drop from 20-day high to trigger BUY\n", buyThreshold));
-		prompt.append(String.format("SELL_THRESHOLD = %.1f  # %% rise from 20-day low to trigger SELL\n", sellThreshold));
+		prompt
+			.append(String.format("BUY_THRESHOLD = %.1f   # %% drop from 20-day high to trigger BUY\n", buyThreshold));
+		prompt
+			.append(String.format("SELL_THRESHOLD = %.1f  # %% rise from 20-day low to trigger SELL\n", sellThreshold));
 		prompt.append(String.format("STOP_LOSS = %.1f\n", recommendedStopLoss));
 		prompt.append(String.format("TAKE_PROFIT = %.1f\n\n", sellThreshold * 1.5));
 		prompt.append("def strategy(data, position):\n");
@@ -1340,7 +1348,8 @@ public class AIStrategyPrompts {
 		prompt.append("=".repeat(80)).append("\n");
 		prompt.append("RULES (NON-NEGOTIABLE):\n");
 		prompt.append("=".repeat(80)).append("\n");
-		prompt.append("1. USE the BUY_THRESHOLD and SELL_THRESHOLD values above - they are calculated from actual data\n");
+		prompt.append(
+				"1. USE the BUY_THRESHOLD and SELL_THRESHOLD values above - they are calculated from actual data\n");
 		prompt.append("2. DO NOT add RSI, MACD, Bollinger Bands, or ANY other indicators\n");
 		prompt.append("3. DO NOT modify the threshold values\n");
 		prompt.append("4. Keep the strategy SIMPLE - price-based swing trading only\n");
@@ -1412,7 +1421,8 @@ public class AIStrategyPrompts {
 	 * candlestick patterns, and technical indicators from the Strategiz Learning Center.
 	 * This knowledge base teaches the AI to recognize and use proven patterns.
 	 */
-	// Technical Analysis Knowledge Base split into parts due to Java's 65535 byte string literal limit
+	// Technical Analysis Knowledge Base split into parts due to Java's 65535 byte string
+	// literal limit
 	public static final String TECHNICAL_ANALYSIS_KNOWLEDGE_PART1 = """
 
 			===========================================
@@ -4000,8 +4010,8 @@ public class AIStrategyPrompts {
 	// ========================================
 
 	/**
-	 * Prompt for generating a completely new strategy that outperforms a baseline.
-	 * Used when GENERATE_NEW optimization mode is selected.
+	 * Prompt for generating a completely new strategy that outperforms a baseline. Used
+	 * when GENERATE_NEW optimization mode is selected.
 	 */
 	public static final String OPTIMIZE_GENERATE_NEW_PROMPT = """
 			You are optimizing a backtested trading strategy that underperformed.
@@ -4033,8 +4043,8 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Prompt for enhancing an existing strategy by optimizing parameters and logic.
-	 * Used when ENHANCE_EXISTING optimization mode is selected.
+	 * Prompt for enhancing an existing strategy by optimizing parameters and logic. Used
+	 * when ENHANCE_EXISTING optimization mode is selected.
 	 */
 	public static final String OPTIMIZE_ENHANCE_EXISTING_PROMPT = """
 			You are refining an existing backtested trading strategy to improve performance.
@@ -4065,7 +4075,6 @@ public class AIStrategyPrompts {
 
 	/**
 	 * Build prompt for generating a completely new optimized strategy.
-	 *
 	 * @param totalReturn Baseline total return percentage
 	 * @param winRate Baseline win rate percentage
 	 * @param sharpeRatio Baseline Sharpe ratio
@@ -4080,13 +4089,12 @@ public class AIStrategyPrompts {
 
 		String insightsSection = insights != null ? buildHistoricalInsightsPrompt(insights) : "";
 
-		return String.format(OPTIMIZE_GENERATE_NEW_PROMPT, totalReturn, winRate, sharpeRatio, maxDrawdown,
-				profitFactor, totalTrades, insightsSection);
+		return String.format(OPTIMIZE_GENERATE_NEW_PROMPT, totalReturn, winRate, sharpeRatio, maxDrawdown, profitFactor,
+				totalTrades, insightsSection);
 	}
 
 	/**
 	 * Build prompt for enhancing an existing strategy.
-	 *
 	 * @param visualConfig Current visual configuration JSON string
 	 * @param currentCode Current Python code
 	 * @param totalReturn Baseline total return percentage
@@ -4113,8 +4121,8 @@ public class AIStrategyPrompts {
 	// =========================================================================
 
 	/**
-	 * Few-shot examples for equity/stock strategies.
-	 * Shows successful strategies with reasoning for stocks.
+	 * Few-shot examples for equity/stock strategies. Shows successful strategies with
+	 * reasoning for stocks.
 	 */
 	public static final String FEW_SHOT_EXAMPLES_EQUITY = """
 			## SUCCESSFUL STRATEGY EXAMPLES (Learn from these)
@@ -4168,8 +4176,8 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Few-shot examples for ETF strategies.
-	 * Shows successful strategies with reasoning for ETFs.
+	 * Few-shot examples for ETF strategies. Shows successful strategies with reasoning
+	 * for ETFs.
 	 */
 	public static final String FEW_SHOT_EXAMPLES_ETF = """
 			## SUCCESSFUL ETF STRATEGY EXAMPLES
@@ -4225,8 +4233,8 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Few-shot examples for cryptocurrency strategies.
-	 * Shows successful strategies with reasoning for crypto.
+	 * Few-shot examples for cryptocurrency strategies. Shows successful strategies with
+	 * reasoning for crypto.
 	 */
 	public static final String FEW_SHOT_EXAMPLES_CRYPTO = """
 			## SUCCESSFUL CRYPTO STRATEGY EXAMPLES
@@ -4289,8 +4297,8 @@ public class AIStrategyPrompts {
 			""";
 
 	/**
-	 * Few-shot examples for volatile stocks.
-	 * Shows successful strategies for high-volatility equities.
+	 * Few-shot examples for volatile stocks. Shows successful strategies for
+	 * high-volatility equities.
 	 */
 	public static final String FEW_SHOT_EXAMPLES_VOLATILE = """
 			## SUCCESSFUL VOLATILE STOCK STRATEGY EXAMPLES
@@ -4348,7 +4356,6 @@ public class AIStrategyPrompts {
 
 	/**
 	 * Get the appropriate few-shot examples based on asset type.
-	 *
 	 * @param symbol The trading symbol
 	 * @return Appropriate few-shot examples string
 	 */
@@ -4360,27 +4367,24 @@ public class AIStrategyPrompts {
 		String upper = symbol.toUpperCase();
 
 		// Cryptocurrency detection
-		if (upper.equals("BTC") || upper.equals("ETH") || upper.equals("SOL") ||
-			upper.equals("DOGE") || upper.equals("ADA") || upper.equals("XRP") ||
-			upper.equals("AVAX") || upper.equals("MATIC") || upper.equals("DOT") ||
-			upper.contains("USD") || upper.contains("USDT") || upper.contains("BUSD")) {
+		if (upper.equals("BTC") || upper.equals("ETH") || upper.equals("SOL") || upper.equals("DOGE")
+				|| upper.equals("ADA") || upper.equals("XRP") || upper.equals("AVAX") || upper.equals("MATIC")
+				|| upper.equals("DOT") || upper.contains("USD") || upper.contains("USDT") || upper.contains("BUSD")) {
 			return FEW_SHOT_EXAMPLES_CRYPTO;
 		}
 
 		// ETF detection
-		if (upper.equals("SPY") || upper.equals("QQQ") || upper.equals("IWM") ||
-			upper.equals("DIA") || upper.equals("VTI") || upper.equals("VOO") ||
-			upper.equals("XLK") || upper.equals("XLF") || upper.equals("XLE") ||
-			upper.equals("GLD") || upper.equals("SLV") || upper.equals("TLT") ||
-			upper.equals("ARKK") || upper.equals("ARKW")) {
+		if (upper.equals("SPY") || upper.equals("QQQ") || upper.equals("IWM") || upper.equals("DIA")
+				|| upper.equals("VTI") || upper.equals("VOO") || upper.equals("XLK") || upper.equals("XLF")
+				|| upper.equals("XLE") || upper.equals("GLD") || upper.equals("SLV") || upper.equals("TLT")
+				|| upper.equals("ARKK") || upper.equals("ARKW")) {
 			return FEW_SHOT_EXAMPLES_ETF;
 		}
 
 		// Volatile stock detection
-		if (upper.equals("TSLA") || upper.equals("AMD") || upper.equals("NVDA") ||
-			upper.equals("SHOP") || upper.equals("SQ") || upper.equals("COIN") ||
-			upper.equals("RIVN") || upper.equals("LCID") || upper.equals("MSTR") ||
-			upper.equals("GME") || upper.equals("AMC") || upper.equals("PLTR")) {
+		if (upper.equals("TSLA") || upper.equals("AMD") || upper.equals("NVDA") || upper.equals("SHOP")
+				|| upper.equals("SQ") || upper.equals("COIN") || upper.equals("RIVN") || upper.equals("LCID")
+				|| upper.equals("MSTR") || upper.equals("GME") || upper.equals("AMC") || upper.equals("PLTR")) {
 			return FEW_SHOT_EXAMPLES_VOLATILE;
 		}
 

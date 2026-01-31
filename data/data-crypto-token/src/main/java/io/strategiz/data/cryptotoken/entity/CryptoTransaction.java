@@ -9,16 +9,20 @@ import com.google.cloud.Timestamp;
 /**
  * Entity representing a crypto token transaction in the ledger.
  *
- * <p>Collection path: cryptoTransactions/{transactionId}</p>
+ * <p>
+ * Collection path: cryptoTransactions/{transactionId}
+ * </p>
  *
- * <p>Transaction Types:</p>
+ * <p>
+ * Transaction Types:
+ * </p>
  * <ul>
- *   <li>PURCHASE: Buy tokens with USD</li>
- *   <li>EARN: Receive tokens from rewards/engagement</li>
- *   <li>SPEND: Use tokens for owner subscriptions or tips</li>
- *   <li>TRANSFER: Send tokens to another user</li>
- *   <li>ALLOCATION: Monthly STRAT allocation from subscription tier</li>
- *   <li>AI_USAGE: STRAT debited for AI model usage</li>
+ * <li>PURCHASE: Buy tokens with USD</li>
+ * <li>EARN: Receive tokens from rewards/engagement</li>
+ * <li>SPEND: Use tokens for owner subscriptions or tips</li>
+ * <li>TRANSFER: Send tokens to another user</li>
+ * <li>ALLOCATION: Monthly STRAT allocation from subscription tier</li>
+ * <li>AI_USAGE: STRAT debited for AI model usage</li>
  * </ul>
  *
  * @see io.strategiz.data.cryptotoken.entity.CryptoWallet
@@ -79,8 +83,8 @@ public class CryptoTransaction extends BaseEntity {
 	public static final String TYPE_AI_USAGE = "AI_USAGE";
 
 	/**
-	 * @deprecated STRAT tokens cannot be converted to AI credits.
-	 * AI credits come from platform subscription tier only.
+	 * @deprecated STRAT tokens cannot be converted to AI credits. AI credits come from
+	 * platform subscription tier only.
 	 */
 	@Deprecated(forRemoval = true)
 	public static final String TYPE_CONVERT = "CONVERT";

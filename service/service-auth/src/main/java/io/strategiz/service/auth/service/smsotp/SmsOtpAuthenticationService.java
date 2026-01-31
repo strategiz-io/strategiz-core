@@ -29,8 +29,8 @@ import io.strategiz.service.base.BaseService;
 /**
  * SMS OTP Authentication Service
  *
- * Handles SMS OTP for both registration and authentication flows.
- * Features rate limiting, attempt limiting, and automatic expiration.
+ * Handles SMS OTP for both registration and authentication flows. Features rate limiting,
+ * attempt limiting, and automatic expiration.
  *
  * OTP sessions are stored in Firestore for production-ready distributed deployment.
  * Industry standard: 5-minute expiration, 5 max attempts, 60-second rate limit.
@@ -38,396 +38,403 @@ import io.strategiz.service.base.BaseService;
 @Service
 public class SmsOtpAuthenticationService extends BaseService {
 
-    private static final String SYSTEM_USER = "system";
+	private static final String SYSTEM_USER = "system";
 
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    @Autowired
-    private SmsOtpCodeRepository smsOtpCodeRepository;
+	@Autowired
+	private SmsOtpCodeRepository smsOtpCodeRepository;
 
-    @Autowired
-    private SmsOtpConfig smsOtpConfig;
+	@Autowired
+	private SmsOtpConfig smsOtpConfig;
 
-    @Autowired
-    private FirebaseSmsClient firebaseSmsClient;
+	@Autowired
+	private FirebaseSmsClient firebaseSmsClient;
 
-    @Autowired
-    private AuthenticationMethodRepository authMethodRepository;
+	@Autowired
+	private AuthenticationMethodRepository authMethodRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+	@Autowired
+	private UserRepository userRepository;
 
-    @Autowired
-    private SessionAuthBusiness sessionAuthBusiness;
-    
-    /**
-     * Send OTP for registration (new phone number)
-     */
-    public boolean sendRegistrationOtp(String userId, String phoneNumber, String countryCode) {
-        log.info("Sending registration OTP to phone: {} for user: {}", maskPhoneNumber(phoneNumber), userId);
+	@Autowired
+	private SessionAuthBusiness sessionAuthBusiness;
 
-        // Check rate limiting using Firestore
-        if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
-            throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
-                    "Too many SMS requests. Please wait before requesting another OTP.");
-        }
+	/**
+	 * Send OTP for registration (new phone number)
+	 */
+	public boolean sendRegistrationOtp(String userId, String phoneNumber, String countryCode) {
+		log.info("Sending registration OTP to phone: {} for user: {}", maskPhoneNumber(phoneNumber), userId);
 
-        // Generate OTP code
-        String otpCode = generateOtpCode();
+		// Check rate limiting using Firestore
+		if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
+			throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
+					"Too many SMS requests. Please wait before requesting another OTP.");
+		}
 
-        // Create session entity with hashed OTP code
-        SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
-                SmsOtpCodeEntity.Purpose.REGISTRATION, smsOtpConfig.getOtpExpiryMinutes());
-        session.setUserId(userId);
+		// Generate OTP code
+		String otpCode = generateOtpCode();
 
-        // Save to Firestore
-        session = smsOtpCodeRepository.save(session, SYSTEM_USER);
+		// Create session entity with hashed OTP code
+		SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
+				SmsOtpCodeEntity.Purpose.REGISTRATION, smsOtpConfig.getOtpExpiryMinutes());
+		session.setUserId(userId);
 
-        // Send SMS
-        boolean sent = sendSms(phoneNumber, otpCode, countryCode);
+		// Save to Firestore
+		session = smsOtpCodeRepository.save(session, SYSTEM_USER);
 
-        if (!sent) {
-            // Cleanup failed session
-            smsOtpCodeRepository.deleteById(session.getId());
-            throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
-        }
+		// Send SMS
+		boolean sent = sendSms(phoneNumber, otpCode, countryCode);
 
-        log.info("Registration OTP sent successfully to {}", maskPhoneNumber(phoneNumber));
-        return true;
-    }
-    
-    /**
-     * Send OTP for authentication by phone number only (finds user automatically)
-     * This is used on the sign-in page where users only enter their phone number
-     */
-    public String sendAuthenticationOtpByPhone(String phoneNumber, String countryCode) {
-        log.info("Sending authentication OTP to phone: {} (looking up user)", maskPhoneNumber(phoneNumber));
+		if (!sent) {
+			// Cleanup failed session
+			smsOtpCodeRepository.deleteById(session.getId());
+			throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
+		}
 
-        // Find user by phone number from authentication methods
-        String userId = findUserIdByPhoneNumber(phoneNumber);
+		log.info("Registration OTP sent successfully to {}", maskPhoneNumber(phoneNumber));
+		return true;
+	}
 
-        if (userId == null) {
-            throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER,
-                    "Phone number not registered. Please sign up first.");
-        }
+	/**
+	 * Send OTP for authentication by phone number only (finds user automatically) This is
+	 * used on the sign-in page where users only enter their phone number
+	 */
+	public String sendAuthenticationOtpByPhone(String phoneNumber, String countryCode) {
+		log.info("Sending authentication OTP to phone: {} (looking up user)", maskPhoneNumber(phoneNumber));
 
-        // Delegate to the existing method
-        return sendAuthenticationOtp(userId, phoneNumber, countryCode);
-    }
+		// Find user by phone number from authentication methods
+		String userId = findUserIdByPhoneNumber(phoneNumber);
 
-    /**
-     * Find user ID by phone number from authentication methods.
-     * Uses optimized direct query on phone number for fast lookup.
-     */
-    private String findUserIdByPhoneNumber(String phoneNumber) {
-        // First check if there's an existing session in Firestore for this phone (fast cache check)
-        Optional<SmsOtpCodeEntity> existingSession = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
-        if (existingSession.isPresent() && existingSession.get().getUserId() != null) {
-            String userId = existingSession.get().getUserId();
-            // Quick verify the user actually has this phone registered
-            List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
-                    AuthenticationMethodType.SMS_OTP);
-            for (AuthenticationMethodEntity method : methods) {
-                String methodPhone = method
-                    .getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER);
-                if (phoneNumber.equals(methodPhone)) {
-                    Boolean isVerified = (Boolean) method
-                        .getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
-                    if (Boolean.TRUE.equals(isVerified)) {
-                        return userId;
-                    }
-                }
-            }
-        }
+		if (userId == null) {
+			throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER,
+					"Phone number not registered. Please sign up first.");
+		}
 
-        // Use optimized direct query by phone number (much faster than fetching all SMS_OTP methods)
-        Optional<AuthenticationMethodEntity> methodOpt = authMethodRepository.findByPhoneNumber(phoneNumber);
-        if (methodOpt.isPresent()) {
-            // userId is stored in metadata by the repository during collection group query
-            String userId = methodOpt.get().getMetadataAsString("userId");
-            if (userId != null) {
-                log.debug("Found user {} for phone number via direct query", userId);
-                return userId;
-            }
-        }
+		// Delegate to the existing method
+		return sendAuthenticationOtp(userId, phoneNumber, countryCode);
+	}
 
-        log.warn("Unable to find user for phone number: {}", maskPhoneNumber(phoneNumber));
-        return null;
-    }
-    
-    /**
-     * Send OTP for authentication (existing verified phone)
-     * Note: This requires the userId to be provided since we can't search across users
-     */
-    public String sendAuthenticationOtp(String userId, String phoneNumber, String countryCode) {
-        log.info("Sending authentication OTP to phone: {} for user: {}", maskPhoneNumber(phoneNumber), userId);
+	/**
+	 * Find user ID by phone number from authentication methods. Uses optimized direct
+	 * query on phone number for fast lookup.
+	 */
+	private String findUserIdByPhoneNumber(String phoneNumber) {
+		// First check if there's an existing session in Firestore for this phone (fast
+		// cache check)
+		Optional<SmsOtpCodeEntity> existingSession = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
+		if (existingSession.isPresent() && existingSession.get().getUserId() != null) {
+			String userId = existingSession.get().getUserId();
+			// Quick verify the user actually has this phone registered
+			List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
+					AuthenticationMethodType.SMS_OTP);
+			for (AuthenticationMethodEntity method : methods) {
+				String methodPhone = method
+					.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER);
+				if (phoneNumber.equals(methodPhone)) {
+					Boolean isVerified = (Boolean) method
+						.getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
+					if (Boolean.TRUE.equals(isVerified)) {
+						return userId;
+					}
+				}
+			}
+		}
 
-        // Find the SMS OTP method for this user
-        List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
-                AuthenticationMethodType.SMS_OTP);
+		// Use optimized direct query by phone number (much faster than fetching all
+		// SMS_OTP methods)
+		Optional<AuthenticationMethodEntity> methodOpt = authMethodRepository.findByPhoneNumber(phoneNumber);
+		if (methodOpt.isPresent()) {
+			// userId is stored in metadata by the repository during collection group
+			// query
+			String userId = methodOpt.get().getMetadataAsString("userId");
+			if (userId != null) {
+				log.debug("Found user {} for phone number via direct query", userId);
+				return userId;
+			}
+		}
 
-        // Filter to find the matching phone number
-        Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
-            .filter(m -> phoneNumber
-                .equals(m.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER)))
-            .findFirst();
+		log.warn("Unable to find user for phone number: {}", maskPhoneNumber(phoneNumber));
+		return null;
+	}
 
-        if (methodOpt.isEmpty()) {
-            throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER, "Phone number not registered for this user");
-        }
+	/**
+	 * Send OTP for authentication (existing verified phone) Note: This requires the
+	 * userId to be provided since we can't search across users
+	 */
+	public String sendAuthenticationOtp(String userId, String phoneNumber, String countryCode) {
+		log.info("Sending authentication OTP to phone: {} for user: {}", maskPhoneNumber(phoneNumber), userId);
 
-        AuthenticationMethodEntity method = methodOpt.get();
+		// Find the SMS OTP method for this user
+		List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
+				AuthenticationMethodType.SMS_OTP);
 
-        // Check if phone is verified
-        Boolean isVerified = (Boolean) method.getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
-        if (!Boolean.TRUE.equals(isVerified)) {
-            throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER, "Phone number not verified");
-        }
+		// Filter to find the matching phone number
+		Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
+			.filter(m -> phoneNumber
+				.equals(m.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER)))
+			.findFirst();
 
-        // Check rate limiting using Firestore
-        if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
-            throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
-                    "Too many SMS requests. Please wait before requesting another OTP.");
-        }
+		if (methodOpt.isEmpty()) {
+			throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER, "Phone number not registered for this user");
+		}
 
-        // Generate OTP code
-        String otpCode = generateOtpCode();
+		AuthenticationMethodEntity method = methodOpt.get();
 
-        // Create session entity with hashed OTP code
-        SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
-                SmsOtpCodeEntity.Purpose.AUTHENTICATION, smsOtpConfig.getOtpExpiryMinutes());
-        session.setUserId(userId);
+		// Check if phone is verified
+		Boolean isVerified = (Boolean) method.getMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED);
+		if (!Boolean.TRUE.equals(isVerified)) {
+			throw new StrategizException(AuthErrors.INVALID_PHONE_NUMBER, "Phone number not verified");
+		}
 
-        // Save to Firestore
-        session = smsOtpCodeRepository.save(session, SYSTEM_USER);
+		// Check rate limiting using Firestore
+		if (!smsOtpCodeRepository.canSendOtp(phoneNumber)) {
+			throw new StrategizException(AuthErrors.OTP_RATE_LIMITED,
+					"Too many SMS requests. Please wait before requesting another OTP.");
+		}
 
-        // Send SMS
-        boolean sent = sendSms(phoneNumber, otpCode, countryCode);
+		// Generate OTP code
+		String otpCode = generateOtpCode();
 
-        if (!sent) {
-            // Cleanup failed session
-            smsOtpCodeRepository.deleteById(session.getId());
-            throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
-        }
+		// Create session entity with hashed OTP code
+		SmsOtpCodeEntity session = new SmsOtpCodeEntity(phoneNumber, countryCode, hashOtpCode(otpCode),
+				SmsOtpCodeEntity.Purpose.AUTHENTICATION, smsOtpConfig.getOtpExpiryMinutes());
+		session.setUserId(userId);
 
-        log.info("Authentication OTP sent successfully to {}", maskPhoneNumber(phoneNumber));
-        return session.getId(); // Return session ID for tracking
-    }
-    
-    /**
-     * Verify OTP code
-     */
-    public boolean verifyOtp(String sessionId, String phoneNumber, String otpCode) {
-        log.debug("Verifying OTP for session: {} phone: {}", sessionId, maskPhoneNumber(phoneNumber));
+		// Save to Firestore
+		session = smsOtpCodeRepository.save(session, SYSTEM_USER);
 
-        // Find OTP session from Firestore
-        Optional<SmsOtpCodeEntity> sessionOpt;
-        if (sessionId != null && !sessionId.isEmpty()) {
-            sessionOpt = smsOtpCodeRepository.findById(sessionId);
-        }
-        else {
-            // Try to find by phone number if session ID not provided
-            sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
-        }
+		// Send SMS
+		boolean sent = sendSms(phoneNumber, otpCode, countryCode);
 
-        if (sessionOpt.isEmpty()) {
-            log.warn("No OTP session found for phone: {}", maskPhoneNumber(phoneNumber));
-            return false;
-        }
+		if (!sent) {
+			// Cleanup failed session
+			smsOtpCodeRepository.deleteById(session.getId());
+			throw new StrategizException(AuthErrors.SMS_SEND_FAILED, "Failed to send SMS OTP");
+		}
 
-        SmsOtpCodeEntity session = sessionOpt.get();
+		log.info("Authentication OTP sent successfully to {}", maskPhoneNumber(phoneNumber));
+		return session.getId(); // Return session ID for tracking
+	}
 
-        // Check if session is expired
-        if (session.isExpired()) {
-            smsOtpCodeRepository.deleteById(session.getId());
-            log.warn("OTP session expired for phone: {}", maskPhoneNumber(phoneNumber));
-            return false;
-        }
+	/**
+	 * Verify OTP code
+	 */
+	public boolean verifyOtp(String sessionId, String phoneNumber, String otpCode) {
+		log.debug("Verifying OTP for session: {} phone: {}", sessionId, maskPhoneNumber(phoneNumber));
 
-        // Check attempt count
-        if (session.hasExceededMaxAttempts()) {
-            smsOtpCodeRepository.deleteById(session.getId());
-            log.warn("Too many OTP verification attempts for phone: {}", maskPhoneNumber(phoneNumber));
-            throw new StrategizException(AuthErrors.OTP_MAX_ATTEMPTS_EXCEEDED, "Too many verification attempts");
-        }
+		// Find OTP session from Firestore
+		Optional<SmsOtpCodeEntity> sessionOpt;
+		if (sessionId != null && !sessionId.isEmpty()) {
+			sessionOpt = smsOtpCodeRepository.findById(sessionId);
+		}
+		else {
+			// Try to find by phone number if session ID not provided
+			sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
+		}
 
-        // Increment attempt count and save
-        session.incrementAttempts();
+		if (sessionOpt.isEmpty()) {
+			log.warn("No OTP session found for phone: {}", maskPhoneNumber(phoneNumber));
+			return false;
+		}
 
-        // Verify OTP code by comparing hashes
-        String providedCodeHash = hashOtpCode(otpCode);
-        if (!session.getCodeHash().equals(providedCodeHash)) {
-            // Save updated attempt count
-            smsOtpCodeRepository.update(session, SYSTEM_USER);
-            log.warn("Invalid OTP code for phone: {}", maskPhoneNumber(phoneNumber));
-            return false;
-        }
+		SmsOtpCodeEntity session = sessionOpt.get();
 
-        // Mark as verified and delete session (successful verification)
-        session.markVerified();
-        smsOtpCodeRepository.deleteById(session.getId());
+		// Check if session is expired
+		if (session.isExpired()) {
+			smsOtpCodeRepository.deleteById(session.getId());
+			log.warn("OTP session expired for phone: {}", maskPhoneNumber(phoneNumber));
+			return false;
+		}
 
-        log.info("OTP verified successfully for phone: {}", maskPhoneNumber(phoneNumber));
-        return true;
-    }
-    
-    /**
-     * Authenticate user with SMS OTP and return tokens
-     */
-    public Map<String, Object> authenticateWithOtp(String phoneNumber, String otpCode, String sessionId) {
-        log.info("Authenticating user with SMS OTP for phone: {}", maskPhoneNumber(phoneNumber));
+		// Check attempt count
+		if (session.hasExceededMaxAttempts()) {
+			smsOtpCodeRepository.deleteById(session.getId());
+			log.warn("Too many OTP verification attempts for phone: {}", maskPhoneNumber(phoneNumber));
+			throw new StrategizException(AuthErrors.OTP_MAX_ATTEMPTS_EXCEEDED, "Too many verification attempts");
+		}
 
-        // Find session first to get userId before verification deletes it
-        Optional<SmsOtpCodeEntity> sessionOpt;
-        if (sessionId != null && !sessionId.isEmpty()) {
-            sessionOpt = smsOtpCodeRepository.findById(sessionId);
-        }
-        else {
-            sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
-        }
+		// Increment attempt count and save
+		session.incrementAttempts();
 
-        if (sessionOpt.isEmpty()) {
-            log.warn("No OTP session found for authentication");
-            return null;
-        }
+		// Verify OTP code by comparing hashes
+		String providedCodeHash = hashOtpCode(otpCode);
+		if (!session.getCodeHash().equals(providedCodeHash)) {
+			// Save updated attempt count
+			smsOtpCodeRepository.update(session, SYSTEM_USER);
+			log.warn("Invalid OTP code for phone: {}", maskPhoneNumber(phoneNumber));
+			return false;
+		}
 
-        String userId = sessionOpt.get().getUserId();
+		// Mark as verified and delete session (successful verification)
+		session.markVerified();
+		smsOtpCodeRepository.deleteById(session.getId());
 
-        // Verify OTP (this will delete the session on success)
-        if (!verifyOtp(sessionId, phoneNumber, otpCode)) {
-            return null;
-        }
-        
-        // Get user for email
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            log.warn("User not found for SMS OTP authentication: {}", userId);
-            return null;
-        }
-        UserEntity user = userOpt.get();
-        
-        // Find the authentication method for marking as used
-        List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId, AuthenticationMethodType.SMS_OTP);
-        Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
-            .filter(m -> phoneNumber.equals(m.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER)))
-            .findFirst();
-        
-        // Mark method as recently used if found
-        if (methodOpt.isPresent()) {
-            AuthenticationMethodEntity method = methodOpt.get();
-            method.setLastUsedAt(Instant.now());
-            method.putMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED, true);
-            // Store last verified time in metadata directly (without using a constant that doesn't exist)
-            method.putMetadata("lastVerifiedAt", Instant.now().toString());
-            authMethodRepository.saveForUser(userId, method);
-        }
-        
-        // Create session and tokens using SessionAuthBusiness (same as TOTP)
-        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
-            userId,                                                      // userId
-            user.getProfile().getEmail(),                                // userEmail
-            java.util.List.of("SMS_OTP"),                               // authenticationMethods  
-            false,                                                       // isPartialAuth
-            "sms-otp-auth-device",                                      // deviceId
-            null,                                                        // deviceFingerprint
-            null,                                                        // ipAddress
-            null,                                                        // userAgent
-            false // demoMode
-        );
-        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
-        
-        // Return proper authentication tokens
-        Map<String, Object> authResponse = new HashMap<>();
-        authResponse.put("userId", userId);
-        authResponse.put("accessToken", authResult.accessToken());
-        authResponse.put("refreshToken", authResult.refreshToken());
-        authResponse.put("identityToken", authResult.accessToken()); // Use access token as identity token for now
-        authResponse.put("authMethod", "sms_otp");
-        authResponse.put("authenticated", true);
-        authResponse.put("phoneNumber", maskPhoneNumber(phoneNumber));
-        
-        log.info("User authenticated successfully with SMS OTP: {}", userId);
-        return authResponse;
-    }
-    
-    // Helper methods
+		log.info("OTP verified successfully for phone: {}", maskPhoneNumber(phoneNumber));
+		return true;
+	}
 
-    private boolean sendSms(String phoneNumber, String otpCode, String countryCode) {
-        try {
-            // In development, log the OTP instead of sending SMS
-            if (smsOtpConfig.isDevMockSmsEnabled()) {
-                log.info("MOCK SMS OTP: {} to phone: {}", otpCode, phoneNumber);
-                return true;
-            }
+	/**
+	 * Authenticate user with SMS OTP and return tokens
+	 */
+	public Map<String, Object> authenticateWithOtp(String phoneNumber, String otpCode, String sessionId) {
+		log.info("Authenticating user with SMS OTP for phone: {}", maskPhoneNumber(phoneNumber));
 
-            // Format message
-            String message = String.format("Your Strategiz verification code is: %s. Valid for %d minutes.", otpCode,
-                    smsOtpConfig.getOtpExpiryMinutes());
+		// Find session first to get userId before verification deletes it
+		Optional<SmsOtpCodeEntity> sessionOpt;
+		if (sessionId != null && !sessionId.isEmpty()) {
+			sessionOpt = smsOtpCodeRepository.findById(sessionId);
+		}
+		else {
+			sessionOpt = smsOtpCodeRepository.findActiveByPhoneNumber(phoneNumber);
+		}
 
-            // Send via Firebase
-            return firebaseSmsClient.sendSms(phoneNumber, message, countryCode);
-        }
-        catch (Exception e) {
-            log.error("Failed to send SMS to {}: {}", maskPhoneNumber(phoneNumber), e.getMessage());
-            return false;
-        }
-    }
+		if (sessionOpt.isEmpty()) {
+			log.warn("No OTP session found for authentication");
+			return null;
+		}
 
-    private String generateOtpCode() {
-        // Generate 6-digit OTP
-        int code = ThreadLocalRandom.current().nextInt(100000, 999999);
-        return String.valueOf(code);
-    }
+		String userId = sessionOpt.get().getUserId();
 
-    /**
-     * Hash OTP code using SHA-256 for secure storage.
-     * Never store plain-text OTP codes in the database.
-     */
-    private String hashOtpCode(String otpCode) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(otpCode.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        }
-        catch (NoSuchAlgorithmException e) {
-            // SHA-256 is always available in Java
-            throw new RuntimeException("SHA-256 algorithm not available", e);
-        }
-    }
+		// Verify OTP (this will delete the session on success)
+		if (!verifyOtp(sessionId, phoneNumber, otpCode)) {
+			return null;
+		}
 
-    private String maskPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.length() < 4) {
-            return "****";
-        }
-        return phoneNumber.substring(0, 3) + "****" + phoneNumber.substring(phoneNumber.length() - 2);
-    }
+		// Get user for email
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			log.warn("User not found for SMS OTP authentication: {}", userId);
+			return null;
+		}
+		UserEntity user = userOpt.get();
 
-    /**
-     * Scheduled cleanup of expired SMS OTP sessions.
-     * Runs every 5 minutes to remove expired sessions from Firestore.
-     */
-    @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
-    public void cleanupExpiredSessions() {
-        try {
-            int deleted = smsOtpCodeRepository.deleteExpired();
-            if (deleted > 0) {
-                log.info("Cleaned up {} expired SMS OTP sessions", deleted);
-            }
-        }
-        catch (Exception e) {
-            log.error("Failed to cleanup expired SMS OTP sessions: {}", e.getMessage());
-        }
-    }
+		// Find the authentication method for marking as used
+		List<AuthenticationMethodEntity> methods = authMethodRepository.findByUserIdAndType(userId,
+				AuthenticationMethodType.SMS_OTP);
+		Optional<AuthenticationMethodEntity> methodOpt = methods.stream()
+			.filter(m -> phoneNumber
+				.equals(m.getMetadataAsString(AuthenticationMethodMetadata.SmsOtpMetadata.PHONE_NUMBER)))
+			.findFirst();
+
+		// Mark method as recently used if found
+		if (methodOpt.isPresent()) {
+			AuthenticationMethodEntity method = methodOpt.get();
+			method.setLastUsedAt(Instant.now());
+			method.putMetadata(AuthenticationMethodMetadata.SmsOtpMetadata.IS_VERIFIED, true);
+			// Store last verified time in metadata directly (without using a constant
+			// that doesn't exist)
+			method.putMetadata("lastVerifiedAt", Instant.now().toString());
+			authMethodRepository.saveForUser(userId, method);
+		}
+
+		// Create session and tokens using SessionAuthBusiness (same as TOTP)
+		SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(userId, // userId
+				user.getProfile().getEmail(), // userEmail
+				java.util.List.of("SMS_OTP"), // authenticationMethods
+				false, // isPartialAuth
+				"sms-otp-auth-device", // deviceId
+				null, // deviceFingerprint
+				null, // ipAddress
+				null, // userAgent
+				false // demoMode
+		);
+		SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+
+		// Return proper authentication tokens
+		Map<String, Object> authResponse = new HashMap<>();
+		authResponse.put("userId", userId);
+		authResponse.put("accessToken", authResult.accessToken());
+		authResponse.put("refreshToken", authResult.refreshToken());
+		authResponse.put("identityToken", authResult.accessToken()); // Use access token
+																		// as identity
+																		// token for now
+		authResponse.put("authMethod", "sms_otp");
+		authResponse.put("authenticated", true);
+		authResponse.put("phoneNumber", maskPhoneNumber(phoneNumber));
+
+		log.info("User authenticated successfully with SMS OTP: {}", userId);
+		return authResponse;
+	}
+
+	// Helper methods
+
+	private boolean sendSms(String phoneNumber, String otpCode, String countryCode) {
+		try {
+			// In development, log the OTP instead of sending SMS
+			if (smsOtpConfig.isDevMockSmsEnabled()) {
+				log.info("MOCK SMS OTP: {} to phone: {}", otpCode, phoneNumber);
+				return true;
+			}
+
+			// Format message
+			String message = String.format("Your Strategiz verification code is: %s. Valid for %d minutes.", otpCode,
+					smsOtpConfig.getOtpExpiryMinutes());
+
+			// Send via Firebase
+			return firebaseSmsClient.sendSms(phoneNumber, message, countryCode);
+		}
+		catch (Exception e) {
+			log.error("Failed to send SMS to {}: {}", maskPhoneNumber(phoneNumber), e.getMessage());
+			return false;
+		}
+	}
+
+	private String generateOtpCode() {
+		// Generate 6-digit OTP
+		int code = ThreadLocalRandom.current().nextInt(100000, 999999);
+		return String.valueOf(code);
+	}
+
+	/**
+	 * Hash OTP code using SHA-256 for secure storage. Never store plain-text OTP codes in
+	 * the database.
+	 */
+	private String hashOtpCode(String otpCode) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = digest.digest(otpCode.getBytes(StandardCharsets.UTF_8));
+			StringBuilder hexString = new StringBuilder();
+			for (byte b : hash) {
+				String hex = Integer.toHexString(0xff & b);
+				if (hex.length() == 1) {
+					hexString.append('0');
+				}
+				hexString.append(hex);
+			}
+			return hexString.toString();
+		}
+		catch (NoSuchAlgorithmException e) {
+			// SHA-256 is always available in Java
+			throw new RuntimeException("SHA-256 algorithm not available", e);
+		}
+	}
+
+	private String maskPhoneNumber(String phoneNumber) {
+		if (phoneNumber == null || phoneNumber.length() < 4) {
+			return "****";
+		}
+		return phoneNumber.substring(0, 3) + "****" + phoneNumber.substring(phoneNumber.length() - 2);
+	}
+
+	/**
+	 * Scheduled cleanup of expired SMS OTP sessions. Runs every 5 minutes to remove
+	 * expired sessions from Firestore.
+	 */
+	@Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
+	public void cleanupExpiredSessions() {
+		try {
+			int deleted = smsOtpCodeRepository.deleteExpired();
+			if (deleted > 0) {
+				log.info("Cleaned up {} expired SMS OTP sessions", deleted);
+			}
+		}
+		catch (Exception e) {
+			log.error("Failed to cleanup expired SMS OTP sessions: {}", e.getMessage());
+		}
+	}
 
 }

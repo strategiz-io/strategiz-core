@@ -31,11 +31,10 @@ import java.util.stream.Collectors;
  * Purpose: Query active deployments by tier and publish to Pub/Sub for processing
  * Execution: Auto-scheduled based on tier (TIER1: 1min, TIER2: 5min, TIER3: 15min)
  *
- * Key Features:
- * - Fan-out by Symbol SET (supports multi-symbol strategies like pairs trading)
- * - Groups deployments by sorted symbol set key (e.g., "AAPL,MSFT")
- * - Batches symbol sets into groups of 100 for efficient gRPC processing
- * - Publishes to Pub/Sub topic: publisher-deployment-processing
+ * Key Features: - Fan-out by Symbol SET (supports multi-symbol strategies like pairs
+ * trading) - Groups deployments by sorted symbol set key (e.g., "AAPL,MSFT") - Batches
+ * symbol sets into groups of 100 for efficient gRPC processing - Publishes to Pub/Sub
+ * topic: publisher-deployment-processing
  *
  * Architecture: Runs in application-console with "scheduler" profile
  */
@@ -75,9 +74,8 @@ public class DispatchJob {
 	}
 
 	/**
-	 * Execute dispatch for a specific tier.
-	 * Called by DynamicJobSchedulerBusiness based on jobs table schedule.
-	 *
+	 * Execute dispatch for a specific tier. Called by DynamicJobSchedulerBusiness based
+	 * on jobs table schedule.
 	 * @param tier The subscription tier: TIER1 (1min), TIER2 (5min), TIER3 (15min)
 	 */
 	public DispatchResult execute(String tier) {
@@ -126,8 +124,8 @@ public class DispatchJob {
 			int messagesPublished = publishBatches(tier, batches);
 
 			Duration duration = Duration.between(startTime, Instant.now());
-			log.info("Dispatch completed for tier {}: {} alerts, {} bots, {} symbol sets, {} messages in {}ms",
-					tier, alerts.size(), bots.size(), groups.size(), messagesPublished, duration.toMillis());
+			log.info("Dispatch completed for tier {}: {} alerts, {} bots, {} symbol sets, {} messages in {}ms", tier,
+					alerts.size(), bots.size(), groups.size(), messagesPublished, duration.toMillis());
 
 			// Record job completion (symbolsProcessed = alerts + bots)
 			int totalDeployments = alerts.size() + bots.size();
@@ -170,9 +168,9 @@ public class DispatchJob {
 	}
 
 	/**
-	 * Group deployments by symbol SET.
-	 * Multi-symbol strategies get grouped together (e.g., pairs trading AAPL+MSFT).
-	 * Both alerts and bots are grouped into the same map for unified processing.
+	 * Group deployments by symbol SET. Multi-symbol strategies get grouped together
+	 * (e.g., pairs trading AAPL+MSFT). Both alerts and bots are grouped into the same map
+	 * for unified processing.
 	 */
 	private Map<String, SymbolSetGroup> groupBySymbolSet(List<AlertDeployment> alerts, List<BotDeployment> bots) {
 		Map<String, SymbolSetGroup> groups = new HashMap<>();
@@ -186,8 +184,7 @@ public class DispatchJob {
 			}
 
 			String key = getSymbolSetKey(symbols);
-			groups.computeIfAbsent(key, k -> new SymbolSetGroup(symbols))
-					.addAlert(alert.getId());
+			groups.computeIfAbsent(key, k -> new SymbolSetGroup(symbols)).addAlert(alert.getId());
 		}
 
 		// Group bots by symbol set
@@ -199,22 +196,18 @@ public class DispatchJob {
 			}
 
 			String key = getSymbolSetKey(symbols);
-			groups.computeIfAbsent(key, k -> new SymbolSetGroup(symbols))
-					.addBot(bot.getId());
+			groups.computeIfAbsent(key, k -> new SymbolSetGroup(symbols)).addBot(bot.getId());
 		}
 
 		return groups;
 	}
 
 	/**
-	 * Create a canonical key for a symbol set (sorted, comma-joined).
-	 * "MSFT,AAPL" and "AAPL,MSFT" both become "AAPL,MSFT"
+	 * Create a canonical key for a symbol set (sorted, comma-joined). "MSFT,AAPL" and
+	 * "AAPL,MSFT" both become "AAPL,MSFT"
 	 */
 	private String getSymbolSetKey(List<String> symbols) {
-		return symbols.stream()
-				.map(String::toUpperCase)
-				.sorted()
-				.collect(Collectors.joining(","));
+		return symbols.stream().map(String::toUpperCase).sorted().collect(Collectors.joining(","));
 	}
 
 	/**
@@ -235,16 +228,13 @@ public class DispatchJob {
 		int messagesPublished = 0;
 
 		for (List<SymbolSetGroup> batch : batches) {
-			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-				.tier(tier)
-				.symbolSets(batch)
-				.build();
+			DeploymentBatchMessage message = DeploymentBatchMessage.builder().tier(tier).symbolSets(batch).build();
 
 			if (pubSubPublisher != null && pubSubPublisher.isAvailable()) {
 				try {
 					String pubsubId = pubSubPublisher.publish(message);
-					log.debug("Published batch {} (Pub/Sub ID: {}) with {} symbol sets for tier {}", message.getMessageId(),
-							pubsubId, batch.size(), tier);
+					log.debug("Published batch {} (Pub/Sub ID: {}) with {} symbol sets for tier {}",
+							message.getMessageId(), pubsubId, batch.size(), tier);
 					messagesPublished++;
 				}
 				catch (Exception e) {
@@ -278,16 +268,8 @@ public class DispatchJob {
 	/**
 	 * Result of a dispatch operation.
 	 */
-	public record DispatchResult(
-			boolean success,
-			String tier,
-			int alertsProcessed,
-			int botsProcessed,
-			int symbolSetsCreated,
-			int messagesPublished,
-			long durationMs,
-			String errorMessage
-	) {
+	public record DispatchResult(boolean success, String tier, int alertsProcessed, int botsProcessed,
+			int symbolSetsCreated, int messagesPublished, long durationMs, String errorMessage) {
 		public static DispatchResult disabled() {
 			return new DispatchResult(false, null, 0, 0, 0, 0, 0, "Dispatch disabled");
 		}

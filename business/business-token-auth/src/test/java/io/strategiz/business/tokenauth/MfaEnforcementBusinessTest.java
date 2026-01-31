@@ -26,8 +26,8 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for MfaEnforcementBusiness.
  *
- * Tests MFA enforcement logic including step-up authentication checks,
- * validation for enabling MFA, and ACR level calculations.
+ * Tests MFA enforcement logic including step-up authentication checks, validation for
+ * enabling MFA, and ACR level calculations.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MfaEnforcementBusiness Tests")
@@ -101,8 +101,8 @@ class MfaEnforcementBusinessTest {
 			prefs.setMinimumAcrLevel(2);
 			when(securityPreferencesRepository.getByUserId(TEST_USER_ID)).thenReturn(prefs);
 
-			List<AuthenticationMethodEntity> methods = List
-				.of(createMethod(AuthenticationMethodType.TOTP, true), createMethod(AuthenticationMethodType.PASSKEY, true));
+			List<AuthenticationMethodEntity> methods = List.of(createMethod(AuthenticationMethodType.TOTP, true),
+					createMethod(AuthenticationMethodType.PASSKEY, true));
 			when(authMethodRepository.findByUserId(TEST_USER_ID)).thenReturn(methods);
 
 			// When
@@ -134,6 +134,7 @@ class MfaEnforcementBusinessTest {
 			// Then
 			assertTrue(result.required()); // Defaults to ACR 1, which is below 2
 		}
+
 	}
 
 	@Nested
@@ -232,6 +233,7 @@ class MfaEnforcementBusinessTest {
 			// Then
 			assertFalse(result.canEnable());
 		}
+
 	}
 
 	@Nested
@@ -303,6 +305,7 @@ class MfaEnforcementBusinessTest {
 			assertNotNull(settings.upgradeHint());
 			assertTrue(settings.upgradeHint().toLowerCase().contains("passkey"));
 		}
+
 	}
 
 	@Nested
@@ -364,6 +367,7 @@ class MfaEnforcementBusinessTest {
 			assertTrue(result.success());
 			verify(securityPreferencesRepository).save(eq(TEST_USER_ID), any(SecurityPreferences.class));
 		}
+
 	}
 
 	@Nested
@@ -430,6 +434,7 @@ class MfaEnforcementBusinessTest {
 			assertTrue(result.safeToRemove());
 			assertFalse(result.willDisableMfaEnforcement()); // Passkey remains
 		}
+
 	}
 
 	@Nested
@@ -462,6 +467,7 @@ class MfaEnforcementBusinessTest {
 			// Then
 			verify(securityPreferencesRepository, never()).disableMfaEnforcement(anyString());
 		}
+
 	}
 
 	@Nested
@@ -485,7 +491,8 @@ class MfaEnforcementBusinessTest {
 				.getAvailableMfaMethods(TEST_USER_ID);
 
 			// Then
-			// Passkeys are always considered active (verified during WebAuthn registration)
+			// Passkeys are always considered active (verified during WebAuthn
+			// registration)
 			assertEquals(3, result.size());
 			assertTrue(result.stream().anyMatch(m -> "totp".equals(m.type())));
 			assertTrue(result.stream().anyMatch(m -> "sms_otp".equals(m.type())));
@@ -523,6 +530,7 @@ class MfaEnforcementBusinessTest {
 			assertEquals(1, result.size());
 			assertEquals("Standard", result.get(0).strengthLabel());
 		}
+
 	}
 
 }

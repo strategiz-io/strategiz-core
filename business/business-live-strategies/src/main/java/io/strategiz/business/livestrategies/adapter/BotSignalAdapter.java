@@ -18,9 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Routes bot signals to trading execution via Alpaca.
- * Validates risk parameters before executing trades.
- * Supports both paper and live trading modes.
+ * Routes bot signals to trading execution via Alpaca. Validates risk parameters before
+ * executing trades. Supports both paper and live trading modes.
  */
 @Component
 public class BotSignalAdapter implements SignalAdapter {
@@ -28,16 +27,17 @@ public class BotSignalAdapter implements SignalAdapter {
 	private static final Logger log = LoggerFactory.getLogger(BotSignalAdapter.class);
 
 	private final RiskValidator riskValidator;
+
 	private final BotDeploymentBaseRepository botDeploymentRepository;
+
 	private final AlpacaTradingClient alpacaTradingClient;
+
 	private final SecretManager secretManager;
+
 	private final CircuitBreakerManager circuitBreakerManager;
 
-	public BotSignalAdapter(
-			RiskValidator riskValidator,
-			BotDeploymentBaseRepository botDeploymentRepository,
-			AlpacaTradingClient alpacaTradingClient,
-			@Qualifier("vaultSecretService") SecretManager secretManager,
+	public BotSignalAdapter(RiskValidator riskValidator, BotDeploymentBaseRepository botDeploymentRepository,
+			AlpacaTradingClient alpacaTradingClient, @Qualifier("vaultSecretService") SecretManager secretManager,
 			CircuitBreakerManager circuitBreakerManager) {
 		this.riskValidator = riskValidator;
 		this.botDeploymentRepository = botDeploymentRepository;
@@ -64,8 +64,8 @@ public class BotSignalAdapter implements SignalAdapter {
 		}
 
 		String botId = signal.getDeploymentId();
-		log.info("Processing bot signal: {} {} @ {} for deployment {}",
-				signal.getType(), signal.getSymbol(), signal.getPrice(), botId);
+		log.info("Processing bot signal: {} {} @ {} for deployment {}", signal.getType(), signal.getSymbol(),
+				signal.getPrice(), botId);
 
 		try {
 			// 1. Load bot deployment
@@ -120,27 +120,21 @@ public class BotSignalAdapter implements SignalAdapter {
 	}
 
 	/**
-	 * Process a simulated trade (no real order execution).
-	 * Used for testing strategies before going live.
+	 * Process a simulated trade (no real order execution). Used for testing strategies
+	 * before going live.
 	 */
 	private SignalResult processSimulatedTrade(BotDeployment bot, Signal signal) {
 		String botId = bot.getId();
 		String environment = bot.isPaperTrading() ? "PAPER" : "LIVE";
 
-		log.info("[SIMULATED] {} {} {} @ {} for bot {} (env={})",
-				signal.isBuy() ? "BUY" : "SELL",
-				calculatePositionSize(bot, signal),
-				signal.getSymbol(),
-				signal.getPrice(),
-				botId,
-				environment);
+		log.info("[SIMULATED] {} {} {} @ {} for bot {} (env={})", signal.isBuy() ? "BUY" : "SELL",
+				calculatePositionSize(bot, signal), signal.getSymbol(), signal.getPrice(), botId, environment);
 
 		// Update bot state
 		updateBotAfterTrade(bot, signal, true);
 
 		return SignalResult.success(botId, "SIMULATED_" + environment,
-				String.format("Simulated %s %s @ %.2f",
-						signal.getType(), signal.getSymbol(), signal.getPrice()));
+				String.format("Simulated %s %s @ %.2f", signal.getType(), signal.getSymbol(), signal.getPrice()));
 	}
 
 	/**
@@ -166,16 +160,14 @@ public class BotSignalAdapter implements SignalAdapter {
 		double qty = calculatePositionSize(bot, signal);
 		String symbol = signal.getSymbol();
 
-		log.info("Executing Alpaca {} order: {} {} shares of {} (paper={})",
-				side, qty, symbol, symbol, isPaper);
+		log.info("Executing Alpaca {} order: {} {} shares of {} (paper={})", side, qty, symbol, symbol, isPaper);
 
 		// Execute market order
-		OrderResult orderResult = alpacaTradingClient.placeMarketOrder(
-				accessToken, symbol, side, qty, isPaper);
+		OrderResult orderResult = alpacaTradingClient.placeMarketOrder(accessToken, symbol, side, qty, isPaper);
 
 		if (orderResult.isSuccess()) {
-			log.info("Alpaca order submitted: orderId={}, status={}, symbol={}, side={}",
-					orderResult.getOrderId(), orderResult.getStatus(), symbol, side);
+			log.info("Alpaca order submitted: orderId={}, status={}, symbol={}, side={}", orderResult.getOrderId(),
+					orderResult.getStatus(), symbol, side);
 
 			// Record success for circuit breaker
 			recordSuccess(bot);
@@ -183,8 +175,7 @@ public class BotSignalAdapter implements SignalAdapter {
 			// Update bot state
 			updateBotAfterTrade(bot, signal, true);
 
-			String message = String.format("Executed %s %s @ %s (orderId=%s, status=%s)",
-					signal.getType(), symbol,
+			String message = String.format("Executed %s %s @ %s (orderId=%s, status=%s)", signal.getType(), symbol,
 					orderResult.getFilledAvgPrice() > 0 ? orderResult.getFilledAvgPrice() : "market",
 					orderResult.getOrderId(), orderResult.getStatus());
 
@@ -201,14 +192,13 @@ public class BotSignalAdapter implements SignalAdapter {
 			bot.setErrorMessage(orderResult.getError());
 			botDeploymentRepository.save(bot, userId);
 
-			return SignalResult.failure(botId, isPaper ? "PAPER" : "LIVE",
-					orderResult.getError(), null);
+			return SignalResult.failure(botId, isPaper ? "PAPER" : "LIVE", orderResult.getError(), null);
 		}
 	}
 
 	/**
-	 * Get Alpaca OAuth access token from Vault.
-	 * Path: secret/strategiz/users/{userId}/providers/alpaca-{environment}
+	 * Get Alpaca OAuth access token from Vault. Path:
+	 * secret/strategiz/users/{userId}/providers/alpaca-{environment}
 	 */
 	private String getAlpacaAccessToken(String userId, String environment) {
 		try {
@@ -296,8 +286,8 @@ public class BotSignalAdapter implements SignalAdapter {
 
 				// Check if circuit breaker should trip
 				if (bot.shouldTripCircuitBreaker()) {
-					log.warn("Circuit breaker tripped for bot {} after {} consecutive errors",
-							botId, bot.getConsecutiveErrors());
+					log.warn("Circuit breaker tripped for bot {} after {} consecutive errors", botId,
+							bot.getConsecutiveErrors());
 					bot.setStatus("PAUSED");
 					bot.setErrorMessage("Paused due to consecutive errors: " + errorMessage);
 				}

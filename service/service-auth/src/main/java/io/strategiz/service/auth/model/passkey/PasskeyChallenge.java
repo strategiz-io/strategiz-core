@@ -4,147 +4,152 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Service layer model representing a WebAuthn passkey challenge for authentication or registration
+ * Service layer model representing a WebAuthn passkey challenge for authentication or
+ * registration
  */
 public class PasskeyChallenge {
-    private String id;
-    private String userId;
-    private String challenge;
-    private String credentialId;
-    private PasskeyChallengeType type; 
-    private Instant createdAt;
-    private Instant expiresAt;
-    private boolean used;
 
-    /**
-     * Default constructor
-     */
-    public PasskeyChallenge() {
-    }
-    
-    /**
-     * Create a new challenge
-     * @param userId UserEntity ID (email or internal ID)
-     * @param challenge The challenge string
-     * @param type Challenge type (registration or authentication)
-     * @param expirationSeconds Expiration time in seconds
-     */
-    public PasskeyChallenge(String userId, String challenge, PasskeyChallengeType type, long expirationSeconds) {
-        this.id = UUID.randomUUID().toString();
-        this.userId = userId;
-        this.challenge = challenge;
-        this.type = type;
-        this.createdAt = Instant.now();
-        this.expiresAt = createdAt.plusSeconds(expirationSeconds);
-        this.used = false;
-    }
-    
-    /**
-     * Check if challenge is expired
-     * @return true if expired
-     */
-    public boolean isExpired() {
-        return Instant.now().isAfter(expiresAt);
-    }
+	private String id;
 
-    // Getters and setters
-    public String getId() {
-        return id;
-    }
+	private String userId;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private String challenge;
 
-    public String getUserId() {
-        return userId;
-    }
+	private String credentialId;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private PasskeyChallengeType type;
 
-    public String getChallenge() {
-        return challenge;
-    }
+	private Instant createdAt;
 
-    public void setChallenge(String challenge) {
-        this.challenge = challenge;
-    }
+	private Instant expiresAt;
 
-    public PasskeyChallengeType getType() {
-        return type;
-    }
+	private boolean used;
 
-    public void setType(PasskeyChallengeType type) {
-        this.type = type;
-    }
+	/**
+	 * Default constructor
+	 */
+	public PasskeyChallenge() {
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	/**
+	 * Create a new challenge
+	 * @param userId UserEntity ID (email or internal ID)
+	 * @param challenge The challenge string
+	 * @param type Challenge type (registration or authentication)
+	 * @param expirationSeconds Expiration time in seconds
+	 */
+	public PasskeyChallenge(String userId, String challenge, PasskeyChallengeType type, long expirationSeconds) {
+		this.id = UUID.randomUUID().toString();
+		this.userId = userId;
+		this.challenge = challenge;
+		this.type = type;
+		this.createdAt = Instant.now();
+		this.expiresAt = createdAt.plusSeconds(expirationSeconds);
+		this.used = false;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	/**
+	 * Check if challenge is expired
+	 * @return true if expired
+	 */
+	public boolean isExpired() {
+		return Instant.now().isAfter(expiresAt);
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
-    
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-    
-    public String getCredentialId() {
-        return credentialId;
-    }
+	// Getters and setters
+	public String getId() {
+		return id;
+	}
 
-    public void setCredentialId(String credentialId) {
-        this.credentialId = credentialId;
-    }
-    
-    public boolean isUsed() {
-        return used;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setUsed(boolean used) {
-        this.used = used;
-    }
-    
-    /**
-     * Convert this service model to a data model
-     * @return Data layer PasskeyChallenge entity
-     */
-    public io.strategiz.data.auth.model.passkey.PasskeyChallenge toDataModel() {
-        io.strategiz.data.auth.model.passkey.PasskeyChallenge dataModel = new io.strategiz.data.auth.model.passkey.PasskeyChallenge(
-                userId,
-                challenge,
-                createdAt,
-                expiresAt,
-                type.name()
-        );
-        dataModel.setId(id);
-        dataModel.setUsed(used);
-        dataModel.setCredentialId(credentialId);
-        return dataModel;
-    }
-    
-    /**
-     * Create a service model from a data model
-     * @param dataModel Data layer PasskeyChallenge entity
-     * @return Service layer PasskeyChallenge model
-     */
-    public static PasskeyChallenge fromDataModel(io.strategiz.data.auth.model.passkey.PasskeyChallenge dataModel) {
-        PasskeyChallenge serviceModel = new PasskeyChallenge();
-        serviceModel.setId(dataModel.getId());
-        serviceModel.setUserId(dataModel.getUserId());
-        serviceModel.setChallenge(dataModel.getChallenge());
-        serviceModel.setType(PasskeyChallengeType.valueOf(dataModel.getChallengeType()));
-        serviceModel.setCreatedAt(dataModel.getCreatedAt());
-        serviceModel.setExpiresAt(dataModel.getExpiresAt());
-        serviceModel.setCredentialId(dataModel.getCredentialId());
-        serviceModel.setUsed(dataModel.isUsed());
-        return serviceModel;
-    }
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getChallenge() {
+		return challenge;
+	}
+
+	public void setChallenge(String challenge) {
+		this.challenge = challenge;
+	}
+
+	public PasskeyChallengeType getType() {
+		return type;
+	}
+
+	public void setType(PasskeyChallengeType type) {
+		this.type = type;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public String getCredentialId() {
+		return credentialId;
+	}
+
+	public void setCredentialId(String credentialId) {
+		this.credentialId = credentialId;
+	}
+
+	public boolean isUsed() {
+		return used;
+	}
+
+	public void setUsed(boolean used) {
+		this.used = used;
+	}
+
+	/**
+	 * Convert this service model to a data model
+	 * @return Data layer PasskeyChallenge entity
+	 */
+	public io.strategiz.data.auth.model.passkey.PasskeyChallenge toDataModel() {
+		io.strategiz.data.auth.model.passkey.PasskeyChallenge dataModel = new io.strategiz.data.auth.model.passkey.PasskeyChallenge(
+				userId, challenge, createdAt, expiresAt, type.name());
+		dataModel.setId(id);
+		dataModel.setUsed(used);
+		dataModel.setCredentialId(credentialId);
+		return dataModel;
+	}
+
+	/**
+	 * Create a service model from a data model
+	 * @param dataModel Data layer PasskeyChallenge entity
+	 * @return Service layer PasskeyChallenge model
+	 */
+	public static PasskeyChallenge fromDataModel(io.strategiz.data.auth.model.passkey.PasskeyChallenge dataModel) {
+		PasskeyChallenge serviceModel = new PasskeyChallenge();
+		serviceModel.setId(dataModel.getId());
+		serviceModel.setUserId(dataModel.getUserId());
+		serviceModel.setChallenge(dataModel.getChallenge());
+		serviceModel.setType(PasskeyChallengeType.valueOf(dataModel.getChallengeType()));
+		serviceModel.setCreatedAt(dataModel.getCreatedAt());
+		serviceModel.setExpiresAt(dataModel.getExpiresAt());
+		serviceModel.setCredentialId(dataModel.getCredentialId());
+		serviceModel.setUsed(dataModel.isUsed());
+		return serviceModel;
+	}
+
 }

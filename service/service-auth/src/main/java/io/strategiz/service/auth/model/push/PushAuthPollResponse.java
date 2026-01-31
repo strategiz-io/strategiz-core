@@ -13,27 +13,14 @@ import java.time.Instant;
  * @param respondedAt when the user responded (for APPROVED/DENIED)
  * @param error error message if any
  */
-public record PushAuthPollResponse(
-        PushAuthStatus status,
-        Instant expiresAt,
-        Instant respondedAt,
-        String error
-) {
-    public static PushAuthPollResponse from(PushAuthBusiness.PollResult result) {
-        if (result.error() != null) {
-            return new PushAuthPollResponse(
-                    result.status(),
-                    null,
-                    null,
-                    result.error()
-            );
-        }
+public record PushAuthPollResponse(PushAuthStatus status, Instant expiresAt, Instant respondedAt, String error) {
+	public static PushAuthPollResponse from(PushAuthBusiness.PollResult result) {
+		if (result.error() != null) {
+			return new PushAuthPollResponse(result.status(), null, null, result.error());
+		}
 
-        return new PushAuthPollResponse(
-                result.status(),
-                result.request() != null ? result.request().getExpiresAt() : null,
-                result.request() != null ? result.request().getRespondedAt() : null,
-                null
-        );
-    }
+		return new PushAuthPollResponse(result.status(),
+				result.request() != null ? result.request().getExpiresAt() : null,
+				result.request() != null ? result.request().getRespondedAt() : null, null);
+	}
 }

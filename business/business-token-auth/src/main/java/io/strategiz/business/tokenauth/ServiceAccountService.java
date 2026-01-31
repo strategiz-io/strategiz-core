@@ -18,16 +18,13 @@ import java.util.UUID;
 /**
  * Service for managing Service Accounts and generating M2M authentication tokens.
  *
- * Service accounts enable programmatic API access for:
- * - CI/CD pipelines (integration testing)
- * - External service integrations
- * - Automated scripts and batch processes
+ * Service accounts enable programmatic API access for: - CI/CD pipelines (integration
+ * testing) - External service integrations - Automated scripts and batch processes
  *
- * Authentication flow:
- * 1. Admin creates service account via API → gets clientId + clientSecret
- * 2. Client calls /v1/auth/service-account/token with credentials
- * 3. Service validates credentials and returns access token
- * 4. Client uses access token for API calls
+ * Authentication flow: 1. Admin creates service account via API → gets clientId +
+ * clientSecret 2. Client calls /v1/auth/service-account/token with credentials 3. Service
+ * validates credentials and returns access token 4. Client uses access token for API
+ * calls
  */
 @Service
 public class ServiceAccountService {
@@ -267,8 +264,8 @@ public class ServiceAccountService {
 	// =====================================================
 
 	/**
-	 * Result of creating a service account. Contains the entity and the plaintext
-	 * secret (only available at creation time).
+	 * Result of creating a service account. Contains the entity and the plaintext secret
+	 * (only available at creation time).
 	 */
 	public record ServiceAccountCreateResult(ServiceAccountEntity account, String clientSecret) {
 	}
@@ -276,8 +273,7 @@ public class ServiceAccountService {
 	/**
 	 * Result of token generation.
 	 */
-	public record ServiceAccountTokenResult(String accessToken, String tokenType, long expiresIn,
-			List<String> scopes) {
+	public record ServiceAccountTokenResult(String accessToken, String tokenType, long expiresIn, List<String> scopes) {
 	}
 
 	/**

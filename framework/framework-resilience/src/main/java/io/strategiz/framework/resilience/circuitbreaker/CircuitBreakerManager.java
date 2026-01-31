@@ -10,8 +10,8 @@ import java.util.function.Supplier;
 /**
  * Manages circuit breaker state transitions and execution.
  *
- * This class provides the core circuit breaker logic that can be used
- * with any entity implementing {@link CircuitBreakerState}.
+ * This class provides the core circuit breaker logic that can be used with any entity
+ * implementing {@link CircuitBreakerState}.
  *
  * Thread-safe for use across multiple threads.
  */

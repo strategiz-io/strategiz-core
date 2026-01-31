@@ -5,17 +5,8 @@ package io.strategiz.service.console.quality.model;
  */
 public enum QualityGrade {
 
-	A_PLUS("A+", 98.0),
-	A("A", 95.0),
-	A_MINUS("A-", 90.0),
-	B_PLUS("B+", 85.0),
-	B("B", 80.0),
-	B_MINUS("B-", 75.0),
-	C_PLUS("C+", 70.0),
-	C("C", 65.0),
-	C_MINUS("C-", 60.0),
-	D("D", 50.0),
-	F("F", 0.0);
+	A_PLUS("A+", 98.0), A("A", 95.0), A_MINUS("A-", 90.0), B_PLUS("B+", 85.0), B("B", 80.0), B_MINUS("B-", 75.0),
+	C_PLUS("C+", 70.0), C("C", 65.0), C_MINUS("C-", 60.0), D("D", 50.0), F("F", 0.0);
 
 	private final String label;
 

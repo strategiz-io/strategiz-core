@@ -10,13 +10,13 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class FacebookClientConfig {
 
-    /**
-     * RestTemplate bean for Facebook API calls
-     * 
-     * @return RestTemplate configured for Facebook API
-     */
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
-} 
+	/**
+	 * RestTemplate bean for Facebook API calls
+	 * @return RestTemplate configured for Facebook API
+	 */
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
+
+}

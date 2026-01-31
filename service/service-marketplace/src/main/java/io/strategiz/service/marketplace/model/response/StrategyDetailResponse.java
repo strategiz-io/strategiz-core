@@ -10,527 +10,895 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Comprehensive strategy detail response for strategy detail page.
- * Includes all strategy information with conditional inclusion based on access control.
+ * Comprehensive strategy detail response for strategy detail page. Includes all strategy
+ * information with conditional inclusion based on access control.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class StrategyDetailResponse {
 
-    // Basic Info
-    @JsonProperty("id")
-    private String id;
+	// Basic Info
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("name")
-    private String name;
+	@JsonProperty("name")
+	private String name;
 
-    @JsonProperty("description")
-    private String description;
+	@JsonProperty("description")
+	private String description;
 
-    @JsonProperty("language")
-    private String language;
+	@JsonProperty("language")
+	private String language;
 
-    @JsonProperty("type")
-    private String type;
+	@JsonProperty("type")
+	private String type;
 
-    @JsonProperty("category")
-    private String category;
+	@JsonProperty("category")
+	private String category;
 
-    @JsonProperty("tags")
-    private List<String> tags;
+	@JsonProperty("tags")
+	private List<String> tags;
 
-    // Code & Configuration (conditionally included based on access)
-    @JsonProperty("code")
-    private String code;  // Only if user is owner
+	// Code & Configuration (conditionally included based on access)
+	@JsonProperty("code")
+	private String code; // Only if user is owner
 
-    @JsonProperty("visualRules")
-    private Map<String, Object> visualRules;  // Only if user is owner
+	@JsonProperty("visualRules")
+	private Map<String, Object> visualRules; // Only if user is owner
 
-    @JsonProperty("parameters")
-    private Map<String, Object> parameters;
+	@JsonProperty("parameters")
+	private Map<String, Object> parameters;
 
-    // Performance
-    @JsonProperty("performance")
-    private StrategyPerformance performance;
+	// Performance
+	@JsonProperty("performance")
+	private StrategyPerformance performance;
 
-    // Backtest Data (conditionally included via query params)
-    @JsonProperty("tradeHistory")
-    private List<TradeHistoryItem> tradeHistory;
+	// Backtest Data (conditionally included via query params)
+	@JsonProperty("tradeHistory")
+	private List<TradeHistoryItem> tradeHistory;
 
-    @JsonProperty("equityCurve")
-    private List<EquityCurvePoint> equityCurve;
+	@JsonProperty("equityCurve")
+	private List<EquityCurvePoint> equityCurve;
 
-    @JsonProperty("drawdownCurve")
-    private List<DrawdownPoint> drawdownCurve;
+	@JsonProperty("drawdownCurve")
+	private List<DrawdownPoint> drawdownCurve;
 
-    // Ownership & Creator Info
-    @JsonProperty("creatorId")
-    private String creatorId;
+	// Ownership & Creator Info
+	@JsonProperty("creatorId")
+	private String creatorId;
 
-    @JsonProperty("ownerId")
-    private String ownerId;
+	@JsonProperty("ownerId")
+	private String ownerId;
 
-    @JsonProperty("creator")
-    private CreatorInfo creator;
+	@JsonProperty("creator")
+	private CreatorInfo creator;
 
-    @JsonProperty("owner")
-    private CreatorInfo owner;  // Only if different from creator
+	@JsonProperty("owner")
+	private CreatorInfo owner; // Only if different from creator
 
-    // Visibility & Pricing
-    @JsonProperty("isPublished")
-    private Boolean isPublished;
+	// Visibility & Pricing
+	@JsonProperty("isPublished")
+	private Boolean isPublished;
 
-    @JsonProperty("isPublic")
-    private Boolean isPublic;
+	@JsonProperty("isPublic")
+	private Boolean isPublic;
 
-    @JsonProperty("isListed")
-    private Boolean isListed;
+	@JsonProperty("isListed")
+	private Boolean isListed;
 
-    @JsonProperty("pricing")
-    private StrategyPricing pricing;
+	@JsonProperty("pricing")
+	private StrategyPricing pricing;
 
-    // Stats
-    @JsonProperty("subscriberCount")
-    private Integer subscriberCount;
+	// Stats
+	@JsonProperty("subscriberCount")
+	private Integer subscriberCount;
 
-    @JsonProperty("commentCount")
-    private Integer commentCount;
+	@JsonProperty("commentCount")
+	private Integer commentCount;
 
-    @JsonProperty("averageRating")
-    private Double averageRating;
+	@JsonProperty("averageRating")
+	private Double averageRating;
 
-    @JsonProperty("reviewCount")
-    private Integer reviewCount;
+	@JsonProperty("reviewCount")
+	private Integer reviewCount;
 
-    @JsonProperty("deploymentCount")
-    private Integer deploymentCount;
+	@JsonProperty("deploymentCount")
+	private Integer deploymentCount;
 
-    // Badges
-    @JsonProperty("isBestSeller")
-    private Boolean isBestSeller;
+	// Badges
+	@JsonProperty("isBestSeller")
+	private Boolean isBestSeller;
 
-    @JsonProperty("isTrending")
-    private Boolean isTrending;
+	@JsonProperty("isTrending")
+	private Boolean isTrending;
 
-    @JsonProperty("isNew")
-    private Boolean isNew;
+	@JsonProperty("isNew")
+	private Boolean isNew;
 
-    @JsonProperty("isFeatured")
-    private Boolean isFeatured;
+	@JsonProperty("isFeatured")
+	private Boolean isFeatured;
 
-    // Access Control Flags (for conditional rendering on frontend)
-    @JsonProperty("access")
-    private AccessFlags access;
+	// Access Control Flags (for conditional rendering on frontend)
+	@JsonProperty("access")
+	private AccessFlags access;
 
-    // Comments (conditionally included via query params)
-    @JsonProperty("comments")
-    private CommentsResponse comments;
+	// Comments (conditionally included via query params)
+	@JsonProperty("comments")
+	private CommentsResponse comments;
 
-    // Timestamps
-    @JsonProperty("createdAt")
-    private Date createdAt;
+	// Timestamps
+	@JsonProperty("createdAt")
+	private Date createdAt;
 
-    @JsonProperty("updatedAt")
-    private Date updatedAt;
+	@JsonProperty("updatedAt")
+	private Date updatedAt;
 
-    // Nested Classes
+	// Nested Classes
 
-    /**
-     * Creator/Owner information
-     */
-    public static class CreatorInfo {
-        @JsonProperty("userId")
-        private String userId;
+	/**
+	 * Creator/Owner information
+	 */
+	public static class CreatorInfo {
 
-        @JsonProperty("name")
-        private String name;
+		@JsonProperty("userId")
+		private String userId;
 
-        @JsonProperty("email")
-        private String email;
+		@JsonProperty("name")
+		private String name;
 
-        @JsonProperty("photoURL")
-        private String photoURL;
+		@JsonProperty("email")
+		private String email;
 
-        // Constructors
-        public CreatorInfo() {}
+		@JsonProperty("photoURL")
+		private String photoURL;
 
-        public CreatorInfo(String userId, String name, String email, String photoURL) {
-            this.userId = userId;
-            this.name = name;
-            this.email = email;
-            this.photoURL = photoURL;
-        }
+		// Constructors
+		public CreatorInfo() {
+		}
 
-        // Getters and Setters
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+		public CreatorInfo(String userId, String name, String email, String photoURL) {
+			this.userId = userId;
+			this.name = name;
+			this.email = email;
+			this.photoURL = photoURL;
+		}
 
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+		// Getters and Setters
+		public String getUserId() {
+			return userId;
+		}
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
 
-        public String getPhotoURL() { return photoURL; }
-        public void setPhotoURL(String photoURL) { this.photoURL = photoURL; }
-    }
+		public String getName() {
+			return name;
+		}
 
-    /**
-     * Access control flags for frontend conditional rendering
-     */
-    public static class AccessFlags {
-        @JsonProperty("isOwner")
-        private Boolean isOwner;
+		public void setName(String name) {
+			this.name = name;
+		}
 
-        @JsonProperty("isSubscriber")
-        private Boolean isSubscriber;
+		public String getEmail() {
+			return email;
+		}
 
-        @JsonProperty("canViewCode")
-        private Boolean canViewCode;
+		public void setEmail(String email) {
+			this.email = email;
+		}
 
-        @JsonProperty("canDeploy")
-        private Boolean canDeploy;
+		public String getPhotoURL() {
+			return photoURL;
+		}
 
-        @JsonProperty("canEdit")
-        private Boolean canEdit;
+		public void setPhotoURL(String photoURL) {
+			this.photoURL = photoURL;
+		}
 
-        // Constructors
-        public AccessFlags() {}
+	}
 
-        public AccessFlags(Boolean isOwner, Boolean isSubscriber, Boolean canViewCode, Boolean canDeploy, Boolean canEdit) {
-            this.isOwner = isOwner;
-            this.isSubscriber = isSubscriber;
-            this.canViewCode = canViewCode;
-            this.canDeploy = canDeploy;
-            this.canEdit = canEdit;
-        }
+	/**
+	 * Access control flags for frontend conditional rendering
+	 */
+	public static class AccessFlags {
 
-        // Getters and Setters
-        public Boolean getIsOwner() { return isOwner; }
-        public void setIsOwner(Boolean isOwner) { this.isOwner = isOwner; }
+		@JsonProperty("isOwner")
+		private Boolean isOwner;
 
-        public Boolean getIsSubscriber() { return isSubscriber; }
-        public void setIsSubscriber(Boolean isSubscriber) { this.isSubscriber = isSubscriber; }
+		@JsonProperty("isSubscriber")
+		private Boolean isSubscriber;
 
-        public Boolean getCanViewCode() { return canViewCode; }
-        public void setCanViewCode(Boolean canViewCode) { this.canViewCode = canViewCode; }
+		@JsonProperty("canViewCode")
+		private Boolean canViewCode;
 
-        public Boolean getCanDeploy() { return canDeploy; }
-        public void setCanDeploy(Boolean canDeploy) { this.canDeploy = canDeploy; }
+		@JsonProperty("canDeploy")
+		private Boolean canDeploy;
 
-        public Boolean getCanEdit() { return canEdit; }
-        public void setCanEdit(Boolean canEdit) { this.canEdit = canEdit; }
-    }
+		@JsonProperty("canEdit")
+		private Boolean canEdit;
 
-    /**
-     * Individual trade history item from backtest
-     */
-    public static class TradeHistoryItem {
-        @JsonProperty("entryTime")
-        private Date entryTime;
+		// Constructors
+		public AccessFlags() {
+		}
 
-        @JsonProperty("exitTime")
-        private Date exitTime;
+		public AccessFlags(Boolean isOwner, Boolean isSubscriber, Boolean canViewCode, Boolean canDeploy,
+				Boolean canEdit) {
+			this.isOwner = isOwner;
+			this.isSubscriber = isSubscriber;
+			this.canViewCode = canViewCode;
+			this.canDeploy = canDeploy;
+			this.canEdit = canEdit;
+		}
 
-        @JsonProperty("direction")
-        private String direction;  // BUY or SELL
+		// Getters and Setters
+		public Boolean getIsOwner() {
+			return isOwner;
+		}
 
-        @JsonProperty("entryPrice")
-        private Double entryPrice;
+		public void setIsOwner(Boolean isOwner) {
+			this.isOwner = isOwner;
+		}
 
-        @JsonProperty("exitPrice")
-        private Double exitPrice;
+		public Boolean getIsSubscriber() {
+			return isSubscriber;
+		}
 
-        @JsonProperty("quantity")
-        private Double quantity;
+		public void setIsSubscriber(Boolean isSubscriber) {
+			this.isSubscriber = isSubscriber;
+		}
 
-        @JsonProperty("pnl")
-        private Double pnl;
+		public Boolean getCanViewCode() {
+			return canViewCode;
+		}
 
-        @JsonProperty("pnlPercent")
-        private Double pnlPercent;
+		public void setCanViewCode(Boolean canViewCode) {
+			this.canViewCode = canViewCode;
+		}
 
-        @JsonProperty("signal")
-        private String signal;  // Signal that triggered the trade
+		public Boolean getCanDeploy() {
+			return canDeploy;
+		}
 
-        // Constructors
-        public TradeHistoryItem() {}
+		public void setCanDeploy(Boolean canDeploy) {
+			this.canDeploy = canDeploy;
+		}
 
-        // Getters and Setters
-        public Date getEntryTime() { return entryTime; }
-        public void setEntryTime(Date entryTime) { this.entryTime = entryTime; }
+		public Boolean getCanEdit() {
+			return canEdit;
+		}
 
-        public Date getExitTime() { return exitTime; }
-        public void setExitTime(Date exitTime) { this.exitTime = exitTime; }
+		public void setCanEdit(Boolean canEdit) {
+			this.canEdit = canEdit;
+		}
 
-        public String getDirection() { return direction; }
-        public void setDirection(String direction) { this.direction = direction; }
+	}
 
-        public Double getEntryPrice() { return entryPrice; }
-        public void setEntryPrice(Double entryPrice) { this.entryPrice = entryPrice; }
+	/**
+	 * Individual trade history item from backtest
+	 */
+	public static class TradeHistoryItem {
 
-        public Double getExitPrice() { return exitPrice; }
-        public void setExitPrice(Double exitPrice) { this.exitPrice = exitPrice; }
+		@JsonProperty("entryTime")
+		private Date entryTime;
 
-        public Double getQuantity() { return quantity; }
-        public void setQuantity(Double quantity) { this.quantity = quantity; }
+		@JsonProperty("exitTime")
+		private Date exitTime;
 
-        public Double getPnl() { return pnl; }
-        public void setPnl(Double pnl) { this.pnl = pnl; }
+		@JsonProperty("direction")
+		private String direction; // BUY or SELL
 
-        public Double getPnlPercent() { return pnlPercent; }
-        public void setPnlPercent(Double pnlPercent) { this.pnlPercent = pnlPercent; }
+		@JsonProperty("entryPrice")
+		private Double entryPrice;
 
-        public String getSignal() { return signal; }
-        public void setSignal(String signal) { this.signal = signal; }
-    }
+		@JsonProperty("exitPrice")
+		private Double exitPrice;
 
-    /**
-     * Equity curve data point for charting
-     */
-    public static class EquityCurvePoint {
-        @JsonProperty("timestamp")
-        private Date timestamp;
+		@JsonProperty("quantity")
+		private Double quantity;
 
-        @JsonProperty("portfolioValue")
-        private Double portfolioValue;
+		@JsonProperty("pnl")
+		private Double pnl;
 
-        @JsonProperty("returnPercent")
-        private Double returnPercent;
+		@JsonProperty("pnlPercent")
+		private Double pnlPercent;
 
-        // Constructors
-        public EquityCurvePoint() {}
+		@JsonProperty("signal")
+		private String signal; // Signal that triggered the trade
 
-        public EquityCurvePoint(Date timestamp, Double portfolioValue, Double returnPercent) {
-            this.timestamp = timestamp;
-            this.portfolioValue = portfolioValue;
-            this.returnPercent = returnPercent;
-        }
+		// Constructors
+		public TradeHistoryItem() {
+		}
 
-        // Getters and Setters
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+		// Getters and Setters
+		public Date getEntryTime() {
+			return entryTime;
+		}
 
-        public Double getPortfolioValue() { return portfolioValue; }
-        public void setPortfolioValue(Double portfolioValue) { this.portfolioValue = portfolioValue; }
+		public void setEntryTime(Date entryTime) {
+			this.entryTime = entryTime;
+		}
 
-        public Double getReturnPercent() { return returnPercent; }
-        public void setReturnPercent(Double returnPercent) { this.returnPercent = returnPercent; }
-    }
+		public Date getExitTime() {
+			return exitTime;
+		}
 
-    /**
-     * Drawdown data point for charting
-     */
-    public static class DrawdownPoint {
-        @JsonProperty("timestamp")
-        private Date timestamp;
+		public void setExitTime(Date exitTime) {
+			this.exitTime = exitTime;
+		}
 
-        @JsonProperty("drawdownPercent")
-        private Double drawdownPercent;
+		public String getDirection() {
+			return direction;
+		}
 
-        // Constructors
-        public DrawdownPoint() {}
+		public void setDirection(String direction) {
+			this.direction = direction;
+		}
 
-        public DrawdownPoint(Date timestamp, Double drawdownPercent) {
-            this.timestamp = timestamp;
-            this.drawdownPercent = drawdownPercent;
-        }
+		public Double getEntryPrice() {
+			return entryPrice;
+		}
 
-        // Getters and Setters
-        public Date getTimestamp() { return timestamp; }
-        public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
+		public void setEntryPrice(Double entryPrice) {
+			this.entryPrice = entryPrice;
+		}
 
-        public Double getDrawdownPercent() { return drawdownPercent; }
-        public void setDrawdownPercent(Double drawdownPercent) { this.drawdownPercent = drawdownPercent; }
-    }
+		public Double getExitPrice() {
+			return exitPrice;
+		}
 
-    /**
-     * Paginated comments response
-     */
-    public static class CommentsResponse {
-        @JsonProperty("comments")
-        private List<CommentDto> comments;
+		public void setExitPrice(Double exitPrice) {
+			this.exitPrice = exitPrice;
+		}
 
-        @JsonProperty("totalCount")
-        private Integer totalCount;
+		public Double getQuantity() {
+			return quantity;
+		}
 
-        @JsonProperty("page")
-        private Integer page;
+		public void setQuantity(Double quantity) {
+			this.quantity = quantity;
+		}
 
-        @JsonProperty("pageSize")
-        private Integer pageSize;
+		public Double getPnl() {
+			return pnl;
+		}
 
-        // Constructors
-        public CommentsResponse() {}
+		public void setPnl(Double pnl) {
+			this.pnl = pnl;
+		}
 
-        // Getters and Setters
-        public List<CommentDto> getComments() { return comments; }
-        public void setComments(List<CommentDto> comments) { this.comments = comments; }
+		public Double getPnlPercent() {
+			return pnlPercent;
+		}
 
-        public Integer getTotalCount() { return totalCount; }
-        public void setTotalCount(Integer totalCount) { this.totalCount = totalCount; }
+		public void setPnlPercent(Double pnlPercent) {
+			this.pnlPercent = pnlPercent;
+		}
 
-        public Integer getPage() { return page; }
-        public void setPage(Integer page) { this.page = page; }
+		public String getSignal() {
+			return signal;
+		}
 
-        public Integer getPageSize() { return pageSize; }
-        public void setPageSize(Integer pageSize) { this.pageSize = pageSize; }
-    }
+		public void setSignal(String signal) {
+			this.signal = signal;
+		}
 
-    /**
-     * Comment DTO (simplified for now)
-     */
-    public static class CommentDto {
-        @JsonProperty("id")
-        private String id;
+	}
 
-        @JsonProperty("userId")
-        private String userId;
+	/**
+	 * Equity curve data point for charting
+	 */
+	public static class EquityCurvePoint {
 
-        @JsonProperty("userName")
-        private String userName;
+		@JsonProperty("timestamp")
+		private Date timestamp;
 
-        @JsonProperty("userPhotoURL")
-        private String userPhotoURL;
+		@JsonProperty("portfolioValue")
+		private Double portfolioValue;
 
-        @JsonProperty("content")
-        private String content;
+		@JsonProperty("returnPercent")
+		private Double returnPercent;
 
-        @JsonProperty("rating")
-        private Integer rating;
+		// Constructors
+		public EquityCurvePoint() {
+		}
 
-        @JsonProperty("createdAt")
-        private Date createdAt;
+		public EquityCurvePoint(Date timestamp, Double portfolioValue, Double returnPercent) {
+			this.timestamp = timestamp;
+			this.portfolioValue = portfolioValue;
+			this.returnPercent = returnPercent;
+		}
 
-        // Constructors
-        public CommentDto() {}
+		// Getters and Setters
+		public Date getTimestamp() {
+			return timestamp;
+		}
 
-        // Getters and Setters
-        public String getId() { return id; }
-        public void setId(String id) { this.id = id; }
+		public void setTimestamp(Date timestamp) {
+			this.timestamp = timestamp;
+		}
 
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+		public Double getPortfolioValue() {
+			return portfolioValue;
+		}
 
-        public String getUserName() { return userName; }
-        public void setUserName(String userName) { this.userName = userName; }
+		public void setPortfolioValue(Double portfolioValue) {
+			this.portfolioValue = portfolioValue;
+		}
 
-        public String getUserPhotoURL() { return userPhotoURL; }
-        public void setUserPhotoURL(String userPhotoURL) { this.userPhotoURL = userPhotoURL; }
+		public Double getReturnPercent() {
+			return returnPercent;
+		}
 
-        public String getContent() { return content; }
-        public void setContent(String content) { this.content = content; }
+		public void setReturnPercent(Double returnPercent) {
+			this.returnPercent = returnPercent;
+		}
 
-        public Integer getRating() { return rating; }
-        public void setRating(Integer rating) { this.rating = rating; }
+	}
 
-        public Date getCreatedAt() { return createdAt; }
-        public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
-    }
+	/**
+	 * Drawdown data point for charting
+	 */
+	public static class DrawdownPoint {
 
-    // Main Class Getters and Setters
+		@JsonProperty("timestamp")
+		private Date timestamp;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+		@JsonProperty("drawdownPercent")
+		private Double drawdownPercent;
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+		// Constructors
+		public DrawdownPoint() {
+		}
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+		public DrawdownPoint(Date timestamp, Double drawdownPercent) {
+			this.timestamp = timestamp;
+			this.drawdownPercent = drawdownPercent;
+		}
 
-    public String getLanguage() { return language; }
-    public void setLanguage(String language) { this.language = language; }
+		// Getters and Setters
+		public Date getTimestamp() {
+			return timestamp;
+		}
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+		public void setTimestamp(Date timestamp) {
+			this.timestamp = timestamp;
+		}
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+		public Double getDrawdownPercent() {
+			return drawdownPercent;
+		}
 
-    public List<String> getTags() { return tags; }
-    public void setTags(List<String> tags) { this.tags = tags; }
+		public void setDrawdownPercent(Double drawdownPercent) {
+			this.drawdownPercent = drawdownPercent;
+		}
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+	}
 
-    public Map<String, Object> getVisualRules() { return visualRules; }
-    public void setVisualRules(Map<String, Object> visualRules) { this.visualRules = visualRules; }
+	/**
+	 * Paginated comments response
+	 */
+	public static class CommentsResponse {
 
-    public Map<String, Object> getParameters() { return parameters; }
-    public void setParameters(Map<String, Object> parameters) { this.parameters = parameters; }
+		@JsonProperty("comments")
+		private List<CommentDto> comments;
 
-    public StrategyPerformance getPerformance() { return performance; }
-    public void setPerformance(StrategyPerformance performance) { this.performance = performance; }
+		@JsonProperty("totalCount")
+		private Integer totalCount;
 
-    public List<TradeHistoryItem> getTradeHistory() { return tradeHistory; }
-    public void setTradeHistory(List<TradeHistoryItem> tradeHistory) { this.tradeHistory = tradeHistory; }
+		@JsonProperty("page")
+		private Integer page;
 
-    public List<EquityCurvePoint> getEquityCurve() { return equityCurve; }
-    public void setEquityCurve(List<EquityCurvePoint> equityCurve) { this.equityCurve = equityCurve; }
+		@JsonProperty("pageSize")
+		private Integer pageSize;
 
-    public List<DrawdownPoint> getDrawdownCurve() { return drawdownCurve; }
-    public void setDrawdownCurve(List<DrawdownPoint> drawdownCurve) { this.drawdownCurve = drawdownCurve; }
+		// Constructors
+		public CommentsResponse() {
+		}
 
-    public String getCreatorId() { return creatorId; }
-    public void setCreatorId(String creatorId) { this.creatorId = creatorId; }
+		// Getters and Setters
+		public List<CommentDto> getComments() {
+			return comments;
+		}
 
-    public String getOwnerId() { return ownerId; }
-    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+		public void setComments(List<CommentDto> comments) {
+			this.comments = comments;
+		}
 
-    public CreatorInfo getCreator() { return creator; }
-    public void setCreator(CreatorInfo creator) { this.creator = creator; }
+		public Integer getTotalCount() {
+			return totalCount;
+		}
 
-    public CreatorInfo getOwner() { return owner; }
-    public void setOwner(CreatorInfo owner) { this.owner = owner; }
+		public void setTotalCount(Integer totalCount) {
+			this.totalCount = totalCount;
+		}
 
-    public Boolean getIsPublished() { return isPublished; }
-    public void setIsPublished(Boolean isPublished) { this.isPublished = isPublished; }
+		public Integer getPage() {
+			return page;
+		}
 
-    public Boolean getIsPublic() { return isPublic; }
-    public void setIsPublic(Boolean isPublic) { this.isPublic = isPublic; }
+		public void setPage(Integer page) {
+			this.page = page;
+		}
 
-    public Boolean getIsListed() { return isListed; }
-    public void setIsListed(Boolean isListed) { this.isListed = isListed; }
+		public Integer getPageSize() {
+			return pageSize;
+		}
 
-    public StrategyPricing getPricing() { return pricing; }
-    public void setPricing(StrategyPricing pricing) { this.pricing = pricing; }
+		public void setPageSize(Integer pageSize) {
+			this.pageSize = pageSize;
+		}
 
-    public Integer getSubscriberCount() { return subscriberCount; }
-    public void setSubscriberCount(Integer subscriberCount) { this.subscriberCount = subscriberCount; }
+	}
 
-    public Integer getCommentCount() { return commentCount; }
-    public void setCommentCount(Integer commentCount) { this.commentCount = commentCount; }
+	/**
+	 * Comment DTO (simplified for now)
+	 */
+	public static class CommentDto {
 
-    public Double getAverageRating() { return averageRating; }
-    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+		@JsonProperty("id")
+		private String id;
 
-    public Integer getReviewCount() { return reviewCount; }
-    public void setReviewCount(Integer reviewCount) { this.reviewCount = reviewCount; }
+		@JsonProperty("userId")
+		private String userId;
 
-    public Integer getDeploymentCount() { return deploymentCount; }
-    public void setDeploymentCount(Integer deploymentCount) { this.deploymentCount = deploymentCount; }
+		@JsonProperty("userName")
+		private String userName;
 
-    public Boolean getIsBestSeller() { return isBestSeller; }
-    public void setIsBestSeller(Boolean isBestSeller) { this.isBestSeller = isBestSeller; }
+		@JsonProperty("userPhotoURL")
+		private String userPhotoURL;
 
-    public Boolean getIsTrending() { return isTrending; }
-    public void setIsTrending(Boolean isTrending) { this.isTrending = isTrending; }
+		@JsonProperty("content")
+		private String content;
 
-    public Boolean getIsNew() { return isNew; }
-    public void setIsNew(Boolean isNew) { this.isNew = isNew; }
+		@JsonProperty("rating")
+		private Integer rating;
 
-    public Boolean getIsFeatured() { return isFeatured; }
-    public void setIsFeatured(Boolean isFeatured) { this.isFeatured = isFeatured; }
+		@JsonProperty("createdAt")
+		private Date createdAt;
 
-    public AccessFlags getAccess() { return access; }
-    public void setAccess(AccessFlags access) { this.access = access; }
+		// Constructors
+		public CommentDto() {
+		}
 
-    public CommentsResponse getComments() { return comments; }
-    public void setComments(CommentsResponse comments) { this.comments = comments; }
+		// Getters and Setters
+		public String getId() {
+			return id;
+		}
 
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+		public void setId(String id) {
+			this.id = id;
+		}
 
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+		public String getUserId() {
+			return userId;
+		}
+
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
+
+		public String getUserName() {
+			return userName;
+		}
+
+		public void setUserName(String userName) {
+			this.userName = userName;
+		}
+
+		public String getUserPhotoURL() {
+			return userPhotoURL;
+		}
+
+		public void setUserPhotoURL(String userPhotoURL) {
+			this.userPhotoURL = userPhotoURL;
+		}
+
+		public String getContent() {
+			return content;
+		}
+
+		public void setContent(String content) {
+			this.content = content;
+		}
+
+		public Integer getRating() {
+			return rating;
+		}
+
+		public void setRating(Integer rating) {
+			this.rating = rating;
+		}
+
+		public Date getCreatedAt() {
+			return createdAt;
+		}
+
+		public void setCreatedAt(Date createdAt) {
+			this.createdAt = createdAt;
+		}
+
+	}
+
+	// Main Class Getters and Setters
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public String getLanguage() {
+		return language;
+	}
+
+	public void setLanguage(String language) {
+		this.language = language;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getCategory() {
+		return category;
+	}
+
+	public void setCategory(String category) {
+		this.category = category;
+	}
+
+	public List<String> getTags() {
+		return tags;
+	}
+
+	public void setTags(List<String> tags) {
+		this.tags = tags;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
+	}
+
+	public Map<String, Object> getVisualRules() {
+		return visualRules;
+	}
+
+	public void setVisualRules(Map<String, Object> visualRules) {
+		this.visualRules = visualRules;
+	}
+
+	public Map<String, Object> getParameters() {
+		return parameters;
+	}
+
+	public void setParameters(Map<String, Object> parameters) {
+		this.parameters = parameters;
+	}
+
+	public StrategyPerformance getPerformance() {
+		return performance;
+	}
+
+	public void setPerformance(StrategyPerformance performance) {
+		this.performance = performance;
+	}
+
+	public List<TradeHistoryItem> getTradeHistory() {
+		return tradeHistory;
+	}
+
+	public void setTradeHistory(List<TradeHistoryItem> tradeHistory) {
+		this.tradeHistory = tradeHistory;
+	}
+
+	public List<EquityCurvePoint> getEquityCurve() {
+		return equityCurve;
+	}
+
+	public void setEquityCurve(List<EquityCurvePoint> equityCurve) {
+		this.equityCurve = equityCurve;
+	}
+
+	public List<DrawdownPoint> getDrawdownCurve() {
+		return drawdownCurve;
+	}
+
+	public void setDrawdownCurve(List<DrawdownPoint> drawdownCurve) {
+		this.drawdownCurve = drawdownCurve;
+	}
+
+	public String getCreatorId() {
+		return creatorId;
+	}
+
+	public void setCreatorId(String creatorId) {
+		this.creatorId = creatorId;
+	}
+
+	public String getOwnerId() {
+		return ownerId;
+	}
+
+	public void setOwnerId(String ownerId) {
+		this.ownerId = ownerId;
+	}
+
+	public CreatorInfo getCreator() {
+		return creator;
+	}
+
+	public void setCreator(CreatorInfo creator) {
+		this.creator = creator;
+	}
+
+	public CreatorInfo getOwner() {
+		return owner;
+	}
+
+	public void setOwner(CreatorInfo owner) {
+		this.owner = owner;
+	}
+
+	public Boolean getIsPublished() {
+		return isPublished;
+	}
+
+	public void setIsPublished(Boolean isPublished) {
+		this.isPublished = isPublished;
+	}
+
+	public Boolean getIsPublic() {
+		return isPublic;
+	}
+
+	public void setIsPublic(Boolean isPublic) {
+		this.isPublic = isPublic;
+	}
+
+	public Boolean getIsListed() {
+		return isListed;
+	}
+
+	public void setIsListed(Boolean isListed) {
+		this.isListed = isListed;
+	}
+
+	public StrategyPricing getPricing() {
+		return pricing;
+	}
+
+	public void setPricing(StrategyPricing pricing) {
+		this.pricing = pricing;
+	}
+
+	public Integer getSubscriberCount() {
+		return subscriberCount;
+	}
+
+	public void setSubscriberCount(Integer subscriberCount) {
+		this.subscriberCount = subscriberCount;
+	}
+
+	public Integer getCommentCount() {
+		return commentCount;
+	}
+
+	public void setCommentCount(Integer commentCount) {
+		this.commentCount = commentCount;
+	}
+
+	public Double getAverageRating() {
+		return averageRating;
+	}
+
+	public void setAverageRating(Double averageRating) {
+		this.averageRating = averageRating;
+	}
+
+	public Integer getReviewCount() {
+		return reviewCount;
+	}
+
+	public void setReviewCount(Integer reviewCount) {
+		this.reviewCount = reviewCount;
+	}
+
+	public Integer getDeploymentCount() {
+		return deploymentCount;
+	}
+
+	public void setDeploymentCount(Integer deploymentCount) {
+		this.deploymentCount = deploymentCount;
+	}
+
+	public Boolean getIsBestSeller() {
+		return isBestSeller;
+	}
+
+	public void setIsBestSeller(Boolean isBestSeller) {
+		this.isBestSeller = isBestSeller;
+	}
+
+	public Boolean getIsTrending() {
+		return isTrending;
+	}
+
+	public void setIsTrending(Boolean isTrending) {
+		this.isTrending = isTrending;
+	}
+
+	public Boolean getIsNew() {
+		return isNew;
+	}
+
+	public void setIsNew(Boolean isNew) {
+		this.isNew = isNew;
+	}
+
+	public Boolean getIsFeatured() {
+		return isFeatured;
+	}
+
+	public void setIsFeatured(Boolean isFeatured) {
+		this.isFeatured = isFeatured;
+	}
+
+	public AccessFlags getAccess() {
+		return access;
+	}
+
+	public void setAccess(AccessFlags access) {
+		this.access = access;
+	}
+
+	public CommentsResponse getComments() {
+		return comments;
+	}
+
+	public void setComments(CommentsResponse comments) {
+		this.comments = comments;
+	}
+
+	public Date getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Date createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Date getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(Date updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
 }

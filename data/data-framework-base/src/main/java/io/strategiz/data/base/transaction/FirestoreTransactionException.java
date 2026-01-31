@@ -7,11 +7,12 @@ import org.springframework.transaction.TransactionException;
  */
 public class FirestoreTransactionException extends TransactionException {
 
-    public FirestoreTransactionException(String msg) {
-        super(msg);
-    }
+	public FirestoreTransactionException(String msg) {
+		super(msg);
+	}
 
-    public FirestoreTransactionException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
+	public FirestoreTransactionException(String msg, Throwable cause) {
+		super(msg, cause);
+	}
+
 }

@@ -5,163 +5,175 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TOTP authentication method domain model
- * This is a business domain object for TOTP-based authentication
+ * TOTP authentication method domain model This is a business domain object for TOTP-based
+ * authentication
  */
 public class TotpAuthenticationMethod {
-    
-    private String id;
-    private String userId;
-    private String type = "TOTP";
-    private String name = "TOTP Authenticator";
-    private String secret; // Encrypted TOTP secret
-    private String issuer = "Strategiz";
-    private Boolean verified = false;
-    private boolean enabled = true;
-    private Instant createdAt;
-    private Instant updatedAt;
-    private Instant lastUsedAt;
-    private Map<String, Object> metadata;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public TotpAuthenticationMethod() {
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.metadata = new HashMap<>();
-    }
+	private String userId;
 
-    public TotpAuthenticationMethod(String name, String secret) {
-        this();
-        this.name = name;
-        this.secret = secret;
-    }
+	private String type = "TOTP";
 
-    // === CONVENIENCE METHODS ===
+	private String name = "TOTP Authenticator";
 
-    public boolean isVerified() {
-        return Boolean.TRUE.equals(verified);
-    }
+	private String secret; // Encrypted TOTP secret
 
-    public void markAsVerified() {
-        this.verified = true;
-        this.updatedAt = Instant.now();
-    }
+	private String issuer = "Strategiz";
 
-    public boolean isConfigured() {
-        return secret != null && !secret.trim().isEmpty() && isVerified();
-    }
+	private Boolean verified = false;
 
-    public String getAuthenticationMethodType() {
-        return "TOTP";
-    }
+	private boolean enabled = true;
 
-    public Map<String, Object> getTypeSpecificData() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("issuer", issuer);
-        data.put("verified", verified);
-        data.put("hasSecret", secret != null && !secret.trim().isEmpty());
-        return data;
-    }
+	private Instant createdAt;
 
-    // === GETTERS AND SETTERS ===
+	private Instant updatedAt;
 
-    public String getId() {
-        return id;
-    }
+	private Instant lastUsedAt;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private Map<String, Object> metadata;
 
-    public String getUserId() {
-        return userId;
-    }
+	// === CONSTRUCTORS ===
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public TotpAuthenticationMethod() {
+		this.createdAt = Instant.now();
+		this.updatedAt = Instant.now();
+		this.metadata = new HashMap<>();
+	}
 
-    public String getType() {
-        return type;
-    }
+	public TotpAuthenticationMethod(String name, String secret) {
+		this();
+		this.name = name;
+		this.secret = secret;
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public String getName() {
-        return name;
-    }
+	public boolean isVerified() {
+		return Boolean.TRUE.equals(verified);
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void markAsVerified() {
+		this.verified = true;
+		this.updatedAt = Instant.now();
+	}
 
-    public String getSecret() {
-        return secret;
-    }
+	public boolean isConfigured() {
+		return secret != null && !secret.trim().isEmpty() && isVerified();
+	}
 
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
+	public String getAuthenticationMethodType() {
+		return "TOTP";
+	}
 
-    public String getIssuer() {
-        return issuer;
-    }
+	public Map<String, Object> getTypeSpecificData() {
+		Map<String, Object> data = new HashMap<>();
+		data.put("issuer", issuer);
+		data.put("verified", verified);
+		data.put("hasSecret", secret != null && !secret.trim().isEmpty());
+		return data;
+	}
 
-    public void setIssuer(String issuer) {
-        this.issuer = issuer;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public Boolean getVerified() {
-        return verified;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public Instant getLastUsedAt() {
-        return lastUsedAt;
-    }
+	public String getSecret() {
+		return secret;
+	}
 
-    public void setLastUsedAt(Instant lastUsedAt) {
-        this.lastUsedAt = lastUsedAt;
-    }
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}
 
-    public Map<String, Object> getMetadata() {
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
-        return metadata;
-    }
+	public String getIssuer() {
+		return issuer;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public void setIssuer(String issuer) {
+		this.issuer = issuer;
+	}
+
+	public Boolean getVerified() {
+		return verified;
+	}
+
+	public void setVerified(Boolean verified) {
+		this.verified = verified;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(Instant updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	public Instant getLastUsedAt() {
+		return lastUsedAt;
+	}
+
+	public void setLastUsedAt(Instant lastUsedAt) {
+		this.lastUsedAt = lastUsedAt;
+	}
+
+	public Map<String, Object> getMetadata() {
+		if (metadata == null) {
+			metadata = new HashMap<>();
+		}
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
 }

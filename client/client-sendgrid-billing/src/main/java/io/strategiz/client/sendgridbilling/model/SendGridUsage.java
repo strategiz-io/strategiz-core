@@ -6,12 +6,6 @@ import java.time.Instant;
 /**
  * Usage metrics for SendGrid email service
  */
-public record SendGridUsage(
-        String accountId,
-        String accountName,
-        BigDecimal emailsSent,
-        BigDecimal emailsDelivered,
-        BigDecimal emailsBounced,
-        BigDecimal apiRequests,
-        Instant timestamp
-) {}
+public record SendGridUsage(String accountId, String accountName, BigDecimal emailsSent, BigDecimal emailsDelivered,
+		BigDecimal emailsBounced, BigDecimal apiRequests, Instant timestamp) {
+}

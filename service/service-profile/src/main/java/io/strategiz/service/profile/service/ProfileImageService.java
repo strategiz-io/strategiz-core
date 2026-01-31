@@ -113,8 +113,7 @@ public class ProfileImageService extends BaseService {
 		}
 
 		if (file.getSize() > MAX_FILE_SIZE) {
-			throw new StrategizException(ProfileErrors.PROFILE_UPDATE_FAILED,
-					"File size exceeds maximum limit of 5MB");
+			throw new StrategizException(ProfileErrors.PROFILE_UPDATE_FAILED, "File size exceeds maximum limit of 5MB");
 		}
 
 		String contentType = file.getContentType();

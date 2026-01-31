@@ -13,42 +13,43 @@ import java.util.UUID;
 @Repository
 public class CreateStrategyCommentRepositoryImpl implements CreateStrategyCommentRepository {
 
-    private final StrategyCommentBaseRepository baseRepository;
+	private final StrategyCommentBaseRepository baseRepository;
 
-    @Autowired
-    public CreateStrategyCommentRepositoryImpl(StrategyCommentBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
+	@Autowired
+	public CreateStrategyCommentRepositoryImpl(StrategyCommentBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-    @Override
-    public StrategyCommentEntity create(StrategyCommentEntity comment, String userId) {
-        // Generate ID if not provided
-        if (comment.getId() == null || comment.getId().isEmpty()) {
-            comment.setId(UUID.randomUUID().toString());
-        }
+	@Override
+	public StrategyCommentEntity create(StrategyCommentEntity comment, String userId) {
+		// Generate ID if not provided
+		if (comment.getId() == null || comment.getId().isEmpty()) {
+			comment.setId(UUID.randomUUID().toString());
+		}
 
-        // Set user ID
-        comment.setUserId(userId);
+		// Set user ID
+		comment.setUserId(userId);
 
-        // Set commented timestamp
-        if (comment.getCommentedAt() == null) {
-            comment.setCommentedAt(Timestamp.now());
-        }
+		// Set commented timestamp
+		if (comment.getCommentedAt() == null) {
+			comment.setCommentedAt(Timestamp.now());
+		}
 
-        // Initialize counts
-        if (comment.getLikeCount() == null) {
-            comment.setLikeCount(0);
-        }
-        if (comment.getReplyCount() == null) {
-            comment.setReplyCount(0);
-        }
+		// Initialize counts
+		if (comment.getLikeCount() == null) {
+			comment.setLikeCount(0);
+		}
+		if (comment.getReplyCount() == null) {
+			comment.setReplyCount(0);
+		}
 
-        return baseRepository.save(comment, userId);
-    }
+		return baseRepository.save(comment, userId);
+	}
 
-    @Override
-    public StrategyCommentEntity createReply(StrategyCommentEntity comment, String parentCommentId, String userId) {
-        comment.setParentCommentId(parentCommentId);
-        return create(comment, userId);
-    }
+	@Override
+	public StrategyCommentEntity createReply(StrategyCommentEntity comment, String parentCommentId, String userId) {
+		comment.setParentCommentId(parentCommentId);
+		return create(comment, userId);
+	}
+
 }

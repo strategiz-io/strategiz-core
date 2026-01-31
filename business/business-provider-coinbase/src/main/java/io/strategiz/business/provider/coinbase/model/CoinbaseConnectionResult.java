@@ -9,95 +9,102 @@ import java.util.Map;
  * Result object for Coinbase OAuth connection
  */
 public class CoinbaseConnectionResult {
-    
-    private String userId;
-    private String providerId;
-    private String providerName;
-    private String accessToken;
-    private String refreshToken;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant expiresAt;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant connectedAt;
-    
-    private Map<String, Object> accountInfo;
-    private String status;
 
-    // Constructors
-    public CoinbaseConnectionResult() {}
+	private String userId;
 
-    // Getters and Setters
-    public String getUserId() {
-        return userId;
-    }
+	private String providerId;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private String providerName;
 
-    public String getProviderId() {
-        return providerId;
-    }
+	private String accessToken;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	private String refreshToken;
 
-    public String getProviderName() {
-        return providerName;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant expiresAt;
 
-    public void setProviderName(String providerName) {
-        this.providerName = providerName;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant connectedAt;
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+	private Map<String, Object> accountInfo;
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+	private String status;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	// Constructors
+	public CoinbaseConnectionResult() {
+	}
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
+	// Getters and Setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public Instant getConnectedAt() {
-        return connectedAt;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public void setConnectedAt(Instant connectedAt) {
-        this.connectedAt = connectedAt;
-    }
+	public String getProviderName() {
+		return providerName;
+	}
 
-    public Map<String, Object> getAccountInfo() {
-        return accountInfo;
-    }
+	public void setProviderName(String providerName) {
+		this.providerName = providerName;
+	}
 
-    public void setAccountInfo(Map<String, Object> accountInfo) {
-        this.accountInfo = accountInfo;
-    }
+	public String getAccessToken() {
+		return accessToken;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-} 
+	public String getRefreshToken() {
+		return refreshToken;
+	}
+
+	public void setRefreshToken(String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Instant getConnectedAt() {
+		return connectedAt;
+	}
+
+	public void setConnectedAt(Instant connectedAt) {
+		this.connectedAt = connectedAt;
+	}
+
+	public Map<String, Object> getAccountInfo() {
+		return accountInfo;
+	}
+
+	public void setAccountInfo(Map<String, Object> accountInfo) {
+		this.accountInfo = accountInfo;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+}

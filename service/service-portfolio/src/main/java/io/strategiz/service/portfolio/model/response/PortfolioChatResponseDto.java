@@ -1,8 +1,8 @@
 package io.strategiz.service.portfolio.model.response;
 
 /**
- * Response DTO for portfolio AI chat.
- * Contains the AI's reply to a user's question about their portfolio.
+ * Response DTO for portfolio AI chat. Contains the AI's reply to a user's question about
+ * their portfolio.
  */
 public class PortfolioChatResponseDto {
 

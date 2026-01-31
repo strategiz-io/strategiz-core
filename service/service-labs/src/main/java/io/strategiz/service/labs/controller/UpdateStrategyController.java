@@ -28,102 +28,105 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Strategy Update", description = "Update existing trading strategies")
 public class UpdateStrategyController extends BaseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(UpdateStrategyController.class);
+	private static final Logger logger = LoggerFactory.getLogger(UpdateStrategyController.class);
 
-    private final UpdateStrategyService updateStrategyService;
-    private final ReadStrategyService readStrategyService;
+	private final UpdateStrategyService updateStrategyService;
 
-    @Autowired
-    public UpdateStrategyController(UpdateStrategyService updateStrategyService,
-                                  ReadStrategyService readStrategyService) {
-        this.updateStrategyService = updateStrategyService;
-        this.readStrategyService = readStrategyService;
-    }
-    
-    @PutMapping("/{strategyId}")
-    @Operation(summary = "Update a strategy", description = "Updates an existing trading strategy")
-    public ResponseEntity<CreateStrategyResponse> updateStrategy(
-            @PathVariable String strategyId,
-            @Valid @RequestBody CreateStrategyRequest request,
-            @AuthUser AuthenticatedUser user) {
+	private final ReadStrategyService readStrategyService;
 
-        String userId = user.getUserId();
-        logger.info("Updating strategy: {} for user: {}", strategyId, userId);
+	@Autowired
+	public UpdateStrategyController(UpdateStrategyService updateStrategyService,
+			ReadStrategyService readStrategyService) {
+		this.updateStrategyService = updateStrategyService;
+		this.readStrategyService = readStrategyService;
+	}
 
-        try {
-            // Update strategy using service
-            Strategy updated = updateStrategyService.updateStrategy(strategyId, userId, request);
+	@PutMapping("/{strategyId}")
+	@Operation(summary = "Update a strategy", description = "Updates an existing trading strategy")
+	public ResponseEntity<CreateStrategyResponse> updateStrategy(@PathVariable String strategyId,
+			@Valid @RequestBody CreateStrategyRequest request, @AuthUser AuthenticatedUser user) {
 
-            // Return minimal response (just essential fields, not code or performance data)
-            CreateStrategyResponse response = new CreateStrategyResponse();
-            response.setId(updated.getId());
-            response.setName(updated.getName());
-            response.setIsPublished(updated.getIsPublished());
-            response.setIsPublic(updated.getIsPublic());
-            response.setIsListed(updated.getIsListed());
-            response.setCreatedDate(updated.getCreatedDate() != null ? updated.getCreatedDate().toString() : null);
-            response.setModifiedDate(updated.getModifiedDate() != null ? updated.getModifiedDate().toString() : null);
+		String userId = user.getUserId();
+		logger.info("Updating strategy: {} for user: {}", strategyId, userId);
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Failed to update strategy", e);
-            throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
-        }
-    }
+		try {
+			// Update strategy using service
+			Strategy updated = updateStrategyService.updateStrategy(strategyId, userId, request);
 
-    @PatchMapping("/{strategyId}/status")
-    @Operation(summary = "Update strategy status", description = "Updates the status of a strategy (active, archived, etc.)")
-    public ResponseEntity<StrategyResponse> updateStrategyStatus(
-            @PathVariable String strategyId,
-            @RequestParam String status,
-            @AuthUser AuthenticatedUser user) {
+			// Return minimal response (just essential fields, not code or performance
+			// data)
+			CreateStrategyResponse response = new CreateStrategyResponse();
+			response.setId(updated.getId());
+			response.setName(updated.getName());
+			response.setIsPublished(updated.getIsPublished());
+			response.setIsPublic(updated.getIsPublic());
+			response.setIsListed(updated.getIsListed());
+			response.setCreatedDate(updated.getCreatedDate() != null ? updated.getCreatedDate().toString() : null);
+			response.setModifiedDate(updated.getModifiedDate() != null ? updated.getModifiedDate().toString() : null);
 
-        String userId = user.getUserId();
-        logger.info("Updating strategy {} status to: {} for user: {}",
-            strategyId, status, userId);
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			logger.error("Failed to update strategy", e);
+			throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
+		}
+	}
 
-        try {
-            // Update status using service
-            boolean updated = updateStrategyService.updateStrategyStatus(strategyId, userId, status);
+	@PatchMapping("/{strategyId}/status")
+	@Operation(summary = "Update strategy status",
+			description = "Updates the status of a strategy (active, archived, etc.)")
+	public ResponseEntity<StrategyResponse> updateStrategyStatus(@PathVariable String strategyId,
+			@RequestParam String status, @AuthUser AuthenticatedUser user) {
 
-            if (!updated) {
-                throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId);
-            }
+		String userId = user.getUserId();
+		logger.info("Updating strategy {} status to: {} for user: {}", strategyId, status, userId);
 
-            // Fetch updated strategy to return
-            Strategy strategy = readStrategyService.getStrategyById(strategyId, userId)
-                .orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId));
+		try {
+			// Update status using service
+			boolean updated = updateStrategyService.updateStrategyStatus(strategyId, userId, status);
 
-            return ResponseEntity.ok(convertToResponse(strategy));
-        } catch (Exception e) {
-            logger.error("Failed to update strategy status", e);
-            throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
-        }
-    }
+			if (!updated) {
+				throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs",
+						strategyId);
+			}
 
-    private StrategyResponse convertToResponse(Strategy strategy) {
-        StrategyResponse response = new StrategyResponse();
-        response.setId(strategy.getId());
-        response.setName(strategy.getName());
-        response.setDescription(strategy.getDescription());
-        response.setCode(strategy.getCode());
-        response.setLanguage(strategy.getLanguage());
-        response.setType(strategy.getType());
-        response.setIsPublished(strategy.getIsPublished());
-        response.setIsPublic(strategy.getIsPublic());
-        response.setIsListed(strategy.getIsListed());
-        response.setTags(strategy.getTags());
-        response.setUserId(strategy.getOwnerId());
-        response.setParameters(strategy.getParameters());
-        response.setBacktestResults(strategy.getBacktestResults());
-        response.setPerformance(strategy.getPerformance());
-        // Convert string dates to Date objects if needed
-        // For now, leave them null as they'll be set by the repository
-        return response;
-    }
-    
-    @Override
-    protected String getModuleName() {
-        return "strategy";
-    }
+			// Fetch updated strategy to return
+			Strategy strategy = readStrategyService.getStrategyById(strategyId, userId)
+				.orElseThrow(() -> new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
+						"service-labs", strategyId));
+
+			return ResponseEntity.ok(convertToResponse(strategy));
+		}
+		catch (Exception e) {
+			logger.error("Failed to update strategy status", e);
+			throw handleException(e, StrategyConstants.ERROR_STRATEGY_UPDATE_FAILED);
+		}
+	}
+
+	private StrategyResponse convertToResponse(Strategy strategy) {
+		StrategyResponse response = new StrategyResponse();
+		response.setId(strategy.getId());
+		response.setName(strategy.getName());
+		response.setDescription(strategy.getDescription());
+		response.setCode(strategy.getCode());
+		response.setLanguage(strategy.getLanguage());
+		response.setType(strategy.getType());
+		response.setIsPublished(strategy.getIsPublished());
+		response.setIsPublic(strategy.getIsPublic());
+		response.setIsListed(strategy.getIsListed());
+		response.setTags(strategy.getTags());
+		response.setUserId(strategy.getOwnerId());
+		response.setParameters(strategy.getParameters());
+		response.setBacktestResults(strategy.getBacktestResults());
+		response.setPerformance(strategy.getPerformance());
+		// Convert string dates to Date objects if needed
+		// For now, leave them null as they'll be set by the repository
+		return response;
+	}
+
+	@Override
+	protected String getModuleName() {
+		return "strategy";
+	}
+
 }

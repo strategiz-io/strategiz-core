@@ -8,151 +8,161 @@ import java.util.Objects;
  * Market trends data.
  */
 public class MarketTrends {
-    private String direction; // "up", "down", "sideways"
-    private BigDecimal momentum;
-    private List<String> supportLevels;
-    private List<String> resistanceLevels;
-    private String trendStrength;
-    private BigDecimal volatility;
 
-    // Constructors
-    public MarketTrends() {}
+	private String direction; // "up", "down", "sideways"
 
-    public MarketTrends(String direction, BigDecimal momentum, List<String> supportLevels,
-                       List<String> resistanceLevels, String trendStrength, BigDecimal volatility) {
-        this.direction = direction;
-        this.momentum = momentum;
-        this.supportLevels = supportLevels;
-        this.resistanceLevels = resistanceLevels;
-        this.trendStrength = trendStrength;
-        this.volatility = volatility;
-    }
+	private BigDecimal momentum;
 
-    // Getters and Setters
-    public String getDirection() {
-        return direction;
-    }
+	private List<String> supportLevels;
 
-    public void setDirection(String direction) {
-        this.direction = direction;
-    }
+	private List<String> resistanceLevels;
 
-    public BigDecimal getMomentum() {
-        return momentum;
-    }
+	private String trendStrength;
 
-    public void setMomentum(BigDecimal momentum) {
-        this.momentum = momentum;
-    }
+	private BigDecimal volatility;
 
-    public List<String> getSupportLevels() {
-        return supportLevels;
-    }
+	// Constructors
+	public MarketTrends() {
+	}
 
-    public void setSupportLevels(List<String> supportLevels) {
-        this.supportLevels = supportLevels;
-    }
+	public MarketTrends(String direction, BigDecimal momentum, List<String> supportLevels,
+			List<String> resistanceLevels, String trendStrength, BigDecimal volatility) {
+		this.direction = direction;
+		this.momentum = momentum;
+		this.supportLevels = supportLevels;
+		this.resistanceLevels = resistanceLevels;
+		this.trendStrength = trendStrength;
+		this.volatility = volatility;
+	}
 
-    public List<String> getResistanceLevels() {
-        return resistanceLevels;
-    }
+	// Getters and Setters
+	public String getDirection() {
+		return direction;
+	}
 
-    public void setResistanceLevels(List<String> resistanceLevels) {
-        this.resistanceLevels = resistanceLevels;
-    }
+	public void setDirection(String direction) {
+		this.direction = direction;
+	}
 
-    public String getTrendStrength() {
-        return trendStrength;
-    }
+	public BigDecimal getMomentum() {
+		return momentum;
+	}
 
-    public void setTrendStrength(String trendStrength) {
-        this.trendStrength = trendStrength;
-    }
+	public void setMomentum(BigDecimal momentum) {
+		this.momentum = momentum;
+	}
 
-    public BigDecimal getVolatility() {
-        return volatility;
-    }
+	public List<String> getSupportLevels() {
+		return supportLevels;
+	}
 
-    public void setVolatility(BigDecimal volatility) {
-        this.volatility = volatility;
-    }
+	public void setSupportLevels(List<String> supportLevels) {
+		this.supportLevels = supportLevels;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MarketTrends that = (MarketTrends) o;
-        return Objects.equals(direction, that.direction) &&
-               Objects.equals(momentum, that.momentum) &&
-               Objects.equals(supportLevels, that.supportLevels) &&
-               Objects.equals(resistanceLevels, that.resistanceLevels) &&
-               Objects.equals(trendStrength, that.trendStrength) &&
-               Objects.equals(volatility, that.volatility);
-    }
+	public List<String> getResistanceLevels() {
+		return resistanceLevels;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(direction, momentum, supportLevels, resistanceLevels, trendStrength, volatility);
-    }
+	public void setResistanceLevels(List<String> resistanceLevels) {
+		this.resistanceLevels = resistanceLevels;
+	}
 
-    @Override
-    public String toString() {
-        return "MarketTrends{" +
-               "direction='" + direction + '\'' +
-               ", momentum=" + momentum +
-               ", supportLevels=" + supportLevels +
-               ", resistanceLevels=" + resistanceLevels +
-               ", trendStrength='" + trendStrength + '\'' +
-               ", volatility=" + volatility +
-               '}';
-    }
+	public String getTrendStrength() {
+		return trendStrength;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public void setTrendStrength(String trendStrength) {
+		this.trendStrength = trendStrength;
+	}
 
-    public static class Builder {
-        private String direction;
-        private BigDecimal momentum;
-        private List<String> supportLevels;
-        private List<String> resistanceLevels;
-        private String trendStrength;
-        private BigDecimal volatility;
+	public BigDecimal getVolatility() {
+		return volatility;
+	}
 
-        public Builder withDirection(String direction) {
-            this.direction = direction;
-            return this;
-        }
+	public void setVolatility(BigDecimal volatility) {
+		this.volatility = volatility;
+	}
 
-        public Builder withMomentum(BigDecimal momentum) {
-            this.momentum = momentum;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		MarketTrends that = (MarketTrends) o;
+		return Objects.equals(direction, that.direction) && Objects.equals(momentum, that.momentum)
+				&& Objects.equals(supportLevels, that.supportLevels)
+				&& Objects.equals(resistanceLevels, that.resistanceLevels)
+				&& Objects.equals(trendStrength, that.trendStrength) && Objects.equals(volatility, that.volatility);
+	}
 
-        public Builder withSupportLevels(List<String> supportLevels) {
-            this.supportLevels = supportLevels;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(direction, momentum, supportLevels, resistanceLevels, trendStrength, volatility);
+	}
 
-        public Builder withResistanceLevels(List<String> resistanceLevels) {
-            this.resistanceLevels = resistanceLevels;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "MarketTrends{" + "direction='" + direction + '\'' + ", momentum=" + momentum + ", supportLevels="
+				+ supportLevels + ", resistanceLevels=" + resistanceLevels + ", trendStrength='" + trendStrength + '\''
+				+ ", volatility=" + volatility + '}';
+	}
 
-        public Builder withTrendStrength(String trendStrength) {
-            this.trendStrength = trendStrength;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withVolatility(BigDecimal volatility) {
-            this.volatility = volatility;
-            return this;
-        }
+	public static class Builder {
 
-        public MarketTrends build() {
-            return new MarketTrends(direction, momentum, supportLevels, resistanceLevels, trendStrength, volatility);
-        }
-    }
+		private String direction;
+
+		private BigDecimal momentum;
+
+		private List<String> supportLevels;
+
+		private List<String> resistanceLevels;
+
+		private String trendStrength;
+
+		private BigDecimal volatility;
+
+		public Builder withDirection(String direction) {
+			this.direction = direction;
+			return this;
+		}
+
+		public Builder withMomentum(BigDecimal momentum) {
+			this.momentum = momentum;
+			return this;
+		}
+
+		public Builder withSupportLevels(List<String> supportLevels) {
+			this.supportLevels = supportLevels;
+			return this;
+		}
+
+		public Builder withResistanceLevels(List<String> resistanceLevels) {
+			this.resistanceLevels = resistanceLevels;
+			return this;
+		}
+
+		public Builder withTrendStrength(String trendStrength) {
+			this.trendStrength = trendStrength;
+			return this;
+		}
+
+		public Builder withVolatility(BigDecimal volatility) {
+			this.volatility = volatility;
+			return this;
+		}
+
+		public MarketTrends build() {
+			return new MarketTrends(direction, momentum, supportLevels, resistanceLevels, trendStrength, volatility);
+		}
+
+	}
+
 }

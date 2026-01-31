@@ -216,8 +216,7 @@ public class AnthropicBillingProvider implements BillingProvider {
 					if (costEntry.has("cost_cents")) {
 						String costCents = costEntry.get("cost_cents").asText();
 						BigDecimal cents = new BigDecimal(costCents);
-						BigDecimal dollars = cents.divide(BigDecimal.valueOf(100), 6,
-								java.math.RoundingMode.HALF_UP);
+						BigDecimal dollars = cents.divide(BigDecimal.valueOf(100), 6, java.math.RoundingMode.HALF_UP);
 						totalCost = totalCost.add(dollars);
 					}
 				}

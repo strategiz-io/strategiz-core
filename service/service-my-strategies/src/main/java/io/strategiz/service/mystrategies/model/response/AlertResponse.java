@@ -7,233 +7,235 @@ import com.google.cloud.Timestamp;
 import java.util.List;
 
 /**
- * Response model for strategy alert.
- * Corresponds to the "Alert Card" in the UX spec.
+ * Response model for strategy alert. Corresponds to the "Alert Card" in the UX spec.
  */
 public class AlertResponse {
 
-    @JsonProperty("id")
-    private String id;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("userId")
-    private String userId;
+	@JsonProperty("userId")
+	private String userId;
 
-    @JsonProperty("strategyId")
-    private String strategyId;
+	@JsonProperty("strategyId")
+	private String strategyId;
 
-    @JsonProperty("strategyName")
-    private String strategyName; // Fetched from Strategy entity
+	@JsonProperty("strategyName")
+	private String strategyName; // Fetched from Strategy entity
 
-    @JsonProperty("alertName")
-    private String alertName;
+	@JsonProperty("alertName")
+	private String alertName;
 
-    @JsonProperty("symbols")
-    private List<String> symbols;
+	@JsonProperty("symbols")
+	private List<String> symbols;
 
-    @JsonProperty("providerId")
-    private String providerId;
+	@JsonProperty("providerId")
+	private String providerId;
 
-    @JsonProperty("exchange")
-    private String exchange;
+	@JsonProperty("exchange")
+	private String exchange;
 
-    @JsonProperty("notificationChannels")
-    private List<String> notificationChannels;
+	@JsonProperty("notificationChannels")
+	private List<String> notificationChannels;
 
-    @JsonProperty("status")
-    private String status; // ACTIVE, PAUSED, ERROR, STOPPED
+	@JsonProperty("status")
+	private String status; // ACTIVE, PAUSED, ERROR, STOPPED
 
-    @JsonProperty("triggerCount")
-    private Integer triggerCount;
+	@JsonProperty("triggerCount")
+	private Integer triggerCount;
 
-    @JsonProperty("lastTriggeredAt")
-    private Timestamp lastTriggeredAt;
+	@JsonProperty("lastTriggeredAt")
+	private Timestamp lastTriggeredAt;
 
-    @JsonProperty("lastSignal")
-    private LastSignalInfo lastSignal;
+	@JsonProperty("lastSignal")
+	private LastSignalInfo lastSignal;
 
-    @JsonProperty("deployedAt")
-    private Timestamp deployedAt;
+	@JsonProperty("deployedAt")
+	private Timestamp deployedAt;
 
-    @JsonProperty("subscriptionTier")
-    private String subscriptionTier;
+	@JsonProperty("subscriptionTier")
+	private String subscriptionTier;
 
-    @JsonProperty("errorMessage")
-    private String errorMessage;
+	@JsonProperty("errorMessage")
+	private String errorMessage;
 
-    @JsonProperty("livePerformance")
-    private AlertLivePerformance livePerformance; // Real-time performance metrics
+	@JsonProperty("livePerformance")
+	private AlertLivePerformance livePerformance; // Real-time performance metrics
 
-    // Nested class for last signal info
-    public static class LastSignalInfo {
-        @JsonProperty("signal")
-        private String signal; // BUY, SELL, HOLD
+	// Nested class for last signal info
+	public static class LastSignalInfo {
 
-        @JsonProperty("symbol")
-        private String symbol;
+		@JsonProperty("signal")
+		private String signal; // BUY, SELL, HOLD
 
-        @JsonProperty("price")
-        private Double price;
+		@JsonProperty("symbol")
+		private String symbol;
 
-        // Getters and Setters
-        public String getSignal() {
-            return signal;
-        }
+		@JsonProperty("price")
+		private Double price;
 
-        public void setSignal(String signal) {
-            this.signal = signal;
-        }
+		// Getters and Setters
+		public String getSignal() {
+			return signal;
+		}
 
-        public String getSymbol() {
-            return symbol;
-        }
+		public void setSignal(String signal) {
+			this.signal = signal;
+		}
 
-        public void setSymbol(String symbol) {
-            this.symbol = symbol;
-        }
+		public String getSymbol() {
+			return symbol;
+		}
 
-        public Double getPrice() {
-            return price;
-        }
+		public void setSymbol(String symbol) {
+			this.symbol = symbol;
+		}
 
-        public void setPrice(Double price) {
-            this.price = price;
-        }
-    }
+		public Double getPrice() {
+			return price;
+		}
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+		public void setPrice(Double price) {
+			this.price = price;
+		}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	}
 
-    public String getUserId() {
-        return userId;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getStrategyId() {
-        return strategyId;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setStrategyId(String strategyId) {
-        this.strategyId = strategyId;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public String getStrategyName() {
-        return strategyName;
-    }
+	public String getStrategyId() {
+		return strategyId;
+	}
 
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
+	public void setStrategyId(String strategyId) {
+		this.strategyId = strategyId;
+	}
 
-    public String getAlertName() {
-        return alertName;
-    }
+	public String getStrategyName() {
+		return strategyName;
+	}
 
-    public void setAlertName(String alertName) {
-        this.alertName = alertName;
-    }
+	public void setStrategyName(String strategyName) {
+		this.strategyName = strategyName;
+	}
 
-    public List<String> getSymbols() {
-        return symbols;
-    }
+	public String getAlertName() {
+		return alertName;
+	}
 
-    public void setSymbols(List<String> symbols) {
-        this.symbols = symbols;
-    }
+	public void setAlertName(String alertName) {
+		this.alertName = alertName;
+	}
 
-    public String getProviderId() {
-        return providerId;
-    }
+	public List<String> getSymbols() {
+		return symbols;
+	}
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	public void setSymbols(List<String> symbols) {
+		this.symbols = symbols;
+	}
 
-    public String getExchange() {
-        return exchange;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setExchange(String exchange) {
-        this.exchange = exchange;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public List<String> getNotificationChannels() {
-        return notificationChannels;
-    }
+	public String getExchange() {
+		return exchange;
+	}
 
-    public void setNotificationChannels(List<String> notificationChannels) {
-        this.notificationChannels = notificationChannels;
-    }
+	public void setExchange(String exchange) {
+		this.exchange = exchange;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public List<String> getNotificationChannels() {
+		return notificationChannels;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setNotificationChannels(List<String> notificationChannels) {
+		this.notificationChannels = notificationChannels;
+	}
 
-    public Integer getTriggerCount() {
-        return triggerCount;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setTriggerCount(Integer triggerCount) {
-        this.triggerCount = triggerCount;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public Timestamp getLastTriggeredAt() {
-        return lastTriggeredAt;
-    }
+	public Integer getTriggerCount() {
+		return triggerCount;
+	}
 
-    public void setLastTriggeredAt(Timestamp lastTriggeredAt) {
-        this.lastTriggeredAt = lastTriggeredAt;
-    }
+	public void setTriggerCount(Integer triggerCount) {
+		this.triggerCount = triggerCount;
+	}
 
-    public LastSignalInfo getLastSignal() {
-        return lastSignal;
-    }
+	public Timestamp getLastTriggeredAt() {
+		return lastTriggeredAt;
+	}
 
-    public void setLastSignal(LastSignalInfo lastSignal) {
-        this.lastSignal = lastSignal;
-    }
+	public void setLastTriggeredAt(Timestamp lastTriggeredAt) {
+		this.lastTriggeredAt = lastTriggeredAt;
+	}
 
-    public Timestamp getDeployedAt() {
-        return deployedAt;
-    }
+	public LastSignalInfo getLastSignal() {
+		return lastSignal;
+	}
 
-    public void setDeployedAt(Timestamp deployedAt) {
-        this.deployedAt = deployedAt;
-    }
+	public void setLastSignal(LastSignalInfo lastSignal) {
+		this.lastSignal = lastSignal;
+	}
 
-    public String getSubscriptionTier() {
-        return subscriptionTier;
-    }
+	public Timestamp getDeployedAt() {
+		return deployedAt;
+	}
 
-    public void setSubscriptionTier(String subscriptionTier) {
-        this.subscriptionTier = subscriptionTier;
-    }
+	public void setDeployedAt(Timestamp deployedAt) {
+		this.deployedAt = deployedAt;
+	}
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	public String getSubscriptionTier() {
+		return subscriptionTier;
+	}
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
+	public void setSubscriptionTier(String subscriptionTier) {
+		this.subscriptionTier = subscriptionTier;
+	}
 
-    public AlertLivePerformance getLivePerformance() {
-        return livePerformance;
-    }
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 
-    public void setLivePerformance(AlertLivePerformance livePerformance) {
-        this.livePerformance = livePerformance;
-    }
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
+
+	public AlertLivePerformance getLivePerformance() {
+		return livePerformance;
+	}
+
+	public void setLivePerformance(AlertLivePerformance livePerformance) {
+		this.livePerformance = livePerformance;
+	}
+
 }

@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error details for Stripe payment operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error details for Stripe payment operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(StripeErrorDetails.XXX, "client-stripe");
  */

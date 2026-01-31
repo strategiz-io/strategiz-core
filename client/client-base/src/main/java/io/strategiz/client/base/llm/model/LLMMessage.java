@@ -1,8 +1,8 @@
 package io.strategiz.client.base.llm.model;
 
 /**
- * Unified message format for LLM conversations.
- * Provider-agnostic representation of a chat message.
+ * Unified message format for LLM conversations. Provider-agnostic representation of a
+ * chat message.
  */
 public class LLMMessage {
 

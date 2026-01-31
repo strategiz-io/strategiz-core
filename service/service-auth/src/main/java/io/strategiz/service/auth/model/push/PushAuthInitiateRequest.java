@@ -8,13 +8,10 @@ import jakarta.validation.constraints.NotBlank;
  * @param userId the user ID to authenticate (required for signin flow)
  * @param purpose the purpose: "signin", "mfa", or "recovery"
  */
-public record PushAuthInitiateRequest(
-        @NotBlank(message = "User ID is required")
-        String userId,
+public record PushAuthInitiateRequest(@NotBlank(message = "User ID is required") String userId,
 
-        String purpose
-) {
-    public String getPurposeOrDefault() {
-        return purpose != null ? purpose : "signin";
-    }
+		String purpose) {
+	public String getPurposeOrDefault() {
+		return purpose != null ? purpose : "signin";
+	}
 }

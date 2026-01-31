@@ -6,8 +6,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Configuration for SonarQube API client. Loads configuration from
- * application.properties or Vault (via SonarQubeVaultConfig).
+ * Configuration for SonarQube API client. Loads configuration from application.properties
+ * or Vault (via SonarQubeVaultConfig).
  */
 @Configuration
 @ConfigurationProperties(prefix = "sonarqube")

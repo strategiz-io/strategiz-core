@@ -4,101 +4,114 @@ package io.strategiz.service.provider.model.response;
  * Response model for provider API key operations
  */
 public class ProviderApiKeyResponse {
-    private boolean success;
-    private String provider;
-    private String message;
-    private String connectionId;
-    private String status;
 
-    public ProviderApiKeyResponse() {
-    }
+	private boolean success;
 
-    public ProviderApiKeyResponse(boolean success, String provider, String message, String connectionId, String status) {
-        this.success = success;
-        this.provider = provider;
-        this.message = message;
-        this.connectionId = connectionId;
-        this.status = status;
-    }
+	private String provider;
 
-    public boolean isSuccess() {
-        return success;
-    }
+	private String message;
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+	private String connectionId;
 
-    public String getProvider() {
-        return provider;
-    }
+	private String status;
 
-    public void setProvider(String provider) {
-        this.provider = provider;
-    }
+	public ProviderApiKeyResponse() {
+	}
 
-    public String getMessage() {
-        return message;
-    }
+	public ProviderApiKeyResponse(boolean success, String provider, String message, String connectionId,
+			String status) {
+		this.success = success;
+		this.provider = provider;
+		this.message = message;
+		this.connectionId = connectionId;
+		this.status = status;
+	}
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	public boolean isSuccess() {
+		return success;
+	}
 
-    public String getConnectionId() {
-        return connectionId;
-    }
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
 
-    public void setConnectionId(String connectionId) {
-        this.connectionId = connectionId;
-    }
+	public String getProvider() {
+		return provider;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public void setProvider(String provider) {
+		this.provider = provider;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public String getMessage() {
+		return message;
+	}
 
-    public static Builder builder() {
-        return new Builder();
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    public static class Builder {
-        private boolean success;
-        private String provider;
-        private String message;
-        private String connectionId;
-        private String status;
+	public String getConnectionId() {
+		return connectionId;
+	}
 
-        public Builder success(boolean success) {
-            this.success = success;
-            return this;
-        }
+	public void setConnectionId(String connectionId) {
+		this.connectionId = connectionId;
+	}
 
-        public Builder provider(String provider) {
-            this.provider = provider;
-            return this;
-        }
+	public String getStatus() {
+		return status;
+	}
 
-        public Builder message(String message) {
-            this.message = message;
-            return this;
-        }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-        public Builder connectionId(String connectionId) {
-            this.connectionId = connectionId;
-            return this;
-        }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder status(String status) {
-            this.status = status;
-            return this;
-        }
+	public static class Builder {
 
-        public ProviderApiKeyResponse build() {
-            return new ProviderApiKeyResponse(success, provider, message, connectionId, status);
-        }
-    }
+		private boolean success;
+
+		private String provider;
+
+		private String message;
+
+		private String connectionId;
+
+		private String status;
+
+		public Builder success(boolean success) {
+			this.success = success;
+			return this;
+		}
+
+		public Builder provider(String provider) {
+			this.provider = provider;
+			return this;
+		}
+
+		public Builder message(String message) {
+			this.message = message;
+			return this;
+		}
+
+		public Builder connectionId(String connectionId) {
+			this.connectionId = connectionId;
+			return this;
+		}
+
+		public Builder status(String status) {
+			this.status = status;
+			return this;
+		}
+
+		public ProviderApiKeyResponse build() {
+			return new ProviderApiKeyResponse(success, provider, message, connectionId, status);
+		}
+
+	}
+
 }

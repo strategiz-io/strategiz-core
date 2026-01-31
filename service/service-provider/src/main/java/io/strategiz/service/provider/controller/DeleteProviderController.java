@@ -16,8 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controller for deleting provider connections and data.
- * Handles HTTP requests for disconnecting providers and cleaning up associated data.
+ * Controller for deleting provider connections and data. Handles HTTP requests for
+ * disconnecting providers and cleaning up associated data.
  *
  * @author Strategiz Team
  * @version 1.0
@@ -27,66 +27,66 @@ import org.springframework.web.bind.annotation.*;
 @RequireAuth(minAcr = "1")
 public class DeleteProviderController extends BaseController {
 
-    @Override
-    protected String getModuleName() {
-        return "service-provider";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-provider";
+	}
 
-    @Autowired
-    private DeleteProviderService deleteProviderService;
-    
-    /**
-     * Deletes a provider connection.
-     *
-     * @param providerId The provider ID
-     * @param request The delete request (optional body with cleanup options)
-     * @param user The authenticated user from HTTP-only cookie
-     * @return ResponseEntity with deletion result
-     */
-    @DeleteMapping("/{providerId}")
-    public ResponseEntity<DeleteProviderResponse> deleteProvider(
-            @PathVariable String providerId,
-            @Valid @RequestBody(required = false) DeleteProviderRequest request,
-            @AuthUser AuthenticatedUser user) {
+	@Autowired
+	private DeleteProviderService deleteProviderService;
 
-        String userId = user.getUserId();
-        log.info("DeleteProvider: userId: {}, providerId: {}", userId, providerId);
+	/**
+	 * Deletes a provider connection.
+	 * @param providerId The provider ID
+	 * @param request The delete request (optional body with cleanup options)
+	 * @param user The authenticated user from HTTP-only cookie
+	 * @return ResponseEntity with deletion result
+	 */
+	@DeleteMapping("/{providerId}")
+	public ResponseEntity<DeleteProviderResponse> deleteProvider(@PathVariable String providerId,
+			@Valid @RequestBody(required = false) DeleteProviderRequest request, @AuthUser AuthenticatedUser user) {
 
-        try {
-            // Create request if not provided
-            if (request == null) {
-                request = new DeleteProviderRequest();
-            }
+		String userId = user.getUserId();
+		log.info("DeleteProvider: userId: {}, providerId: {}", userId, providerId);
 
-            // Set user ID from authenticated session or token
-            request.setUserId(userId);
-            request.setProviderId(providerId);
+		try {
+			// Create request if not provided
+			if (request == null) {
+				request = new DeleteProviderRequest();
+			}
 
-            // Delegate to service
-            DeleteProviderResponse response = deleteProviderService.deleteProvider(request);
+			// Set user ID from authenticated session or token
+			request.setUserId(userId);
+			request.setProviderId(providerId);
 
-            log.info("Successfully deleted provider {} for user {}", providerId, userId);
-            return ResponseEntity.ok(response);
+			// Delegate to service
+			DeleteProviderResponse response = deleteProviderService.deleteProvider(request);
 
-        } catch (IllegalArgumentException e) {
-            log.warn("Validation error deleting provider {} for user {}: {}", providerId, userId, e.getMessage());
+			log.info("Successfully deleted provider {} for user {}", providerId, userId);
+			return ResponseEntity.ok(response);
 
-            DeleteProviderResponse errorResponse = new DeleteProviderResponse();
-            errorResponse.setSuccess(false);
-            errorResponse.setErrorCode("VALIDATION_ERROR");
-            errorResponse.setErrorMessage(e.getMessage());
+		}
+		catch (IllegalArgumentException e) {
+			log.warn("Validation error deleting provider {} for user {}: {}", providerId, userId, e.getMessage());
 
-            return ResponseEntity.badRequest().body(errorResponse);
+			DeleteProviderResponse errorResponse = new DeleteProviderResponse();
+			errorResponse.setSuccess(false);
+			errorResponse.setErrorCode("VALIDATION_ERROR");
+			errorResponse.setErrorMessage(e.getMessage());
 
-        } catch (Exception e) {
-            log.error("Error deleting provider {} for user {}: {}", providerId, userId, e.getMessage(), e);
+			return ResponseEntity.badRequest().body(errorResponse);
 
-            DeleteProviderResponse errorResponse = new DeleteProviderResponse();
-            errorResponse.setSuccess(false);
-            errorResponse.setErrorCode("INTERNAL_ERROR");
-            errorResponse.setErrorMessage("An unexpected error occurred");
+		}
+		catch (Exception e) {
+			log.error("Error deleting provider {} for user {}: {}", providerId, userId, e.getMessage(), e);
 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-} 
+			DeleteProviderResponse errorResponse = new DeleteProviderResponse();
+			errorResponse.setSuccess(false);
+			errorResponse.setErrorCode("INTERNAL_ERROR");
+			errorResponse.setErrorMessage("An unexpected error occurred");
+
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+		}
+	}
+
+}

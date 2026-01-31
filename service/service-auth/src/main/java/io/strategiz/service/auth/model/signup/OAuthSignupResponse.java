@@ -1,111 +1,119 @@
 package io.strategiz.service.auth.model.signup;
 
 /**
- * Response model for OAuth-based user signup
- * Contains user information and authentication tokens after successful OAuth signup (Google, Facebook, etc.)
+ * Response model for OAuth-based user signup Contains user information and authentication
+ * tokens after successful OAuth signup (Google, Facebook, etc.)
  */
 public class OAuthSignupResponse {
 
-    private boolean success;
-    private String message;
-    private String userId;
-    private String email;
-    private String name;
-    private String accessToken;
-    private String refreshToken;
-    private String photoURL;
+	private boolean success;
 
-    /**
-     * Default constructor
-     */
-    public OAuthSignupResponse() {
-    }
+	private String message;
 
-    /**
-     * Constructor for successful signup
-     */
-    public OAuthSignupResponse(boolean success, String message, String userId, String email, String name, 
-                         String accessToken, String refreshToken, String photoURL) {
-        this.success = success;
-        this.message = message;
-        this.userId = userId;
-        this.email = email;
-        this.name = name;
-        this.accessToken = accessToken;
-        this.refreshToken = refreshToken;
-        this.photoURL = photoURL;
-    }
+	private String userId;
 
-    /**
-     * Constructor for failed signup
-     */
-    public OAuthSignupResponse(boolean success, String message) {
-        this.success = success;
-        this.message = message;
-    }
+	private String email;
 
-    // Getters and setters
-    public boolean isSuccess() {
-        return success;
-    }
+	private String name;
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+	private String accessToken;
 
-    public String getMessage() {
-        return message;
-    }
+	private String refreshToken;
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	private String photoURL;
 
-    public String getUserId() {
-        return userId;
-    }
+	/**
+	 * Default constructor
+	 */
+	public OAuthSignupResponse() {
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	/**
+	 * Constructor for successful signup
+	 */
+	public OAuthSignupResponse(boolean success, String message, String userId, String email, String name,
+			String accessToken, String refreshToken, String photoURL) {
+		this.success = success;
+		this.message = message;
+		this.userId = userId;
+		this.email = email;
+		this.name = name;
+		this.accessToken = accessToken;
+		this.refreshToken = refreshToken;
+		this.photoURL = photoURL;
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	/**
+	 * Constructor for failed signup
+	 */
+	public OAuthSignupResponse(boolean success, String message) {
+		this.success = success;
+		this.message = message;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	// Getters and setters
+	public boolean isSuccess() {
+		return success;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public String getMessage() {
+		return message;
+	}
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public String getPhotoURL() {
-        return photoURL;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public void setPhotoURL(String photoURL) {
-        this.photoURL = photoURL;
-    }
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getAccessToken() {
+		return accessToken;
+	}
+
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
+	}
+
+	public String getRefreshToken() {
+		return refreshToken;
+	}
+
+	public void setRefreshToken(String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
+
+	public String getPhotoURL() {
+		return photoURL;
+	}
+
+	public void setPhotoURL(String photoURL) {
+		this.photoURL = photoURL;
+	}
+
 }

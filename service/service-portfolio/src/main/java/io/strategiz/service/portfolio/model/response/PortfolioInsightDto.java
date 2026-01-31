@@ -3,8 +3,8 @@ package io.strategiz.service.portfolio.model.response;
 import java.util.List;
 
 /**
- * Response DTO for portfolio AI insights.
- * Contains a generated insight with metadata for display in the UI.
+ * Response DTO for portfolio AI insights. Contains a generated insight with metadata for
+ * display in the UI.
  */
 public class PortfolioInsightDto {
 

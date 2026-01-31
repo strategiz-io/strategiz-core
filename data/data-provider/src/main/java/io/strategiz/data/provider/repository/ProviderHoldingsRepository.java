@@ -16,8 +16,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Repository for ProviderHoldingsEntity.
- * Handles holdings subcollection: users/{userId}/portfolio/{providerId}/holdings/current
+ * Repository for ProviderHoldingsEntity. Handles holdings subcollection:
+ * users/{userId}/portfolio/{providerId}/holdings/current
  *
  * Example: users/{userId}/portfolio/coinbase/holdings/current
  *
@@ -27,147 +27,153 @@ import java.util.concurrent.ExecutionException;
 @Repository
 public class ProviderHoldingsRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(ProviderHoldingsRepository.class);
-    private static final String HOLDINGS_DOC_ID = "current"; // Fixed document ID
+	private static final Logger log = LoggerFactory.getLogger(ProviderHoldingsRepository.class);
 
-    private final Firestore firestore;
+	private static final String HOLDINGS_DOC_ID = "current"; // Fixed document ID
 
-    public ProviderHoldingsRepository(Firestore firestore) {
-        this.firestore = firestore;
-    }
+	private final Firestore firestore;
 
-    /**
-     * Get the holdings collection reference for a specific provider.
-     * Path: users/{userId}/portfolio/{providerId}/holdings
-     *
-     * Holdings are stored as a subcollection under the provider document.
-     * Example: users/{userId}/portfolio/coinbase/holdings/current
-     */
-    private CollectionReference getHoldingsCollection(String userId, String providerId) {
-        return firestore.collection("users")
-                .document(userId)
-                .collection("portfolio")
-                .document(providerId)
-                .collection("holdings");
-    }
+	public ProviderHoldingsRepository(Firestore firestore) {
+		this.firestore = firestore;
+	}
 
-    /**
-     * Save holdings for a provider.
-     * Uses fixed document ID "current" - there's only one holdings doc per provider.
-     */
-    public ProviderHoldingsEntity save(String userId, String providerId, ProviderHoldingsEntity entity) {
-        try {
-            validateInputs(entity, userId, providerId);
+	/**
+	 * Get the holdings collection reference for a specific provider. Path:
+	 * users/{userId}/portfolio/{providerId}/holdings
+	 *
+	 * Holdings are stored as a subcollection under the provider document. Example:
+	 * users/{userId}/portfolio/coinbase/holdings/current
+	 */
+	private CollectionReference getHoldingsCollection(String userId, String providerId) {
+		return firestore.collection("users")
+			.document(userId)
+			.collection("portfolio")
+			.document(providerId)
+			.collection("holdings");
+	}
 
-            boolean isCreate = !entity._hasAudit();
+	/**
+	 * Save holdings for a provider. Uses fixed document ID "current" - there's only one
+	 * holdings doc per provider.
+	 */
+	public ProviderHoldingsEntity save(String userId, String providerId, ProviderHoldingsEntity entity) {
+		try {
+			validateInputs(entity, userId, providerId);
 
-            if (isCreate) {
-                entity._initAudit(userId);
-            } else {
-                entity._updateAudit(userId);
-            }
+			boolean isCreate = !entity._hasAudit();
 
-            entity.setId(HOLDINGS_DOC_ID);
-            entity.setProviderId(providerId);
+			if (isCreate) {
+				entity._initAudit(userId);
+			}
+			else {
+				entity._updateAudit(userId);
+			}
 
-            getHoldingsCollection(userId, providerId).document(HOLDINGS_DOC_ID).set(entity).get();
+			entity.setId(HOLDINGS_DOC_ID);
+			entity.setProviderId(providerId);
 
-            log.debug("Saved ProviderHoldingsEntity for provider {} by user {}", providerId, userId);
-            return entity;
+			getHoldingsCollection(userId, providerId).document(HOLDINGS_DOC_ID).set(entity).get();
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "ProviderHoldingsEntity");
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "ProviderHoldingsEntity");
-        }
-    }
+			log.debug("Saved ProviderHoldingsEntity for provider {} by user {}", providerId, userId);
+			return entity;
 
-    /**
-     * Find holdings for a provider.
-     */
-    public Optional<ProviderHoldingsEntity> findByUserIdAndProviderId(String userId, String providerId) {
-        try {
-            DocumentSnapshot doc = getHoldingsCollection(userId, providerId)
-                    .document(HOLDINGS_DOC_ID)
-                    .get()
-                    .get();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e,
+					"ProviderHoldingsEntity");
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e,
+					"ProviderHoldingsEntity");
+		}
+	}
 
-            if (doc.exists()) {
-                ProviderHoldingsEntity entity = doc.toObject(ProviderHoldingsEntity.class);
-                if (entity != null) {
-                    entity.setId(doc.getId());
-                    return Optional.of(entity);
-                }
-            }
-            return Optional.empty();
+	/**
+	 * Find holdings for a provider.
+	 */
+	public Optional<ProviderHoldingsEntity> findByUserIdAndProviderId(String userId, String providerId) {
+		try {
+			DocumentSnapshot doc = getHoldingsCollection(userId, providerId).document(HOLDINGS_DOC_ID).get().get();
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderHoldingsEntity", providerId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "ProviderHoldingsEntity", providerId);
-        }
-    }
+			if (doc.exists()) {
+				ProviderHoldingsEntity entity = doc.toObject(ProviderHoldingsEntity.class);
+				if (entity != null) {
+					entity.setId(doc.getId());
+					return Optional.of(entity);
+				}
+			}
+			return Optional.empty();
 
-    /**
-     * Delete holdings for a provider (hard delete).
-     * This removes the holdings document permanently.
-     */
-    public boolean delete(String userId, String providerId) {
-        try {
-            getHoldingsCollection(userId, providerId).document(HOLDINGS_DOC_ID).delete().get();
-            log.info("Deleted holdings for provider {} for userId: {}", providerId, userId);
-            return true;
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"ProviderHoldingsEntity", providerId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"ProviderHoldingsEntity", providerId);
+		}
+	}
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "ProviderHoldingsEntity", providerId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "ProviderHoldingsEntity", providerId);
-        }
-    }
+	/**
+	 * Delete holdings for a provider (hard delete). This removes the holdings document
+	 * permanently.
+	 */
+	public boolean delete(String userId, String providerId) {
+		try {
+			getHoldingsCollection(userId, providerId).document(HOLDINGS_DOC_ID).delete().get();
+			log.info("Deleted holdings for provider {} for userId: {}", providerId, userId);
+			return true;
 
-    /**
-     * Check if holdings exist for a provider.
-     */
-    public boolean exists(String userId, String providerId) {
-        return findByUserIdAndProviderId(userId, providerId).isPresent();
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"ProviderHoldingsEntity", providerId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"ProviderHoldingsEntity", providerId);
+		}
+	}
 
-    /**
-     * Update sync status for holdings.
-     */
-    public void updateSyncStatus(String userId, String providerId, String syncStatus, String errorMessage) {
-        Optional<ProviderHoldingsEntity> optional = findByUserIdAndProviderId(userId, providerId);
+	/**
+	 * Check if holdings exist for a provider.
+	 */
+	public boolean exists(String userId, String providerId) {
+		return findByUserIdAndProviderId(userId, providerId).isPresent();
+	}
 
-        if (optional.isPresent()) {
-            ProviderHoldingsEntity entity = optional.get();
-            entity.setSyncStatus(syncStatus);
-            entity.setErrorMessage(errorMessage);
-            entity.setLastUpdatedAt(java.time.Instant.now());
-            save(userId, providerId, entity);
-        }
-    }
+	/**
+	 * Update sync status for holdings.
+	 */
+	public void updateSyncStatus(String userId, String providerId, String syncStatus, String errorMessage) {
+		Optional<ProviderHoldingsEntity> optional = findByUserIdAndProviderId(userId, providerId);
 
-    private void validateInputs(ProviderHoldingsEntity entity, String userId, String providerId) {
-        if (entity == null) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "ProviderHoldingsEntity", "Entity cannot be null");
-        }
-        if (userId == null || userId.trim().isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "ProviderHoldingsEntity", "User ID cannot be null or empty");
-        }
-        if (providerId == null || providerId.trim().isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "ProviderHoldingsEntity", "Provider ID cannot be null or empty");
-        }
-    }
+		if (optional.isPresent()) {
+			ProviderHoldingsEntity entity = optional.get();
+			entity.setSyncStatus(syncStatus);
+			entity.setErrorMessage(errorMessage);
+			entity.setLastUpdatedAt(java.time.Instant.now());
+			save(userId, providerId, entity);
+		}
+	}
+
+	private void validateInputs(ProviderHoldingsEntity entity, String userId, String providerId) {
+		if (entity == null) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "ProviderHoldingsEntity",
+					"Entity cannot be null");
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "ProviderHoldingsEntity",
+					"User ID cannot be null or empty");
+		}
+		if (providerId == null || providerId.trim().isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "ProviderHoldingsEntity",
+					"Provider ID cannot be null or empty");
+		}
+	}
+
 }

@@ -7,10 +7,9 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Live performance metrics for bot deployments.
- * Tracks real-time trading performance and comprehensive metrics for deployed bots.
- * This mirrors StrategyPerformance but represents actual live/paper trading results.
- * This data is owner-only (not public).
+ * Live performance metrics for bot deployments. Tracks real-time trading performance and
+ * comprehensive metrics for deployed bots. This mirrors StrategyPerformance but
+ * represents actual live/paper trading results. This data is owner-only (not public).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BotLivePerformance {

@@ -16,8 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Authentication filter for CI/CD accessibility analysis endpoints.
  *
- * Validates Bearer token against Vault-stored CI/CD token for POST /cache
- * endpoint.
+ * Validates Bearer token against Vault-stored CI/CD token for POST /cache endpoint.
  */
 @Component
 public class CiCdAccessibilityAuthFilter extends OncePerRequestFilter {

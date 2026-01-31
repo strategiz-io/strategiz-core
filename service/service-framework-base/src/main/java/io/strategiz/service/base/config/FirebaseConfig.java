@@ -29,114 +29,123 @@ import java.util.List;
  */
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@org.springframework.context.annotation.Profile("disabled") // Permanently disabled as configuration moved to data-base module
+@org.springframework.context.annotation.Profile("disabled") // Permanently disabled as
+															// configuration moved to
+															// data-base module
 public class FirebaseConfig {
 
-    private static final String SERVICE_ACCOUNT_FILE = "firebase-service-account.json";
-    private boolean firebaseInitialized = false;
+	private static final String SERVICE_ACCOUNT_FILE = "firebase-service-account.json";
 
-    @PostConstruct
-    public void initialize() {
-        try {
-            // Check if Firebase is already initialized
-            if (!FirebaseApp.getApps().isEmpty()) {
-                System.out.println("Firebase already initialized, skipping initialization.");
-                firebaseInitialized = true;
-                return;
-            }
+	private boolean firebaseInitialized = false;
 
-            System.out.println("Starting Firebase initialization...");
+	@PostConstruct
+	public void initialize() {
+		try {
+			// Check if Firebase is already initialized
+			if (!FirebaseApp.getApps().isEmpty()) {
+				System.out.println("Firebase already initialized, skipping initialization.");
+				firebaseInitialized = true;
+				return;
+			}
 
-            // Define possible locations for the service account file
-            List<String> possibleLocations = Arrays.asList(
-                SERVICE_ACCOUNT_FILE,
-                "." + File.separator + SERVICE_ACCOUNT_FILE,
-                "." + File.separator + "config" + File.separator + SERVICE_ACCOUNT_FILE,
-                System.getProperty("user.home") + File.separator + SERVICE_ACCOUNT_FILE,
-                System.getProperty("user.dir") + File.separator + SERVICE_ACCOUNT_FILE,
-                System.getProperty("user.dir") + File.separator + "config" + File.separator + SERVICE_ACCOUNT_FILE,
-                System.getProperty("user.dir") + File.separator + "src" + File.separator + "main" + File.separator + "resources" + File.separator + SERVICE_ACCOUNT_FILE,
-                System.getProperty("user.dir") + File.separator + "target" + File.separator + "classes" + File.separator + SERVICE_ACCOUNT_FILE
-            );
+			System.out.println("Starting Firebase initialization...");
 
-            InputStream serviceAccount = null;
-            String foundLocation = null;
+			// Define possible locations for the service account file
+			List<String> possibleLocations = Arrays.asList(SERVICE_ACCOUNT_FILE,
+					"." + File.separator + SERVICE_ACCOUNT_FILE,
+					"." + File.separator + "config" + File.separator + SERVICE_ACCOUNT_FILE,
+					System.getProperty("user.home") + File.separator + SERVICE_ACCOUNT_FILE,
+					System.getProperty("user.dir") + File.separator + SERVICE_ACCOUNT_FILE,
+					System.getProperty("user.dir") + File.separator + "config" + File.separator + SERVICE_ACCOUNT_FILE,
+					System.getProperty("user.dir") + File.separator + "src" + File.separator + "main" + File.separator
+							+ "resources" + File.separator + SERVICE_ACCOUNT_FILE,
+					System.getProperty("user.dir") + File.separator + "target" + File.separator + "classes"
+							+ File.separator + SERVICE_ACCOUNT_FILE);
 
-            // Try each location until we find the file
-            for (String location : possibleLocations) {
-                File file = new File(location);
-                if (file.exists() && file.isFile()) {
-                    System.out.println("Found Firebase service account file at: " + file.getAbsolutePath());
-                    serviceAccount = new FileInputStream(file);
-                    foundLocation = file.getAbsolutePath();
-                    break;
-                }
-            }
+			InputStream serviceAccount = null;
+			String foundLocation = null;
 
-            // If not found in file system, try classpath
-            if (serviceAccount == null) {
-                try {
-                    Resource resource = new ClassPathResource(SERVICE_ACCOUNT_FILE);
-                    if (resource.exists()) {
-                        System.out.println("Found Firebase service account file in classpath");
-                        serviceAccount = resource.getInputStream();
-                        foundLocation = "classpath:" + SERVICE_ACCOUNT_FILE;
-                    }
-                } catch (Exception e) {
-                    System.err.println("Error loading Firebase service account from classpath: " + e.getMessage());
-                }
-            }
+			// Try each location until we find the file
+			for (String location : possibleLocations) {
+				File file = new File(location);
+				if (file.exists() && file.isFile()) {
+					System.out.println("Found Firebase service account file at: " + file.getAbsolutePath());
+					serviceAccount = new FileInputStream(file);
+					foundLocation = file.getAbsolutePath();
+					break;
+				}
+			}
 
-            // Last resort: try to use environment variable or system property
-            if (serviceAccount == null) {
-                String envPath = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH");
-                if (envPath != null && !envPath.isEmpty()) {
-                    File envFile = new File(envPath);
-                    if (envFile.exists()) {
-                        System.out.println("Found Firebase service account file from environment variable at: " + envFile.getAbsolutePath());
-                        serviceAccount = new FileInputStream(envFile);
-                        foundLocation = envFile.getAbsolutePath();
-                    }
-                }
-            }
+			// If not found in file system, try classpath
+			if (serviceAccount == null) {
+				try {
+					Resource resource = new ClassPathResource(SERVICE_ACCOUNT_FILE);
+					if (resource.exists()) {
+						System.out.println("Found Firebase service account file in classpath");
+						serviceAccount = resource.getInputStream();
+						foundLocation = "classpath:" + SERVICE_ACCOUNT_FILE;
+					}
+				}
+				catch (Exception e) {
+					System.err.println("Error loading Firebase service account from classpath: " + e.getMessage());
+				}
+			}
 
-            if (serviceAccount == null) {
-                throw new IOException("Firebase service account file not found in any of the expected locations.");
-            }
+			// Last resort: try to use environment variable or system property
+			if (serviceAccount == null) {
+				String envPath = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH");
+				if (envPath != null && !envPath.isEmpty()) {
+					File envFile = new File(envPath);
+					if (envFile.exists()) {
+						System.out.println("Found Firebase service account file from environment variable at: "
+								+ envFile.getAbsolutePath());
+						serviceAccount = new FileInputStream(envFile);
+						foundLocation = envFile.getAbsolutePath();
+					}
+				}
+			}
 
-            System.out.println("Loading Firebase configuration from: " + foundLocation);
+			if (serviceAccount == null) {
+				throw new IOException("Firebase service account file not found in any of the expected locations.");
+			}
 
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .build();
+			System.out.println("Loading Firebase configuration from: " + foundLocation);
 
-            FirebaseApp.initializeApp(options);
-            System.out.println("Firebase has been initialized successfully!");
-            firebaseInitialized = true;
+			FirebaseOptions options = FirebaseOptions.builder()
+				.setCredentials(GoogleCredentials.fromStream(serviceAccount))
+				.build();
 
-        } catch (Exception e) {
-            System.err.println("ERROR initializing Firebase. The application will not function correctly: " + e.getMessage());
-            e.printStackTrace();
-            // Let the exception propagate to fail application startup
-            throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED, "service-framework-base", e);
-        }
-    }
+			FirebaseApp.initializeApp(options);
+			System.out.println("Firebase has been initialized successfully!");
+			firebaseInitialized = true;
 
-    @Bean
-    public FirebaseApp firebaseApp() {
-        if (!firebaseInitialized) {
-            throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED,
-                "FirebaseConfig", "Firebase initialization failed. Cannot provide FirebaseApp bean.");
-        }
-        return FirebaseApp.getInstance();
-    }
+		}
+		catch (Exception e) {
+			System.err
+				.println("ERROR initializing Firebase. The application will not function correctly: " + e.getMessage());
+			e.printStackTrace();
+			// Let the exception propagate to fail application startup
+			throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED,
+					"service-framework-base", e);
+		}
+	}
 
-    @Bean
-    public Firestore firestore() {
-        if (!firebaseInitialized) {
-            throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED,
-                "FirebaseConfig", "Firebase initialization failed. Cannot provide Firestore bean.");
-        }
-        return FirestoreClient.getFirestore();
-    }
+	@Bean
+	public FirebaseApp firebaseApp() {
+		if (!firebaseInitialized) {
+			throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED, "FirebaseConfig",
+					"Firebase initialization failed. Cannot provide FirebaseApp bean.");
+		}
+		return FirebaseApp.getInstance();
+	}
+
+	@Bean
+	public Firestore firestore() {
+		if (!firebaseInitialized) {
+			throw new StrategizException(ServiceBaseErrorDetails.FIREBASE_INITIALIZATION_FAILED, "FirebaseConfig",
+					"Firebase initialization failed. Cannot provide Firestore bean.");
+		}
+		return FirestoreClient.getFirestore();
+	}
+
 }

@@ -19,36 +19,31 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PasskeyServiceConfig {
 
-    @Bean
-    public PasskeyCredentialConverter passkeyCredentialConverter() {
-        return new PasskeyCredentialConverter();
-    }
+	@Bean
+	public PasskeyCredentialConverter passkeyCredentialConverter() {
+		return new PasskeyCredentialConverter();
+	}
 
-    @Bean
-    public PasskeyRegistrationService passkeyRegistrationService(
-            PasskeyChallengeService challengeService,
-            AuthenticationMethodRepository authMethodRepository,
-            SessionAuthBusiness sessionAuthBusiness,
-            UserRepository userRepository,
-            FeatureFlagService featureFlagService) {
-        return new PasskeyRegistrationService(
-            challengeService, authMethodRepository, sessionAuthBusiness, userRepository, featureFlagService);
-    }
-    
-    @Bean
-    public PasskeyAuthenticationService passkeyAuthenticationService(
-            PasskeyChallengeService challengeService,
-            AuthenticationMethodRepository authMethodRepository,
-            SessionAuthBusiness sessionAuthBusiness,
-            UserRepository userRepository) {
-        return new PasskeyAuthenticationService(
-            challengeService, authMethodRepository, sessionAuthBusiness, userRepository);
-    }
-    
-    @Bean
-    public PasskeyManagementService passkeyManagementService(
-            PasskeyCredentialRepository credentialRepository,
-            PasskeyCredentialConverter credentialConverter) {
-        return new PasskeyManagementService(credentialRepository, credentialConverter);
-    }
+	@Bean
+	public PasskeyRegistrationService passkeyRegistrationService(PasskeyChallengeService challengeService,
+			AuthenticationMethodRepository authMethodRepository, SessionAuthBusiness sessionAuthBusiness,
+			UserRepository userRepository, FeatureFlagService featureFlagService) {
+		return new PasskeyRegistrationService(challengeService, authMethodRepository, sessionAuthBusiness,
+				userRepository, featureFlagService);
+	}
+
+	@Bean
+	public PasskeyAuthenticationService passkeyAuthenticationService(PasskeyChallengeService challengeService,
+			AuthenticationMethodRepository authMethodRepository, SessionAuthBusiness sessionAuthBusiness,
+			UserRepository userRepository) {
+		return new PasskeyAuthenticationService(challengeService, authMethodRepository, sessionAuthBusiness,
+				userRepository);
+	}
+
+	@Bean
+	public PasskeyManagementService passkeyManagementService(PasskeyCredentialRepository credentialRepository,
+			PasskeyCredentialConverter credentialConverter) {
+		return new PasskeyManagementService(credentialRepository, credentialConverter);
+	}
+
 }

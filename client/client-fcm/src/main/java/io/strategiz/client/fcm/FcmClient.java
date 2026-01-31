@@ -26,8 +26,8 @@ import java.util.List;
 /**
  * Firebase Cloud Messaging implementation of PushProvider.
  *
- * Uses Firebase Admin SDK which automatically uses application default credentials on Cloud
- * Run.
+ * Uses Firebase Admin SDK which automatically uses application default credentials on
+ * Cloud Run.
  */
 @Component
 @ConditionalOnProperty(name = "fcm.enabled", havingValue = "true", matchIfMissing = true)

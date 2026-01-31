@@ -19,29 +19,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Manual job for backfilling company fundamentals data.
  *
  * <p>
- * This job is designed for one-time operations such as:
- * - Initial data population for new deployments
- * - Full data refresh after system maintenance
- * - Recovering from extended data collection outages
+ * This job is designed for one-time operations such as: - Initial data population for new
+ * deployments - Full data refresh after system maintenance - Recovering from extended
+ * data collection outages
  * </p>
  *
  * <p>
- * Unlike the incremental job, this job:
- * - Does NOT run on a schedule (manual trigger only)
- * - Processes all configured symbols regardless of last update time
- * - Can be used to refresh data for specific symbols or all symbols
+ * Unlike the incremental job, this job: - Does NOT run on a schedule (manual trigger
+ * only) - Processes all configured symbols regardless of last update time - Can be used
+ * to refresh data for specific symbols or all symbols
  * </p>
  *
  * <p>
- * Configuration:
- * <pre>
+ * Configuration: <pre>
  * fundamentals.batch.data-source=FMP
  * </pre>
  * </p>
  *
  * <p>
- * Trigger via admin console endpoints.
- * Only one instance can run at a time (enforced with AtomicBoolean).
+ * Trigger via admin console endpoints. Only one instance can run at a time (enforced with
+ * AtomicBoolean).
  * </p>
  *
  * <p>
@@ -76,11 +73,11 @@ public class FundamentalsBackfillJob {
 	}
 
 	/**
-	 * Public execute method called by DynamicJobSchedulerBusiness.
-	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
+	 * Public execute method called by DynamicJobSchedulerBusiness. Scheduled via database
+	 * (jobs table) instead of @Scheduled annotation.
 	 *
-	 * WARNING: This is a manual job, only triggered via admin console.
-	 * Not meant to run on a schedule.
+	 * WARNING: This is a manual job, only triggered via admin console. Not meant to run
+	 * on a schedule.
 	 */
 	public void execute() {
 		executeBackfill();
@@ -89,9 +86,8 @@ public class FundamentalsBackfillJob {
 	/**
 	 * Execute full backfill for all configured symbols.
 	 *
-	 * This method is called from the admin console to perform a complete
-	 * fundamentals data refresh.
-	 *
+	 * This method is called from the admin console to perform a complete fundamentals
+	 * data refresh.
 	 * @return CollectionResult with execution statistics
 	 */
 	public CollectionResult executeBackfill() {
@@ -102,7 +98,6 @@ public class FundamentalsBackfillJob {
 	 * Execute backfill for a specific list of symbols.
 	 *
 	 * If symbols list is null or empty, processes all configured symbols.
-	 *
 	 * @param symbols List of symbols to backfill, or null for all symbols
 	 * @return CollectionResult with execution statistics
 	 */
@@ -120,7 +115,8 @@ public class FundamentalsBackfillJob {
 		// Get list of symbols to collect
 		List<String> targetSymbols;
 		if (symbols == null || symbols.isEmpty()) {
-			// Use getSymbolsForFundamentals() to get all STOCK/ETF symbols regardless of primary data source
+			// Use getSymbolsForFundamentals() to get all STOCK/ETF symbols regardless of
+			// primary data source
 			targetSymbols = symbolService.getSymbolsForFundamentals();
 			log.info("Backfilling all {} STOCK/ETF symbols for fundamentals", targetSymbols.size());
 		}
@@ -180,7 +176,6 @@ public class FundamentalsBackfillJob {
 
 	/**
 	 * Check if the backfill job is currently running.
-	 *
 	 * @return true if the job is running
 	 */
 	public boolean isRunning() {

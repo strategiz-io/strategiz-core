@@ -5,18 +5,19 @@ package io.strategiz.data.strategy.entity;
  */
 public enum PricingType {
 
-    /**
-     * Strategy is free to use - no payment required.
-     */
-    FREE,
+	/**
+	 * Strategy is free to use - no payment required.
+	 */
+	FREE,
 
-    /**
-     * Single one-time purchase for lifetime access.
-     */
-    ONE_TIME,
+	/**
+	 * Single one-time purchase for lifetime access.
+	 */
+	ONE_TIME,
 
-    /**
-     * Monthly recurring subscription.
-     */
-    SUBSCRIPTION
+	/**
+	 * Monthly recurring subscription.
+	 */
+	SUBSCRIPTION
+
 }

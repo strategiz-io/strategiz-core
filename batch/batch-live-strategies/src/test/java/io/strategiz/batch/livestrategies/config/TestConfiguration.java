@@ -8,15 +8,11 @@ import org.springframework.context.annotation.Profile;
 /**
  * Test configuration for integration tests.
  *
- * Integration tests run against REAL infrastructure:
- * - Firestore (requires GCP Application Default Credentials)
- * - TimescaleDB (via Vault secrets)
- * - gRPC Execution Service (localhost:50051)
- * - Pub/Sub (requires GCP credentials)
+ * Integration tests run against REAL infrastructure: - Firestore (requires GCP
+ * Application Default Credentials) - TimescaleDB (via Vault secrets) - gRPC Execution
+ * Service (localhost:50051) - Pub/Sub (requires GCP credentials)
  *
- * Prerequisites:
- * 1. Run: gcloud auth application-default login
- * 2. Run: vault server -dev
+ * Prerequisites: 1. Run: gcloud auth application-default login 2. Run: vault server -dev
  * 3. Export VAULT_TOKEN=root
  *
  * NO MOCKS - these are real integration tests.

@@ -12,14 +12,13 @@ import java.util.Map;
 /**
  * Multi-timeframe analysis for improved strategy generation.
  *
- * Key concepts:
- * - Higher timeframe (HTF) determines overall trend direction
- * - Lower timeframe (LTF) provides precise entry/exit timing
- * - Alignment across timeframes increases probability of success
- * - Divergence signals potential reversals or continuation failures
+ * Key concepts: - Higher timeframe (HTF) determines overall trend direction - Lower
+ * timeframe (LTF) provides precise entry/exit timing - Alignment across timeframes
+ * increases probability of success - Divergence signals potential reversals or
+ * continuation failures
  *
- * Timeframe hierarchy:
- * - Monthly (1M) → Weekly (1W) → Daily (1D) → 4-Hour (4h) → 1-Hour (1h) → 15-Min (15m)
+ * Timeframe hierarchy: - Monthly (1M) → Weekly (1W) → Daily (1D) → 4-Hour (4h) → 1-Hour
+ * (1h) → 15-Min (15m)
  */
 @Component
 public class MultiTimeframeAnalyzer {
@@ -290,8 +289,7 @@ public class MultiTimeframeAnalyzer {
 		MOSTLY_ALIGNED_BEARISH("Most timeframes bearish - probable downtrend"),
 		DIVERGING_HTF_BULLISH("Higher timeframe bullish, lower bearish - pullback in uptrend"),
 		DIVERGING_HTF_BEARISH("Higher timeframe bearish, lower bullish - bounce in downtrend"),
-		MIXED("No clear alignment - ranging or transitional market"),
-		TRANSITIONAL("Trend change in progress");
+		MIXED("No clear alignment - ranging or transitional market"), TRANSITIONAL("Trend change in progress");
 
 		private final String description;
 
@@ -306,9 +304,8 @@ public class MultiTimeframeAnalyzer {
 	}
 
 	/**
-	 * Analyze multiple timeframes for a symbol. This method simulates analysis based on the primary
-	 * timeframe data. In production, it would fetch data for each timeframe.
-	 *
+	 * Analyze multiple timeframes for a symbol. This method simulates analysis based on
+	 * the primary timeframe data. In production, it would fetch data for each timeframe.
 	 * @param primaryTimeframe The primary trading timeframe
 	 * @param prices Array of closing prices (most recent last)
 	 * @param highs Array of high prices
@@ -411,7 +408,8 @@ public class MultiTimeframeAnalyzer {
 	}
 
 	/**
-	 * Analyze a single timeframe. Simulates higher/lower timeframe by adjusting lookback periods.
+	 * Analyze a single timeframe. Simulates higher/lower timeframe by adjusting lookback
+	 * periods.
 	 */
 	private TimeframeAnalysis analyzeTimeframe(String timeframe, String primaryTimeframe, double[] prices,
 			double[] highs, double[] lows) {
@@ -681,12 +679,12 @@ public class MultiTimeframeAnalyzer {
 		// Add RSI-based recommendations
 		for (TimeframeAnalysis ta : result.getTimeframeAnalyses().values()) {
 			if (ta.isOversold() && result.getOverallTrend().contains("UP")) {
-				recs.add(String.format("%s RSI oversold (%.0f) in uptrend - potential buy zone",
-						ta.getTimeframe(), ta.getRsi()));
+				recs.add(String.format("%s RSI oversold (%.0f) in uptrend - potential buy zone", ta.getTimeframe(),
+						ta.getRsi()));
 			}
 			if (ta.isOverbought() && result.getOverallTrend().contains("DOWN")) {
-				recs.add(String.format("%s RSI overbought (%.0f) in downtrend - avoid buying",
-						ta.getTimeframe(), ta.getRsi()));
+				recs.add(String.format("%s RSI overbought (%.0f) in downtrend - avoid buying", ta.getTimeframe(),
+						ta.getRsi()));
 			}
 		}
 

@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes specific to Alpaca API client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes specific to Alpaca API client operations. Implements ErrorDetails for
+ * integration with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(AlpacaErrors.ALPACA_API_ERROR, MODULE_NAME);
  */
@@ -43,4 +43,3 @@ public enum AlpacaErrors implements ErrorDetails {
 	}
 
 }
-

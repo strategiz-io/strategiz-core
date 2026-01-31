@@ -9,18 +9,24 @@ import com.google.cloud.Timestamp;
 /**
  * Entity representing a user's STRAT crypto token wallet.
  *
- * <p>Collection path: cryptoWallets/{walletId}</p>
+ * <p>
+ * Collection path: cryptoWallets/{walletId}
+ * </p>
  *
- * <p>Token Economics:</p>
+ * <p>
+ * Token Economics:
+ * </p>
  * <ul>
- *   <li>$1 USD = 100 STRAT tokens</li>
- *   <li>Platform fee: Configurable (see PlatformConfig entity)</li>
- *   <li>Uses: Pay owner subscriptions, tip creators, earn rewards</li>
- *   <li>NOTE: STRAT is NOT for AI credits (those come from platform tier only)</li>
+ * <li>$1 USD = 100 STRAT tokens</li>
+ * <li>Platform fee: Configurable (see PlatformConfig entity)</li>
+ * <li>Uses: Pay owner subscriptions, tip creators, earn rewards</li>
+ * <li>NOTE: STRAT is NOT for AI credits (those come from platform tier only)</li>
  * </ul>
  *
- * <p>Balance is stored as Long with 6 decimal precision (micro-units).
- * Example: 1,000,000 = 1.000000 STRAT tokens</p>
+ * <p>
+ * Balance is stored as Long with 6 decimal precision (micro-units). Example: 1,000,000 =
+ * 1.000000 STRAT tokens
+ * </p>
  *
  * @see io.strategiz.data.cryptotoken.entity.CryptoTransaction
  */

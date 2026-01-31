@@ -56,9 +56,12 @@ public class LearnChatController {
 
 	@PostMapping
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Send a chat message", description = "Send a message to the AI assistant and receive a response")
-	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Successful response",
-			content = @Content(mediaType = "application/json", schema = @Schema(implementation = ChatResponseDto.class))),
+	@Operation(summary = "Send a chat message",
+			description = "Send a message to the AI assistant and receive a response")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = ChatResponseDto.class))),
 			@ApiResponse(responseCode = "400", description = "Invalid request"),
 			@ApiResponse(responseCode = "401", description = "Unauthorized"),
 			@ApiResponse(responseCode = "500", description = "Internal server error") })
@@ -82,14 +85,13 @@ public class LearnChatController {
 				.body(ChatResponseDto.error("Daily message limit exceeded. Upgrade your plan for more messages.")));
 		}
 
-		return learnChatService.chat(request, userId)
-			.doOnSuccess(response -> {
-				// Record usage after successful response
-				if (response != null && response.getContent() != null) {
-					subscriptionService.recordMessageUsage(userId);
-					logger.debug("Recorded message usage for user {}", userId);
-				}
-			})
+		return learnChatService.chat(request, userId).doOnSuccess(response -> {
+			// Record usage after successful response
+			if (response != null && response.getContent() != null) {
+				subscriptionService.recordMessageUsage(userId);
+				logger.debug("Recorded message usage for user {}", userId);
+			}
+		})
 			.map(response -> ResponseEntity.ok(response))
 			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 				.body(ChatResponseDto.error("Failed to generate response")));
@@ -104,8 +106,7 @@ public class LearnChatController {
 			@ApiResponse(responseCode = "401", description = "Unauthorized") })
 	public Flux<ChatResponseDto> chatStream(@RequestParam String message,
 			@RequestParam(required = false, defaultValue = "learn") String feature,
-			@RequestParam(required = false) String currentPage,
-			@RequestParam(required = false) String model,
+			@RequestParam(required = false) String currentPage, @RequestParam(required = false) String model,
 			@AuthUser AuthenticatedUser user) {
 
 		String userId = user.getUserId();
@@ -120,7 +121,8 @@ public class LearnChatController {
 		// Check if user can send message (within limits)
 		if (!subscriptionService.canSendMessage(userId)) {
 			logger.warn("User {} exceeded daily message limit", userId);
-			return Flux.just(ChatResponseDto.error("Daily message limit exceeded. Upgrade your plan for more messages."));
+			return Flux
+				.just(ChatResponseDto.error("Daily message limit exceeded. Upgrade your plan for more messages."));
 		}
 
 		// Build request from query params
@@ -145,8 +147,7 @@ public class LearnChatController {
 	@GetMapping("/models")
 	@Operation(summary = "Get available AI models",
 			description = "Returns list of available LLM models for chat (Gemini, Claude, etc.)")
-	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "List of available models"),
+	@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "List of available models"),
 			@ApiResponse(responseCode = "500", description = "Internal server error") })
 	public ResponseEntity<List<ModelInfo>> getModels() {
 		logger.debug("Getting available AI models");

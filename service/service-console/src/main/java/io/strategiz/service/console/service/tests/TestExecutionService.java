@@ -53,7 +53,8 @@ public class TestExecutionService {
 	private static final Pattern MAVEN_RESULT_PATTERN = Pattern
 		.compile("Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+)");
 
-	private static final Pattern PYTEST_RESULT_PATTERN = Pattern.compile("(\\d+) passed.*?(\\d+)? failed.*?(\\d+)? error");
+	private static final Pattern PYTEST_RESULT_PATTERN = Pattern
+		.compile("(\\d+) passed.*?(\\d+)? failed.*?(\\d+)? error");
 
 	@Value("${strategiz.tests.ui-directory:../strategiz-ui}")
 	private String uiDirectory;
@@ -761,10 +762,11 @@ public class TestExecutionService {
 		streamingHandler.broadcastLogLine(testRun.getId(), line);
 
 		// Parse individual test results (Playwright list reporter format)
-		// Format: "  ✓  1 [chromium] › auth/signin.spec.ts:12:5 › should sign in (1.2s)"
-		// Format: "  ✘  2 [chromium] › auth/signin.spec.ts:24:5 › should fail login"
+		// Format: " ✓ 1 [chromium] › auth/signin.spec.ts:12:5 › should sign in (1.2s)"
+		// Format: " ✘ 2 [chromium] › auth/signin.spec.ts:24:5 › should fail login"
 		if (line.contains("✓") || line.contains("✘") || line.contains("passed") || line.contains("failed")) {
-			Pattern testLinePattern = Pattern.compile("([✓✘-])\\s+\\d+\\s+\\[\\w+\\]\\s+›\\s+(.+?)\\s+›\\s+(.+?)(?:\\s+\\((\\d+\\.?\\d*)s\\))?$");
+			Pattern testLinePattern = Pattern
+				.compile("([✓✘-])\\s+\\d+\\s+\\[\\w+\\]\\s+›\\s+(.+?)\\s+›\\s+(.+?)(?:\\s+\\((\\d+\\.?\\d*)s\\))?$");
 			Matcher testMatcher = testLinePattern.matcher(line.trim());
 
 			if (testMatcher.find()) {
@@ -777,8 +779,8 @@ public class TestExecutionService {
 				Long durationMs = durationStr != null ? (long) (Double.parseDouble(durationStr) * 1000) : null;
 
 				// Broadcast individual test result
-				TestResultMessage resultMsg = new TestResultMessage(testRun.getId(), testFile + ":" + testName, testName,
-						status);
+				TestResultMessage resultMsg = new TestResultMessage(testRun.getId(), testFile + ":" + testName,
+						testName, status);
 				resultMsg.withSuiteName(testFile);
 				if (durationMs != null) {
 					resultMsg.withDuration(durationMs);
@@ -813,7 +815,8 @@ public class TestExecutionService {
 
 		// Parse individual test results from Surefire output
 		// Format: "Running io.strategiz.service.auth.controller.AuthControllerTest"
-		// Format: "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.123 s - in
+		// Format: "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.123
+		// s - in
 		// io.strategiz...Test"
 		Pattern runningPattern = Pattern.compile("Running\\s+([\\w.]+)");
 		Matcher runningMatcher = runningPattern.matcher(line);
@@ -825,7 +828,8 @@ public class TestExecutionService {
 		}
 
 		// Parse individual test method results
-		// Format: "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.056 s --
+		// Format: "[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed:
+		// 0.056 s --
 		// in ...ClassName"
 		Pattern suiteResultPattern = Pattern
 			.compile("Tests run: (\\d+), Failures: (\\d+), Errors: (\\d+), Skipped: (\\d+).*?in ([\\w.]+)");
@@ -955,8 +959,7 @@ public class TestExecutionService {
 		}
 
 		TestProgressMessage progressMsg = new TestProgressMessage(testRun.getId())
-			.withCounts(total, completed, testRun.getPassedTests(), testRun.getFailedTests(),
-					testRun.getSkippedTests())
+			.withCounts(total, completed, testRun.getPassedTests(), testRun.getFailedTests(), testRun.getSkippedTests())
 			.withTiming(elapsedMs, estimatedRemainingMs);
 
 		streamingHandler.broadcastProgress(progressMsg);

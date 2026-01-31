@@ -9,11 +9,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Calculator for bot live performance metrics.
- * Computes comprehensive trading performance statistics from bot execution data.
+ * Calculator for bot live performance metrics. Computes comprehensive trading performance
+ * statistics from bot execution data.
  *
- * NOTE: Initial implementation uses aggregated data from BotDeployment.
- * Future enhancement will calculate from detailed trade history when implemented.
+ * NOTE: Initial implementation uses aggregated data from BotDeployment. Future
+ * enhancement will calculate from detailed trade history when implemented.
  */
 @Component
 public class BotPerformanceCalculator {
@@ -22,9 +22,8 @@ public class BotPerformanceCalculator {
 	 * Calculate live performance from trade execution data
 	 *
 	 * NOTE: Trade history implementation deferred - this uses aggregated data for now
-	 *
-	 * @param bot            The bot deployment entity
-	 * @param initialEquity  Initial capital allocated to the bot
+	 * @param bot The bot deployment entity
+	 * @param initialEquity Initial capital allocated to the bot
 	 * @return Calculated live performance metrics
 	 */
 	public BotLivePerformance calculatePerformance(BotDeployment bot, Double initialEquity) {
@@ -61,8 +60,7 @@ public class BotPerformanceCalculator {
 		// Deployment timeline
 		Timestamp createdDate = bot.getCreatedDate();
 		if (createdDate != null) {
-			perf.setDeploymentStartDate(
-					Instant.ofEpochSecond(createdDate.getSeconds(), createdDate.getNanos()));
+			perf.setDeploymentStartDate(Instant.ofEpochSecond(createdDate.getSeconds(), createdDate.getNanos()));
 		}
 
 		Timestamp lastExecuted = bot.getLastExecutedAt();
@@ -87,10 +85,9 @@ public class BotPerformanceCalculator {
 	}
 
 	/**
-	 * Calculate advanced metrics from trade history
-	 * FUTURE IMPLEMENTATION - when BotTradeHistory entity exists
-	 *
-	 * @param trades        List of individual trade records
+	 * Calculate advanced metrics from trade history FUTURE IMPLEMENTATION - when
+	 * BotTradeHistory entity exists
+	 * @param trades List of individual trade records
 	 * @param initialEquity Initial capital
 	 * @return Comprehensive performance metrics including Sharpe, max DD, etc.
 	 */

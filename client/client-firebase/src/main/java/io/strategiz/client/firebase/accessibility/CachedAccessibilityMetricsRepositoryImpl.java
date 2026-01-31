@@ -22,9 +22,9 @@ import io.strategiz.data.accessibility.repository.CachedAccessibilityMetricsRepo
 /**
  * Firestore implementation of CachedAccessibilityMetricsRepository.
  *
- * Collection path: system/accessibility_cache/cache
- * Latest by app: system/accessibility_cache/cache/latest_{appId}
- * History: system/accessibility_cache/cache/{scanId}
+ * Collection path: system/accessibility_cache/cache Latest by app:
+ * system/accessibility_cache/cache/latest_{appId} History:
+ * system/accessibility_cache/cache/{scanId}
  */
 @Repository
 public class CachedAccessibilityMetricsRepositoryImpl implements CachedAccessibilityMetricsRepository {

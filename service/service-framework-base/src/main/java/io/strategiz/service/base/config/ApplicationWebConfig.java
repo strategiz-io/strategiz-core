@@ -7,47 +7,40 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Global web configuration for the Strategiz application
- * This configuration applies to all endpoints across the application
+ * Global web configuration for the Strategiz application This configuration applies to
+ * all endpoints across the application
  */
 @Configuration
 public class ApplicationWebConfig implements WebMvcConfigurer {
 
-    @Value("${strategiz.cors.allowed-origins:http://localhost:3000,http://localhost:8080,https://strategiz.io}")
-    private String[] allowedOrigins;
+	@Value("${strategiz.cors.allowed-origins:http://localhost:3000,http://localhost:8080,https://strategiz.io}")
+	private String[] allowedOrigins;
 
-    /**
-     * Configure CORS globally for all endpoints
-     * NOTE: Disabled in favor of CorsFilter to avoid conflicts
-     * 
-     * @param registry CORS registry
-     */
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        // Disabled - CORS is handled by CorsFilter
-        // This prevents conflicts between multiple CORS configurations
-    }
+	/**
+	 * Configure CORS globally for all endpoints NOTE: Disabled in favor of CorsFilter to
+	 * avoid conflicts
+	 * @param registry CORS registry
+	 */
+	@Override
+	public void addCorsMappings(CorsRegistry registry) {
+		// Disabled - CORS is handled by CorsFilter
+		// This prevents conflicts between multiple CORS configurations
+	}
 
-    /**
-     * Configure resource handlers to serve static resources
-     * 
-     * @param registry ResourceHandlerRegistry
-     */
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Explicitly define static resource paths to avoid conflicting with API endpoints
-        // Only map specific static resource paths - NEVER use /** pattern that could intercept API requests
-        registry.addResourceHandler(
-                "/static/**", 
-                "/assets/**", 
-                "/css/**", 
-                "/js/**", 
-                "/images/**", 
-                "/favicon.ico")
-                .addResourceLocations("classpath:/static/");
-                
-        // Handle root path requests for SPA frontend
-        registry.addResourceHandler("/", "/index.html")
-                .addResourceLocations("classpath:/static/index.html");
-    }
+	/**
+	 * Configure resource handlers to serve static resources
+	 * @param registry ResourceHandlerRegistry
+	 */
+	@Override
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		// Explicitly define static resource paths to avoid conflicting with API endpoints
+		// Only map specific static resource paths - NEVER use /** pattern that could
+		// intercept API requests
+		registry.addResourceHandler("/static/**", "/assets/**", "/css/**", "/js/**", "/images/**", "/favicon.ico")
+			.addResourceLocations("classpath:/static/");
+
+		// Handle root path requests for SPA frontend
+		registry.addResourceHandler("/", "/index.html").addResourceLocations("classpath:/static/index.html");
+	}
+
 }

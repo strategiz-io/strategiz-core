@@ -18,7 +18,9 @@ import java.util.stream.Collectors;
 /**
  * Repository for AiModelConfig stored at config/ai-models/{modelId}.
  *
- * <p>This repository manages configurable AI model costs and tier requirements.</p>
+ * <p>
+ * This repository manages configurable AI model costs and tier requirements.
+ * </p>
  */
 @Repository
 public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
@@ -43,7 +45,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get model config by ID.
-	 *
 	 * @param modelId The model ID
 	 * @return The model config if found
 	 */
@@ -60,7 +61,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get all enabled AI models, sorted by provider and sortOrder.
-	 *
 	 * @return List of enabled models
 	 */
 	public List<AiModelConfig> getEnabledModels() {
@@ -73,7 +73,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get all enabled models for a specific tier.
-	 *
 	 * @param tierLevel The tier level (0=explorer, 1=strategist, 2=quant)
 	 * @return List of models accessible to this tier
 	 */
@@ -83,7 +82,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get all models by provider.
-	 *
 	 * @param provider The provider name (openai, anthropic, google, etc.)
 	 * @return List of models from that provider
 	 */
@@ -95,7 +93,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get all AI models (including disabled).
-	 *
 	 * @return List of all models
 	 */
 	public List<AiModelConfig> getAllModels() {
@@ -130,7 +127,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Get STRAT cost for a model and token usage.
-	 *
 	 * @param modelId The model ID
 	 * @param promptTokens Number of prompt tokens
 	 * @param completionTokens Number of completion tokens
@@ -142,7 +138,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Save model config.
-	 *
 	 * @param config The config to save
 	 * @param updatedBy The user making the change
 	 * @return The saved config
@@ -155,7 +150,6 @@ public class AiModelConfigRepository extends BaseRepository<AiModelConfig> {
 
 	/**
 	 * Seed default models if none exist.
-	 *
 	 * @param userId The admin user seeding the models
 	 */
 	public void seedDefaultsIfEmpty(String userId) {

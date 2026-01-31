@@ -4,8 +4,8 @@ import io.strategiz.client.sendgrid.model.EmailDeliveryResult;
 import io.strategiz.client.sendgrid.model.EmailMessage;
 
 /**
- * Interface for email providers.
- * Allows different implementations (SendGrid, AWS SES, etc.) to be swapped.
+ * Interface for email providers. Allows different implementations (SendGrid, AWS SES,
+ * etc.) to be swapped.
  */
 public interface EmailProvider {
 

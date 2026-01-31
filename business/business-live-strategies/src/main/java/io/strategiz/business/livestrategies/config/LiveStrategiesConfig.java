@@ -6,18 +6,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration for live strategies business logic.
- * Sets up circuit breaker, retry policies, and other resilience patterns.
+ * Configuration for live strategies business logic. Sets up circuit breaker, retry
+ * policies, and other resilience patterns.
  */
 @Configuration("liveStrategiesBusinessConfig")
 public class LiveStrategiesConfig {
 
 	/**
-	 * Circuit breaker manager for bot trading operations.
-	 * Uses the stricter "forBots" configuration:
-	 * - 3 failure threshold (real money involved)
-	 * - 3 success threshold to recover
-	 * - 15 minute reset timeout
+	 * Circuit breaker manager for bot trading operations. Uses the stricter "forBots"
+	 * configuration: - 3 failure threshold (real money involved) - 3 success threshold to
+	 * recover - 15 minute reset timeout
 	 */
 	@Bean
 	public CircuitBreakerManager circuitBreakerManager() {

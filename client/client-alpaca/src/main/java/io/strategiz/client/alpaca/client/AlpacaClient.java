@@ -24,258 +24,261 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Main client for interacting with the Alpaca API.
- * This class handles all direct API communication with Alpaca.
+ * Main client for interacting with the Alpaca API. This class handles all direct API
+ * communication with Alpaca.
  */
 @Component
 public class AlpacaClient {
 
-    private static final Logger log = LoggerFactory.getLogger(AlpacaClient.class);
+	private static final Logger log = LoggerFactory.getLogger(AlpacaClient.class);
 
-    private final RestTemplate restTemplate;
-    private final AlpacaOAuthClient oauthClient;
-    private final AlpacaDataClient dataClient;
+	private final RestTemplate restTemplate;
 
-    @Value("${oauth.providers.alpaca.api-url:https://api.alpaca.markets}")
-    private String apiUrl;
+	private final AlpacaOAuthClient oauthClient;
 
-    public AlpacaClient(@Qualifier("alpacaRestTemplate") RestTemplate restTemplate,
-                       AlpacaOAuthClient oauthClient,
-                       AlpacaDataClient dataClient) {
-        this.restTemplate = restTemplate;
-        this.oauthClient = oauthClient;
-        this.dataClient = dataClient;
-        log.info("AlpacaClient initialized");
-    }
+	private final AlpacaDataClient dataClient;
 
-    /**
-     * Make an OAuth authenticated request to Alpaca API
-     * @param method HTTP method
-     * @param endpoint API endpoint (e.g., "/v2/account")
-     * @param accessToken OAuth access token
-     * @param params Request parameters
-     * @param responseType Expected response type
-     * @return API response
-     */
-    public <T> T oauthRequest(HttpMethod method, String endpoint, String accessToken,
-                             Map<String, String> params, ParameterizedTypeReference<T> responseType) {
-        try {
-            // Validate access token
-            if (accessToken == null || accessToken.trim().isEmpty()) {
-                throw new StrategizException(AlpacaErrors.ALPACA_INVALID_TOKEN,
-                    "Access token is required");
-            }
+	@Value("${oauth.providers.alpaca.api-url:https://api.alpaca.markets}")
+	private String apiUrl;
 
-            // Build the URL
-            URIBuilder uriBuilder = new URIBuilder(apiUrl + endpoint);
-            if (params != null) {
-                params.forEach(uriBuilder::addParameter);
-            }
+	public AlpacaClient(@Qualifier("alpacaRestTemplate") RestTemplate restTemplate, AlpacaOAuthClient oauthClient,
+			AlpacaDataClient dataClient) {
+		this.restTemplate = restTemplate;
+		this.oauthClient = oauthClient;
+		this.dataClient = dataClient;
+		log.info("AlpacaClient initialized");
+	}
 
-            URI uri = uriBuilder.build();
+	/**
+	 * Make an OAuth authenticated request to Alpaca API
+	 * @param method HTTP method
+	 * @param endpoint API endpoint (e.g., "/v2/account")
+	 * @param accessToken OAuth access token
+	 * @param params Request parameters
+	 * @param responseType Expected response type
+	 * @return API response
+	 */
+	public <T> T oauthRequest(HttpMethod method, String endpoint, String accessToken, Map<String, String> params,
+			ParameterizedTypeReference<T> responseType) {
+		try {
+			// Validate access token
+			if (accessToken == null || accessToken.trim().isEmpty()) {
+				throw new StrategizException(AlpacaErrors.ALPACA_INVALID_TOKEN, "Access token is required");
+			}
 
-            // Create headers with OAuth Bearer token
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + accessToken);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+			// Build the URL
+			URIBuilder uriBuilder = new URIBuilder(apiUrl + endpoint);
+			if (params != null) {
+				params.forEach(uriBuilder::addParameter);
+			}
 
-            log.debug("Making OAuth request to Alpaca API: {} {}", method, uri);
+			URI uri = uriBuilder.build();
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
+			// Create headers with OAuth Bearer token
+			HttpHeaders headers = new HttpHeaders();
+			headers.set("Authorization", "Bearer " + accessToken);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-            ResponseEntity<T> response = restTemplate.exchange(
-                uri,
-                method,
-                entity,
-                responseType
-            );
+			log.debug("Making OAuth request to Alpaca API: {} {}", method, uri);
 
-            return response.getBody();
+			HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        } catch (RestClientResponseException e) {
-            int statusCode = e.getStatusCode().value();
-            String responseBody = e.getResponseBodyAsString();
+			ResponseEntity<T> response = restTemplate.exchange(uri, method, entity, responseType);
 
-            log.error("Alpaca OAuth API request error - HTTP Status {}: {}", statusCode, responseBody);
+			return response.getBody();
 
-            // Handle token expiration
-            if (statusCode == 401) {
-                throw new StrategizException(AlpacaErrors.ALPACA_TOKEN_EXPIRED,
-                    "Access token expired or invalid. Please reconnect your Alpaca account.");
-            }
+		}
+		catch (RestClientResponseException e) {
+			int statusCode = e.getStatusCode().value();
+			String responseBody = e.getResponseBodyAsString();
 
-            // Handle rate limiting
-            if (statusCode == 429) {
-                throw new StrategizException(AlpacaErrors.ALPACA_RATE_LIMIT,
-                    "Alpaca API rate limit exceeded. Please try again later.");
-            }
+			log.error("Alpaca OAuth API request error - HTTP Status {}: {}", statusCode, responseBody);
 
-            AlpacaErrors errorCode = determineErrorCode(statusCode, responseBody);
-            String detailedError = buildErrorMessage(statusCode, responseBody);
-            throw new StrategizException(errorCode, detailedError);
+			// Handle token expiration
+			if (statusCode == 401) {
+				throw new StrategizException(AlpacaErrors.ALPACA_TOKEN_EXPIRED,
+						"Access token expired or invalid. Please reconnect your Alpaca account.");
+			}
 
-        } catch (Exception e) {
-            String errorDetails = extractErrorDetails(e);
-            log.error("Error making OAuth request to {}: {}", endpoint, errorDetails);
-            throw new StrategizException(AlpacaErrors.ALPACA_API_ERROR, errorDetails);
-        }
-    }
+			// Handle rate limiting
+			if (statusCode == 429) {
+				throw new StrategizException(AlpacaErrors.ALPACA_RATE_LIMIT,
+						"Alpaca API rate limit exceeded. Please try again later.");
+			}
 
-    /**
-     * Get account information using OAuth token
-     */
-    public Map<String, Object> getAccount(String accessToken) {
-        return dataClient.getAccount(accessToken);
-    }
+			AlpacaErrors errorCode = determineErrorCode(statusCode, responseBody);
+			String detailedError = buildErrorMessage(statusCode, responseBody);
+			throw new StrategizException(errorCode, detailedError);
 
-    /**
-     * Get all positions using OAuth token
-     */
-    public List<Map<String, Object>> getPositions(String accessToken) {
-        return dataClient.getPositions(accessToken);
-    }
+		}
+		catch (Exception e) {
+			String errorDetails = extractErrorDetails(e);
+			log.error("Error making OAuth request to {}: {}", endpoint, errorDetails);
+			throw new StrategizException(AlpacaErrors.ALPACA_API_ERROR, errorDetails);
+		}
+	}
 
-    /**
-     * Get specific position by symbol
-     */
-    public Map<String, Object> getPosition(String accessToken, String symbol) {
-        return dataClient.getPosition(accessToken, symbol);
-    }
+	/**
+	 * Get account information using OAuth token
+	 */
+	public Map<String, Object> getAccount(String accessToken) {
+		return dataClient.getAccount(accessToken);
+	}
 
-    /**
-     * Get portfolio history
-     */
-    public Map<String, Object> getPortfolioHistory(String accessToken, String period, String timeframe) {
-        return dataClient.getPortfolioHistory(accessToken, period, timeframe);
-    }
+	/**
+	 * Get all positions using OAuth token
+	 */
+	public List<Map<String, Object>> getPositions(String accessToken) {
+		return dataClient.getPositions(accessToken);
+	}
 
-    /**
-     * Get account activities
-     */
-    public List<Map<String, Object>> getAccountActivities(String accessToken, String activityType) {
-        return dataClient.getAccountActivities(accessToken, activityType);
-    }
+	/**
+	 * Get specific position by symbol
+	 */
+	public Map<String, Object> getPosition(String accessToken, String symbol) {
+		return dataClient.getPosition(accessToken, symbol);
+	}
 
-    /**
-     * Get orders
-     */
-    public List<Map<String, Object>> getOrders(String accessToken, String status, Integer limit) {
-        return dataClient.getOrders(accessToken, status, limit);
-    }
+	/**
+	 * Get portfolio history
+	 */
+	public Map<String, Object> getPortfolioHistory(String accessToken, String period, String timeframe) {
+		return dataClient.getPortfolioHistory(accessToken, period, timeframe);
+	}
 
-    /**
-     * Get assets
-     */
-    public List<Map<String, Object>> getAssets(String accessToken, String status) {
-        return dataClient.getAssets(accessToken, status);
-    }
+	/**
+	 * Get account activities
+	 */
+	public List<Map<String, Object>> getAccountActivities(String accessToken, String activityType) {
+		return dataClient.getAccountActivities(accessToken, activityType);
+	}
 
-    /**
-     * Get specific asset
-     */
-    public Map<String, Object> getAsset(String accessToken, String symbol) {
-        return dataClient.getAsset(accessToken, symbol);
-    }
+	/**
+	 * Get orders
+	 */
+	public List<Map<String, Object>> getOrders(String accessToken, String status, Integer limit) {
+		return dataClient.getOrders(accessToken, status, limit);
+	}
 
-    /**
-     * Get market clock
-     */
-    public Map<String, Object> getClock(String accessToken) {
-        return dataClient.getClock(accessToken);
-    }
+	/**
+	 * Get assets
+	 */
+	public List<Map<String, Object>> getAssets(String accessToken, String status) {
+		return dataClient.getAssets(accessToken, status);
+	}
 
-    /**
-     * Get trading calendar
-     */
-    public List<Map<String, Object>> getCalendar(String accessToken, String start, String end) {
-        return dataClient.getCalendar(accessToken, start, end);
-    }
+	/**
+	 * Get specific asset
+	 */
+	public Map<String, Object> getAsset(String accessToken, String symbol) {
+		return dataClient.getAsset(accessToken, symbol);
+	}
 
-    // OAuth operations delegated to AlpacaOAuthClient
+	/**
+	 * Get market clock
+	 */
+	public Map<String, Object> getClock(String accessToken) {
+		return dataClient.getClock(accessToken);
+	}
 
-    /**
-     * Exchange authorization code for tokens
-     */
-    public Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
-        return oauthClient.exchangeCodeForTokens(authorizationCode);
-    }
+	/**
+	 * Get trading calendar
+	 */
+	public List<Map<String, Object>> getCalendar(String accessToken, String start, String end) {
+		return dataClient.getCalendar(accessToken, start, end);
+	}
 
-    /**
-     * Refresh access token
-     */
-    public Map<String, Object> refreshAccessToken(String refreshToken) {
-        return oauthClient.refreshAccessToken(refreshToken);
-    }
+	// OAuth operations delegated to AlpacaOAuthClient
 
-    /**
-     * Revoke access token
-     */
-    public boolean revokeAccessToken(String accessToken) {
-        return oauthClient.revokeAccessToken(accessToken);
-    }
+	/**
+	 * Exchange authorization code for tokens
+	 */
+	public Map<String, Object> exchangeCodeForTokens(String authorizationCode) {
+		return oauthClient.exchangeCodeForTokens(authorizationCode);
+	}
 
-    /**
-     * Validate OAuth configuration
-     */
-    public void validateConfiguration() {
-        oauthClient.validateConfiguration();
-    }
+	/**
+	 * Refresh access token
+	 */
+	public Map<String, Object> refreshAccessToken(String refreshToken) {
+		return oauthClient.refreshAccessToken(refreshToken);
+	}
 
-    // Helper methods
+	/**
+	 * Revoke access token
+	 */
+	public boolean revokeAccessToken(String accessToken) {
+		return oauthClient.revokeAccessToken(accessToken);
+	}
 
-    /**
-     * Determine appropriate error code based on HTTP status and response body
-     */
-    private AlpacaErrors determineErrorCode(int statusCode, String responseBody) {
-        if (statusCode == 401) {
-            return AlpacaErrors.ALPACA_TOKEN_EXPIRED;
-        } else if (statusCode == 429) {
-            return AlpacaErrors.ALPACA_RATE_LIMIT;
-        } else if (statusCode >= 400 && statusCode < 500) {
-            return AlpacaErrors.ALPACA_INVALID_RESPONSE;
-        } else if (statusCode >= 500) {
-            return AlpacaErrors.ALPACA_API_ERROR;
-        }
-        return AlpacaErrors.ALPACA_API_ERROR;
-    }
+	/**
+	 * Validate OAuth configuration
+	 */
+	public void validateConfiguration() {
+		oauthClient.validateConfiguration();
+	}
 
-    /**
-     * Build detailed error message from HTTP status and response
-     */
-    private String buildErrorMessage(int statusCode, String responseBody) {
-        StringBuilder errorMsg = new StringBuilder();
-        errorMsg.append("Alpaca API error (HTTP ").append(statusCode).append(")");
+	// Helper methods
 
-        if (responseBody != null && !responseBody.isEmpty()) {
-            try {
-                // Try to extract error message from JSON response
-                if (responseBody.contains("message")) {
-                    errorMsg.append(": ").append(responseBody);
-                } else {
-                    errorMsg.append(": ").append(responseBody);
-                }
-            } catch (Exception e) {
-                errorMsg.append(": ").append(responseBody);
-            }
-        }
+	/**
+	 * Determine appropriate error code based on HTTP status and response body
+	 */
+	private AlpacaErrors determineErrorCode(int statusCode, String responseBody) {
+		if (statusCode == 401) {
+			return AlpacaErrors.ALPACA_TOKEN_EXPIRED;
+		}
+		else if (statusCode == 429) {
+			return AlpacaErrors.ALPACA_RATE_LIMIT;
+		}
+		else if (statusCode >= 400 && statusCode < 500) {
+			return AlpacaErrors.ALPACA_INVALID_RESPONSE;
+		}
+		else if (statusCode >= 500) {
+			return AlpacaErrors.ALPACA_API_ERROR;
+		}
+		return AlpacaErrors.ALPACA_API_ERROR;
+	}
 
-        return errorMsg.toString();
-    }
+	/**
+	 * Build detailed error message from HTTP status and response
+	 */
+	private String buildErrorMessage(int statusCode, String responseBody) {
+		StringBuilder errorMsg = new StringBuilder();
+		errorMsg.append("Alpaca API error (HTTP ").append(statusCode).append(")");
 
-    /**
-     * Extract error details from exception
-     */
-    private String extractErrorDetails(Exception e) {
-        if (e instanceof StrategizException) {
-            return e.getMessage();
-        }
+		if (responseBody != null && !responseBody.isEmpty()) {
+			try {
+				// Try to extract error message from JSON response
+				if (responseBody.contains("message")) {
+					errorMsg.append(": ").append(responseBody);
+				}
+				else {
+					errorMsg.append(": ").append(responseBody);
+				}
+			}
+			catch (Exception e) {
+				errorMsg.append(": ").append(responseBody);
+			}
+		}
 
-        String message = e.getMessage();
-        if (message == null || message.isEmpty()) {
-            message = e.getClass().getSimpleName();
-        }
+		return errorMsg.toString();
+	}
 
-        return "Failed to communicate with Alpaca API: " + message;
-    }
+	/**
+	 * Extract error details from exception
+	 */
+	private String extractErrorDetails(Exception e) {
+		if (e instanceof StrategizException) {
+			return e.getMessage();
+		}
+
+		String message = e.getMessage();
+		if (message == null || message.isEmpty()) {
+			message = e.getClass().getSimpleName();
+		}
+
+		return "Failed to communicate with Alpaca API: " + message;
+	}
+
 }

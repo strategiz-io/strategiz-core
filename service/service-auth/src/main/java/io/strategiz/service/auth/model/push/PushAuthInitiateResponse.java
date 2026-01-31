@@ -13,30 +13,14 @@ import java.time.Instant;
  * @param devicesNotified number of devices notified
  * @param error error message if not successful
  */
-public record PushAuthInitiateResponse(
-        boolean success,
-        String requestId,
-        Instant expiresAt,
-        int devicesNotified,
-        String error
-) {
-    public static PushAuthInitiateResponse from(PushAuthBusiness.InitiatePushAuthResult result) {
-        if (!result.success()) {
-            return new PushAuthInitiateResponse(
-                    false,
-                    null,
-                    null,
-                    0,
-                    result.error()
-            );
-        }
+public record PushAuthInitiateResponse(boolean success, String requestId, Instant expiresAt, int devicesNotified,
+		String error) {
+	public static PushAuthInitiateResponse from(PushAuthBusiness.InitiatePushAuthResult result) {
+		if (!result.success()) {
+			return new PushAuthInitiateResponse(false, null, null, 0, result.error());
+		}
 
-        return new PushAuthInitiateResponse(
-                true,
-                result.request().getId(),
-                result.request().getExpiresAt(),
-                result.subscriptionsToNotify().size(),
-                null
-        );
-    }
+		return new PushAuthInitiateResponse(true, result.request().getId(), result.request().getExpiresAt(),
+				result.subscriptionsToNotify().size(), null);
+	}
 }

@@ -8,48 +8,51 @@ import java.time.Instant;
  * Result object for Coinbase provider disconnection
  */
 public class CoinbaseDisconnectionResult {
-    
-    private String userId;
-    private String providerId;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant disconnectedAt;
-    
-    private String status;
 
-    // Constructors
-    public CoinbaseDisconnectionResult() {}
+	private String userId;
 
-    // Getters and Setters
-    public String getUserId() {
-        return userId;
-    }
+	private String providerId;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant disconnectedAt;
 
-    public String getProviderId() {
-        return providerId;
-    }
+	private String status;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	// Constructors
+	public CoinbaseDisconnectionResult() {
+	}
 
-    public Instant getDisconnectedAt() {
-        return disconnectedAt;
-    }
+	// Getters and Setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setDisconnectedAt(Instant disconnectedAt) {
-        this.disconnectedAt = disconnectedAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-} 
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
+
+	public Instant getDisconnectedAt() {
+		return disconnectedAt;
+	}
+
+	public void setDisconnectedAt(Instant disconnectedAt) {
+		this.disconnectedAt = disconnectedAt;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
+}

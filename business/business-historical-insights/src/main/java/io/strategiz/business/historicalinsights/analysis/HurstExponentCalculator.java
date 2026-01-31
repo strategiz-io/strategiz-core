@@ -8,13 +8,12 @@ import java.util.List;
 /**
  * Calculates the Hurst Exponent using Rescaled Range (R/S) analysis.
  *
- * The Hurst exponent H indicates the tendency of a time series:
- * - H < 0.5: Mean-reverting (anti-persistent) - price tends to reverse
- * - H = 0.5: Random walk - no predictable pattern
- * - H > 0.5: Trending (persistent) - price tends to continue in same direction
+ * The Hurst exponent H indicates the tendency of a time series: - H < 0.5: Mean-reverting
+ * (anti-persistent) - price tends to reverse - H = 0.5: Random walk - no predictable
+ * pattern - H > 0.5: Trending (persistent) - price tends to continue in same direction
  *
- * This calculation uses the classical R/S method with multiple time scales
- * and linear regression on log-log plot to estimate H.
+ * This calculation uses the classical R/S method with multiple time scales and linear
+ * regression on log-log plot to estimate H.
  */
 public class HurstExponentCalculator {
 
@@ -29,7 +28,8 @@ public class HurstExponentCalculator {
 	 */
 	public HurstResult calculate(List<MarketDataEntity> data) {
 		if (data == null || data.size() < MIN_SAMPLES) {
-			return new HurstResult(0.5, 0.0); // Default to random walk with zero confidence
+			return new HurstResult(0.5, 0.0); // Default to random walk with zero
+												// confidence
 		}
 
 		// Extract log returns
@@ -95,8 +95,8 @@ public class HurstExponentCalculator {
 	}
 
 	/**
-	 * Calculate the Rescaled Range (R/S) for a given time scale.
-	 * R/S = (max cumulative deviation - min cumulative deviation) / standard deviation
+	 * Calculate the Rescaled Range (R/S) for a given time scale. R/S = (max cumulative
+	 * deviation - min cumulative deviation) / standard deviation
 	 */
 	private double calculateRescaledRange(double[] returns, int n) {
 		int numSubseries = returns.length / n;
@@ -146,8 +146,7 @@ public class HurstExponentCalculator {
 	}
 
 	/**
-	 * Simple linear regression: y = slope * x + intercept.
-	 * Returns [slope, intercept, R²]
+	 * Simple linear regression: y = slope * x + intercept. Returns [slope, intercept, R²]
 	 */
 	private double[] linearRegression(double[] x, double[] y, int n) {
 		double sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;

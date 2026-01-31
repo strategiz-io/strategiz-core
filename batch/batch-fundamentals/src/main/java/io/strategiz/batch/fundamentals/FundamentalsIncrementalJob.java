@@ -19,22 +19,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Scheduled job for daily company fundamentals data collection.
  *
  * <p>
- * This job runs daily at 2 AM (configurable) to update fundamental data
- * for all active symbols from Financial Modeling Prep (FMP). Unlike market data collection,
- * this runs once per day as fundamental data changes infrequently.
+ * This job runs daily at 2 AM (configurable) to update fundamental data for all active
+ * symbols from Financial Modeling Prep (FMP). Unlike market data collection, this runs
+ * once per day as fundamental data changes infrequently.
  * </p>
  *
  * <p>
- * Configuration:
- * <pre>
+ * Configuration: <pre>
  * fundamentals.batch.incremental-enabled=true
  * fundamentals.batch.incremental-cron=0 0 2 * * *
  * </pre>
  * </p>
  *
  * <p>
- * The job can also be triggered manually via the admin console.
- * Only one instance can run at a time (enforced with AtomicBoolean).
+ * The job can also be triggered manually via the admin console. Only one instance can run
+ * at a time (enforced with AtomicBoolean).
  * </p>
  */
 @Component
@@ -68,8 +67,8 @@ public class FundamentalsIncrementalJob {
 	}
 
 	/**
-	 * Public execute method called by DynamicJobSchedulerBusiness.
-	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
+	 * Public execute method called by DynamicJobSchedulerBusiness. Scheduled via database
+	 * (jobs table) instead of @Scheduled annotation.
 	 *
 	 * Default schedule: Daily at 2 AM
 	 */
@@ -80,9 +79,8 @@ public class FundamentalsIncrementalJob {
 	/**
 	 * Manually trigger fundamentals collection.
 	 *
-	 * This method can be called from the admin console to trigger an
-	 * immediate fundamentals update outside the regular schedule.
-	 *
+	 * This method can be called from the admin console to trigger an immediate
+	 * fundamentals update outside the regular schedule.
 	 * @return CollectionResult with statistics
 	 */
 	public CollectionResult triggerManualExecution() {
@@ -94,7 +92,6 @@ public class FundamentalsIncrementalJob {
 	 * Execute the fundamentals collection process.
 	 *
 	 * Thread-safe: Only one instance can run at a time.
-	 *
 	 * @return CollectionResult with execution statistics
 	 */
 	private CollectionResult executeIncremental() {
@@ -108,7 +105,8 @@ public class FundamentalsIncrementalJob {
 
 		log.info("=== Fundamentals Incremental Collection Started ===");
 
-		// Get list of symbols to collect - all STOCK/ETF symbols regardless of primary data source
+		// Get list of symbols to collect - all STOCK/ETF symbols regardless of primary
+		// data source
 		List<String> symbols = symbolService.getSymbolsForFundamentals();
 		log.info("Found {} STOCK/ETF symbols for fundamentals collection", symbols.size());
 
@@ -159,7 +157,6 @@ public class FundamentalsIncrementalJob {
 
 	/**
 	 * Check if the job is currently running.
-	 *
 	 * @return true if the job is running
 	 */
 	public boolean isRunning() {
@@ -168,7 +165,6 @@ public class FundamentalsIncrementalJob {
 
 	/**
 	 * Get the current job configuration status.
-	 *
 	 * @return true if the job is enabled
 	 */
 	public boolean isEnabled() {

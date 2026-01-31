@@ -9,39 +9,41 @@ import io.strategiz.data.provider.exception.ProviderIntegrationException;
  * Enum representing the status of a provider integration
  */
 public enum ProviderStatus {
-    CONNECTED("connected"),       // Provider is successfully connected and active
-    DISCONNECTED("disconnected"); // Provider is not connected or was disconnected
-    
-    private final String value;
-    
-    ProviderStatus(String value) {
-        this.value = value;
-    }
-    
-    @JsonValue  // This tells Jackson to use this method for serialization
-    public String getValue() {
-        return value;
-    }
-    
-    @JsonCreator  // This tells Jackson to use this method for deserialization
-    public static ProviderStatus fromValue(String value) {
-        if (value == null) {
-            return null;
-        }
 
-        for (ProviderStatus status : values()) {
-            // Handle both uppercase (legacy) and lowercase
-            if (status.value.equalsIgnoreCase(value) || status.name().equalsIgnoreCase(value)) {
-                return status;
-            }
-        }
+	CONNECTED("connected"), // Provider is successfully connected and active
+	DISCONNECTED("disconnected"); // Provider is not connected or was disconnected
 
-        throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
-            "ProviderStatus", "Unknown provider status: " + value);
-    }
-    
-    @Override
-    public String toString() {
-        return value;
-    }
+	private final String value;
+
+	ProviderStatus(String value) {
+		this.value = value;
+	}
+
+	@JsonValue // This tells Jackson to use this method for serialization
+	public String getValue() {
+		return value;
+	}
+
+	@JsonCreator // This tells Jackson to use this method for deserialization
+	public static ProviderStatus fromValue(String value) {
+		if (value == null) {
+			return null;
+		}
+
+		for (ProviderStatus status : values()) {
+			// Handle both uppercase (legacy) and lowercase
+			if (status.value.equalsIgnoreCase(value) || status.name().equalsIgnoreCase(value)) {
+				return status;
+			}
+		}
+
+		throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT, "ProviderStatus",
+				"Unknown provider status: " + value);
+	}
+
+	@Override
+	public String toString() {
+		return value;
+	}
+
 }

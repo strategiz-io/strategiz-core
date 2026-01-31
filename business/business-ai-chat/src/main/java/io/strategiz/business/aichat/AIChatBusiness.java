@@ -72,7 +72,8 @@ public class AIChatBusiness {
 				if (status.isBlocked()) {
 					ChatResponse blocked = new ChatResponse();
 					blocked.setSuccess(false);
-					blocked.setError("You've used all your credits for this billing period. Please upgrade to continue.");
+					blocked
+						.setError("You've used all your credits for this billing period. Please upgrade to continue.");
 					blocked.setUsageWarningLevel("blocked");
 					blocked.setRemainingCredits(0);
 					return Mono.just(blocked);
@@ -120,7 +121,8 @@ public class AIChatBusiness {
 				return response;
 			}).onErrorResume(error -> {
 				logger.error("Error generating chat response", error);
-				return Mono.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
+				return Mono
+					.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 			});
 		}
 		catch (Exception e) {
@@ -169,7 +171,8 @@ public class AIChatBusiness {
 				return response;
 			}).onErrorResume(error -> {
 				logger.error("Error in streaming chat", error);
-				return Flux.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
+				return Flux
+					.just(ChatResponse.error("Our AI is temporarily unavailable. Please try again in a moment."));
 			});
 		}
 		catch (Exception e) {
@@ -254,7 +257,8 @@ public class AIChatBusiness {
 		// Add system prompt as first message pair
 		if (systemPrompt != null && !systemPrompt.isEmpty()) {
 			llmHistory.add(LLMMessage.user(systemPrompt));
-			llmHistory.add(LLMMessage.assistant("Understood. I'm ready to assist with trading education and development."));
+			llmHistory
+				.add(LLMMessage.assistant("Understood. I'm ready to assist with trading education and development."));
 		}
 
 		// Add conversation history

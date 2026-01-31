@@ -8,107 +8,112 @@ import java.util.Objects;
  * Sentiment indicator (from MarketSentimentData)
  */
 public class MarketSentimentIndicator {
-    /**
-     * Sentiment score from 0 (most bearish) to 100 (most bullish)
-     */
-    private BigDecimal score;
-    
-    /**
-     * Sentiment category (Bearish, Slightly Bearish, Neutral, Slightly Bullish, Bullish)
-     */
-    private String category;
-    
-    /**
-     * Timestamp of this sentiment reading
-     */
-    private LocalDateTime timestamp;
 
-    // Constructors
-    public MarketSentimentIndicator() {}
+	/**
+	 * Sentiment score from 0 (most bearish) to 100 (most bullish)
+	 */
+	private BigDecimal score;
 
-    public MarketSentimentIndicator(BigDecimal score, String category, LocalDateTime timestamp) {
-        this.score = score;
-        this.category = category;
-        this.timestamp = timestamp;
-    }
+	/**
+	 * Sentiment category (Bearish, Slightly Bearish, Neutral, Slightly Bullish, Bullish)
+	 */
+	private String category;
 
-    // Getters and Setters
-    public BigDecimal getScore() {
-        return score;
-    }
+	/**
+	 * Timestamp of this sentiment reading
+	 */
+	private LocalDateTime timestamp;
 
-    public void setScore(BigDecimal score) {
-        this.score = score;
-    }
+	// Constructors
+	public MarketSentimentIndicator() {
+	}
 
-    public String getCategory() {
-        return category;
-    }
+	public MarketSentimentIndicator(BigDecimal score, String category, LocalDateTime timestamp) {
+		this.score = score;
+		this.category = category;
+		this.timestamp = timestamp;
+	}
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+	// Getters and Setters
+	public BigDecimal getScore() {
+		return score;
+	}
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+	public void setScore(BigDecimal score) {
+		this.score = score;
+	}
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+	public String getCategory() {
+		return category;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MarketSentimentIndicator that = (MarketSentimentIndicator) o;
-        return Objects.equals(score, that.score) &&
-               Objects.equals(category, that.category) &&
-               Objects.equals(timestamp, that.timestamp);
-    }
+	public void setCategory(String category) {
+		this.category = category;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(score, category, timestamp);
-    }
+	public LocalDateTime getTimestamp() {
+		return timestamp;
+	}
 
-    @Override
-    public String toString() {
-        return "MarketSentimentIndicator{" +
-               "score=" + score +
-               ", category='" + category + '\'' +
-               ", timestamp=" + timestamp +
-               '}';
-    }
+	public void setTimestamp(LocalDateTime timestamp) {
+		this.timestamp = timestamp;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		MarketSentimentIndicator that = (MarketSentimentIndicator) o;
+		return Objects.equals(score, that.score) && Objects.equals(category, that.category)
+				&& Objects.equals(timestamp, that.timestamp);
+	}
 
-    public static class Builder {
-        private BigDecimal score;
-        private String category;
-        private LocalDateTime timestamp;
+	@Override
+	public int hashCode() {
+		return Objects.hash(score, category, timestamp);
+	}
 
-        public Builder withScore(BigDecimal score) {
-            this.score = score;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "MarketSentimentIndicator{" + "score=" + score + ", category='" + category + '\'' + ", timestamp="
+				+ timestamp + '}';
+	}
 
-        public Builder withCategory(String category) {
-            this.category = category;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withTimestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
+	public static class Builder {
 
-        public MarketSentimentIndicator build() {
-            return new MarketSentimentIndicator(score, category, timestamp);
-        }
-    }
+		private BigDecimal score;
+
+		private String category;
+
+		private LocalDateTime timestamp;
+
+		public Builder withScore(BigDecimal score) {
+			this.score = score;
+			return this;
+		}
+
+		public Builder withCategory(String category) {
+			this.category = category;
+			return this;
+		}
+
+		public Builder withTimestamp(LocalDateTime timestamp) {
+			this.timestamp = timestamp;
+			return this;
+		}
+
+		public MarketSentimentIndicator build() {
+			return new MarketSentimentIndicator(score, category, timestamp);
+		}
+
+	}
+
 }

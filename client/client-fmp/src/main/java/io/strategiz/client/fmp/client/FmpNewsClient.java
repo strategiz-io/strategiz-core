@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
  * Client for fetching news data from Financial Modeling Prep API.
  *
  * <p>
- * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig to ensure
- * proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist first).
+ * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig
+ * to ensure proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist
+ * first).
  * </p>
  *
  * <p>
@@ -201,8 +202,8 @@ public class FmpNewsClient {
 
 		log.debug("Fetching press releases for symbol: {} (limit: {})", symbol, effectiveLimit);
 
-		String url = String.format("%s/press-releases/%s?limit=%d&apikey=%s", config.getBaseUrl(),
-				symbol.toUpperCase(), effectiveLimit, config.getApiKey());
+		String url = String.format("%s/press-releases/%s?limit=%d&apikey=%s", config.getBaseUrl(), symbol.toUpperCase(),
+				effectiveLimit, config.getApiKey());
 
 		return fetchPressReleases(url, symbol);
 	}

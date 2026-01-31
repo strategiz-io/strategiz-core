@@ -45,18 +45,22 @@ public class AdminMigrationController extends BaseController {
 	}
 
 	/**
-	 * Migrate subscription documents from legacy "monthlyCreditsAllowed/Used" fields
-	 * to "monthlyStratAllowed/Used". Also initializes STRAT wallet allocations for
-	 * existing subscribers who don't have wallet balances yet.
+	 * Migrate subscription documents from legacy "monthlyCreditsAllowed/Used" fields to
+	 * "monthlyStratAllowed/Used". Also initializes STRAT wallet allocations for existing
+	 * subscribers who don't have wallet balances yet.
 	 *
-	 * <p>This migration is idempotent: running it multiple times is safe.</p>
+	 * <p>
+	 * This migration is idempotent: running it multiple times is safe.
+	 * </p>
 	 *
-	 * <p>What it does per user subscription document:</p>
+	 * <p>
+	 * What it does per user subscription document:
+	 * </p>
 	 * <ol>
-	 *   <li>Copies monthlyCreditsAllowed → monthlyStratAllowed (if old field exists)</li>
-	 *   <li>Copies monthlyCreditsUsed → monthlyStratUsed (if old field exists)</li>
-	 *   <li>Removes old field names after copying</li>
-	 *   <li>Optionally credits STRAT wallet allocation for existing paid subscribers</li>
+	 * <li>Copies monthlyCreditsAllowed → monthlyStratAllowed (if old field exists)</li>
+	 * <li>Copies monthlyCreditsUsed → monthlyStratUsed (if old field exists)</li>
+	 * <li>Removes old field names after copying</li>
+	 * <li>Optionally credits STRAT wallet allocation for existing paid subscribers</li>
 	 * </ol>
 	 */
 	@PostMapping("/credits-to-strat")
@@ -64,8 +68,7 @@ public class AdminMigrationController extends BaseController {
 			description = "Renames monthlyCreditsAllowed/Used to monthlyStratAllowed/Used in all subscription documents and optionally grants STRAT wallet allocations")
 	public ResponseEntity<Map<String, Object>> migrateCreditsToStrat(
 			@RequestParam(defaultValue = "false") boolean dryRun,
-			@RequestParam(defaultValue = "true") boolean grantWalletAllocation,
-			HttpServletRequest request) {
+			@RequestParam(defaultValue = "true") boolean grantWalletAllocation, HttpServletRequest request) {
 
 		String adminUserId = (String) request.getAttribute("adminUserId");
 		logRequest("migrateCreditsToStrat", adminUserId,
@@ -88,7 +91,8 @@ public class AdminMigrationController extends BaseController {
 				String userId = userDoc.getId();
 
 				try {
-					DocumentReference subRef = firestore.collection("users").document(userId)
+					DocumentReference subRef = firestore.collection("users")
+						.document(userId)
 						.collection("subscription")
 						.document("current");
 
@@ -125,10 +129,8 @@ public class AdminMigrationController extends BaseController {
 							}
 
 							// Remove old fields by setting to FieldValue.delete()
-							updates.put("monthlyCreditsAllowed",
-									com.google.cloud.firestore.FieldValue.delete());
-							updates.put("monthlyCreditsUsed",
-									com.google.cloud.firestore.FieldValue.delete());
+							updates.put("monthlyCreditsAllowed", com.google.cloud.firestore.FieldValue.delete());
+							updates.put("monthlyCreditsUsed", com.google.cloud.firestore.FieldValue.delete());
 
 							subRef.update(updates).get();
 						}

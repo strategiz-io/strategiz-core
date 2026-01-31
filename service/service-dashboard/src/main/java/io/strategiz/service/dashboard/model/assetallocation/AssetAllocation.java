@@ -7,170 +7,178 @@ import java.util.Objects;
  * Model for individual asset allocation data.
  */
 public class AssetAllocation {
-    
-    private String id;
-    private String name;
-    private String symbol;
-    private String exchange;
-    private BigDecimal value;
-    private BigDecimal percentage;
-    private String color;
 
-    // Constructors
-    public AssetAllocation() {}
+	private String id;
 
-    public AssetAllocation(String id, String name, String symbol, String exchange, 
-                          BigDecimal value, BigDecimal percentage, String color) {
-        this.id = id;
-        this.name = name;
-        this.symbol = symbol;
-        this.exchange = exchange;
-        this.value = value;
-        this.percentage = percentage;
-        this.color = color;
-    }
+	private String name;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	private String symbol;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private String exchange;
 
-    public String getName() {
-        return name;
-    }
+	private BigDecimal value;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private BigDecimal percentage;
 
-    public String getSymbol() {
-        return symbol;
-    }
+	private String color;
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	// Constructors
+	public AssetAllocation() {
+	}
 
-    public String getExchange() {
-        return exchange;
-    }
+	public AssetAllocation(String id, String name, String symbol, String exchange, BigDecimal value,
+			BigDecimal percentage, String color) {
+		this.id = id;
+		this.name = name;
+		this.symbol = symbol;
+		this.exchange = exchange;
+		this.value = value;
+		this.percentage = percentage;
+		this.color = color;
+	}
 
-    public void setExchange(String exchange) {
-        this.exchange = exchange;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public BigDecimal getValue() {
-        return value;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setValue(BigDecimal value) {
-        this.value = value;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public BigDecimal getPercentage() {
-        return percentage;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setPercentage(BigDecimal percentage) {
-        this.percentage = percentage;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public String getColor() {
-        return color;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public void setColor(String color) {
-        this.color = color;
-    }
+	public String getExchange() {
+		return exchange;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AssetAllocation that = (AssetAllocation) o;
-        return Objects.equals(id, that.id) &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(symbol, that.symbol) &&
-               Objects.equals(exchange, that.exchange) &&
-               Objects.equals(value, that.value) &&
-               Objects.equals(percentage, that.percentage) &&
-               Objects.equals(color, that.color);
-    }
+	public void setExchange(String exchange) {
+		this.exchange = exchange;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, name, symbol, exchange, value, percentage, color);
-    }
+	public BigDecimal getValue() {
+		return value;
+	}
 
-    @Override
-    public String toString() {
-        return "AssetAllocation{" +
-               "id='" + id + '\'' +
-               ", name='" + name + '\'' +
-               ", symbol='" + symbol + '\'' +
-               ", exchange='" + exchange + '\'' +
-               ", value=" + value +
-               ", percentage=" + percentage +
-               ", color='" + color + '\'' +
-               '}';
-    }
+	public void setValue(BigDecimal value) {
+		this.value = value;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public BigDecimal getPercentage() {
+		return percentage;
+	}
 
-    public static class Builder {
-        private String id;
-        private String name;
-        private String symbol;
-        private String exchange;
-        private BigDecimal value;
-        private BigDecimal percentage;
-        private String color;
+	public void setPercentage(BigDecimal percentage) {
+		this.percentage = percentage;
+	}
 
-        public Builder withId(String id) {
-            this.id = id;
-            return this;
-        }
+	public String getColor() {
+		return color;
+	}
 
-        public Builder withName(String name) {
-            this.name = name;
-            return this;
-        }
+	public void setColor(String color) {
+		this.color = color;
+	}
 
-        public Builder withSymbol(String symbol) {
-            this.symbol = symbol;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		AssetAllocation that = (AssetAllocation) o;
+		return Objects.equals(id, that.id) && Objects.equals(name, that.name) && Objects.equals(symbol, that.symbol)
+				&& Objects.equals(exchange, that.exchange) && Objects.equals(value, that.value)
+				&& Objects.equals(percentage, that.percentage) && Objects.equals(color, that.color);
+	}
 
-        public Builder withExchange(String exchange) {
-            this.exchange = exchange;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, name, symbol, exchange, value, percentage, color);
+	}
 
-        public Builder withValue(BigDecimal value) {
-            this.value = value;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "AssetAllocation{" + "id='" + id + '\'' + ", name='" + name + '\'' + ", symbol='" + symbol + '\''
+				+ ", exchange='" + exchange + '\'' + ", value=" + value + ", percentage=" + percentage + ", color='"
+				+ color + '\'' + '}';
+	}
 
-        public Builder withPercentage(BigDecimal percentage) {
-            this.percentage = percentage;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withColor(String color) {
-            this.color = color;
-            return this;
-        }
+	public static class Builder {
 
-        public AssetAllocation build() {
-            return new AssetAllocation(id, name, symbol, exchange, value, percentage, color);
-        }
-    }
+		private String id;
+
+		private String name;
+
+		private String symbol;
+
+		private String exchange;
+
+		private BigDecimal value;
+
+		private BigDecimal percentage;
+
+		private String color;
+
+		public Builder withId(String id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder withName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Builder withSymbol(String symbol) {
+			this.symbol = symbol;
+			return this;
+		}
+
+		public Builder withExchange(String exchange) {
+			this.exchange = exchange;
+			return this;
+		}
+
+		public Builder withValue(BigDecimal value) {
+			this.value = value;
+			return this;
+		}
+
+		public Builder withPercentage(BigDecimal percentage) {
+			this.percentage = percentage;
+			return this;
+		}
+
+		public Builder withColor(String color) {
+			this.color = color;
+			return this;
+		}
+
+		public AssetAllocation build() {
+			return new AssetAllocation(id, name, symbol, exchange, value, percentage, color);
+		}
+
+	}
+
 }

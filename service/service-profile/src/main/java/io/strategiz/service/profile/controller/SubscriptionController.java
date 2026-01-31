@@ -144,15 +144,10 @@ public class SubscriptionController extends BaseController {
 		String userId = user.getUserId();
 		boolean allowed = subscriptionService.hasCreditsAvailable(userId);
 		int remainingCredits = subscriptionService.getRemainingMessages(userId);
-		String warningLevel = remainingCredits <= 0 ? "critical"
-				: remainingCredits <= 5 ? "warning"
-				: "none";
+		String warningLevel = remainingCredits <= 0 ? "critical" : remainingCredits <= 5 ? "warning" : "none";
 
-		return ResponseEntity.ok(Map.of(
-				"allowed", allowed,
-				"remainingCredits", remainingCredits,
-				"warningLevel", warningLevel
-		));
+		return ResponseEntity
+			.ok(Map.of("allowed", allowed, "remainingCredits", remainingCredits, "warningLevel", warningLevel));
 	}
 
 	/**
@@ -208,8 +203,8 @@ public class SubscriptionController extends BaseController {
 	 */
 	@GetMapping("/config")
 	public ResponseEntity<Map<String, Object>> getStripeConfig() {
-		return ResponseEntity.ok(Map.of("publishableKey", stripeService.getPublishableKey(), "enabled",
-				stripeService.isConfigured()));
+		return ResponseEntity
+			.ok(Map.of("publishableKey", stripeService.getPublishableKey(), "enabled", stripeService.isConfigured()));
 	}
 
 	/**
@@ -259,8 +254,7 @@ public class SubscriptionController extends BaseController {
 		}
 		catch (StrategizException e) {
 			logger.error("Error creating checkout session: {}", e.getMessage());
-			return ResponseEntity.status(e.getHttpStatus())
-				.body(Map.of("error", "Failed to create checkout session"));
+			return ResponseEntity.status(e.getHttpStatus()).body(Map.of("error", "Failed to create checkout session"));
 		}
 	}
 

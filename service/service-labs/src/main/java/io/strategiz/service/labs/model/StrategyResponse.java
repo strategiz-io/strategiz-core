@@ -8,238 +8,239 @@ import java.util.List;
 import java.util.Map;
 
 public class StrategyResponse {
-    
-    @JsonProperty("id")
-    private String id;
-    
-    @JsonProperty("name")
-    private String name;
-    
-    @JsonProperty("description")
-    private String description;
-    
-    @JsonProperty("code")
-    private String code;
-    
-    @JsonProperty("language")
-    private String language;
-    
-    @JsonProperty("type")
-    private String type;
 
-    @JsonProperty("tags")
-    private List<String> tags;
-    
-    @JsonProperty("userId")
-    private String userId;
-    
-    @JsonProperty("backtestResults")
-    private Map<String, Object> backtestResults;
-    
-    @JsonProperty("parameters")
-    private Map<String, Object> parameters;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("isPublished")
-    private Boolean isPublished;
+	@JsonProperty("name")
+	private String name;
 
-    @JsonProperty("isPublic")
-    private Boolean isPublic;
+	@JsonProperty("description")
+	private String description;
 
-    @JsonProperty("isListed")
-    private Boolean isListed;
+	@JsonProperty("code")
+	private String code;
 
-    @JsonProperty("performance")
-    private StrategyPerformance performance;
+	@JsonProperty("language")
+	private String language;
 
-    @JsonProperty("createdAt")
-    private Date createdAt;
-    
-    @JsonProperty("updatedAt")
-    private Date updatedAt;
+	@JsonProperty("type")
+	private String type;
 
-    // Versioning fields
-    @JsonProperty("version")
-    private Long version;
+	@JsonProperty("tags")
+	private List<String> tags;
 
-    @JsonProperty("parentStrategyId")
-    private String parentStrategyId;
+	@JsonProperty("userId")
+	private String userId;
 
-    // Deployment fields
-    @JsonProperty("deploymentType")
-    private String deploymentType;
+	@JsonProperty("backtestResults")
+	private Map<String, Object> backtestResults;
 
-    @JsonProperty("deploymentId")
-    private String deploymentId;
+	@JsonProperty("parameters")
+	private Map<String, Object> parameters;
 
-    @JsonProperty("deployedAt")
-    private Object deployedAt;
+	@JsonProperty("isPublished")
+	private Boolean isPublished;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
-    
-    public void setId(String id) {
-        this.id = id;
-    }
-    
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(String name) {
-        this.name = name;
-    }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-    public String getCode() {
-        return code;
-    }
-    
-    public void setCode(String code) {
-        this.code = code;
-    }
-    
-    public String getLanguage() {
-        return language;
-    }
-    
-    public void setLanguage(String language) {
-        this.language = language;
-    }
-    
-    public String getType() {
-        return type;
-    }
-    
-    public void setType(String type) {
-        this.type = type;
-    }
+	@JsonProperty("isPublic")
+	private Boolean isPublic;
 
-    public List<String> getTags() {
-        return tags;
-    }
-    
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-    
-    public Map<String, Object> getBacktestResults() {
-        return backtestResults;
-    }
-    
-    public void setBacktestResults(Map<String, Object> backtestResults) {
-        this.backtestResults = backtestResults;
-    }
-    
-    public Map<String, Object> getParameters() {
-        return parameters;
-    }
-    
-    public void setParameters(Map<String, Object> parameters) {
-        this.parameters = parameters;
-    }
+	@JsonProperty("isListed")
+	private Boolean isListed;
 
-    public Boolean getIsPublished() {
-        return isPublished;
-    }
+	@JsonProperty("performance")
+	private StrategyPerformance performance;
 
-    public void setIsPublished(Boolean isPublished) {
-        this.isPublished = isPublished;
-    }
+	@JsonProperty("createdAt")
+	private Date createdAt;
 
-    public Boolean getIsPublic() {
-        return isPublic;
-    }
+	@JsonProperty("updatedAt")
+	private Date updatedAt;
 
-    public void setIsPublic(Boolean isPublic) {
-        this.isPublic = isPublic;
-    }
+	// Versioning fields
+	@JsonProperty("version")
+	private Long version;
 
-    public Boolean getIsListed() {
-        return isListed;
-    }
+	@JsonProperty("parentStrategyId")
+	private String parentStrategyId;
 
-    public void setIsListed(Boolean isListed) {
-        this.isListed = isListed;
-    }
+	// Deployment fields
+	@JsonProperty("deploymentType")
+	private String deploymentType;
 
-    public StrategyPerformance getPerformance() {
-        return performance;
-    }
+	@JsonProperty("deploymentId")
+	private String deploymentId;
 
-    public void setPerformance(StrategyPerformance performance) {
-        this.performance = performance;
-    }
+	@JsonProperty("deployedAt")
+	private Object deployedAt;
 
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public Long getVersion() {
-        return version;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setVersion(Long version) {
-        this.version = version;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public String getParentStrategyId() {
-        return parentStrategyId;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setParentStrategyId(String parentStrategyId) {
-        this.parentStrategyId = parentStrategyId;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    public String getDeploymentType() {
-        return deploymentType;
-    }
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
-    public void setDeploymentType(String deploymentType) {
-        this.deploymentType = deploymentType;
-    }
+	public String getCode() {
+		return code;
+	}
 
-    public String getDeploymentId() {
-        return deploymentId;
-    }
+	public void setCode(String code) {
+		this.code = code;
+	}
 
-    public void setDeploymentId(String deploymentId) {
-        this.deploymentId = deploymentId;
-    }
+	public String getLanguage() {
+		return language;
+	}
 
-    public Object getDeployedAt() {
-        return deployedAt;
-    }
+	public void setLanguage(String language) {
+		this.language = language;
+	}
 
-    public void setDeployedAt(Object deployedAt) {
-        this.deployedAt = deployedAt;
-    }
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public List<String> getTags() {
+		return tags;
+	}
+
+	public void setTags(List<String> tags) {
+		this.tags = tags;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public Map<String, Object> getBacktestResults() {
+		return backtestResults;
+	}
+
+	public void setBacktestResults(Map<String, Object> backtestResults) {
+		this.backtestResults = backtestResults;
+	}
+
+	public Map<String, Object> getParameters() {
+		return parameters;
+	}
+
+	public void setParameters(Map<String, Object> parameters) {
+		this.parameters = parameters;
+	}
+
+	public Boolean getIsPublished() {
+		return isPublished;
+	}
+
+	public void setIsPublished(Boolean isPublished) {
+		this.isPublished = isPublished;
+	}
+
+	public Boolean getIsPublic() {
+		return isPublic;
+	}
+
+	public void setIsPublic(Boolean isPublic) {
+		this.isPublic = isPublic;
+	}
+
+	public Boolean getIsListed() {
+		return isListed;
+	}
+
+	public void setIsListed(Boolean isListed) {
+		this.isListed = isListed;
+	}
+
+	public StrategyPerformance getPerformance() {
+		return performance;
+	}
+
+	public void setPerformance(StrategyPerformance performance) {
+		this.performance = performance;
+	}
+
+	public Date getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Date createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Date getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(Date updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	public Long getVersion() {
+		return version;
+	}
+
+	public void setVersion(Long version) {
+		this.version = version;
+	}
+
+	public String getParentStrategyId() {
+		return parentStrategyId;
+	}
+
+	public void setParentStrategyId(String parentStrategyId) {
+		this.parentStrategyId = parentStrategyId;
+	}
+
+	public String getDeploymentType() {
+		return deploymentType;
+	}
+
+	public void setDeploymentType(String deploymentType) {
+		this.deploymentType = deploymentType;
+	}
+
+	public String getDeploymentId() {
+		return deploymentId;
+	}
+
+	public void setDeploymentId(String deploymentId) {
+		this.deploymentId = deploymentId;
+	}
+
+	public Object getDeployedAt() {
+		return deployedAt;
+	}
+
+	public void setDeployedAt(Object deployedAt) {
+		this.deployedAt = deployedAt;
+	}
+
 }

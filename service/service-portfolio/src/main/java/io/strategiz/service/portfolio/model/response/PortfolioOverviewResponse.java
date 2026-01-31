@@ -4,365 +4,405 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Complete portfolio overview for the main portfolio page.
- * Contains all data needed to render the full portfolio view.
+ * Complete portfolio overview for the main portfolio page. Contains all data needed to
+ * render the full portfolio view.
  */
 public class PortfolioOverviewResponse {
-    
-    private BigDecimal totalValue;
-    private BigDecimal dayChange;
-    private BigDecimal dayChangePercent;
-    private BigDecimal totalProfitLoss;
-    private BigDecimal totalProfitLossPercent;
-    private BigDecimal totalCashBalance;
-    private List<ProviderSummary> providers;
-    private List<PortfolioPositionResponse> allPositions;
-    private AssetAllocation assetAllocation;
-    private List<CategoryAllocationResponse> categoryAllocations;
-    private long lastUpdated;
-    
-    /**
-     * Summary of each connected provider
-     */
-    public static class ProviderSummary {
-        private String providerId;
-        private String providerName;
-        private String providerType; // crypto, equity, forex
-        private String providerCategory; // exchange, brokerage
-        private boolean connected;
-        private BigDecimal totalValue;
-        private BigDecimal dayChange;
-        private BigDecimal cashBalance;
-        private BigDecimal buyingPower;
-        private BigDecimal marginBalance;
-        private BigDecimal liquidationValue;
-        private BigDecimal totalProfitLoss;
-        private int positionCount;
-        private String syncStatus;
-        private long lastSynced;
-        
-        // Getters and Setters
-        public String getProviderId() {
-            return providerId;
-        }
-        
-        public void setProviderId(String providerId) {
-            this.providerId = providerId;
-        }
-        
-        public String getProviderName() {
-            return providerName;
-        }
-        
-        public void setProviderName(String providerName) {
-            this.providerName = providerName;
-        }
 
-        public String getProviderType() {
-            return providerType;
-        }
+	private BigDecimal totalValue;
 
-        public void setProviderType(String providerType) {
-            this.providerType = providerType;
-        }
+	private BigDecimal dayChange;
 
-        public String getProviderCategory() {
-            return providerCategory;
-        }
+	private BigDecimal dayChangePercent;
 
-        public void setProviderCategory(String providerCategory) {
-            this.providerCategory = providerCategory;
-        }
+	private BigDecimal totalProfitLoss;
 
-        public boolean isConnected() {
-            return connected;
-        }
-        
-        public void setConnected(boolean connected) {
-            this.connected = connected;
-        }
-        
-        public BigDecimal getTotalValue() {
-            return totalValue;
-        }
-        
-        public void setTotalValue(BigDecimal totalValue) {
-            this.totalValue = totalValue;
-        }
-        
-        public BigDecimal getDayChange() {
-            return dayChange;
-        }
-        
-        public void setDayChange(BigDecimal dayChange) {
-            this.dayChange = dayChange;
-        }
-        
-        public BigDecimal getCashBalance() {
-            return cashBalance;
-        }
-        
-        public void setCashBalance(BigDecimal cashBalance) {
-            this.cashBalance = cashBalance;
-        }
+	private BigDecimal totalProfitLossPercent;
 
-        public BigDecimal getBuyingPower() {
-            return buyingPower;
-        }
+	private BigDecimal totalCashBalance;
 
-        public void setBuyingPower(BigDecimal buyingPower) {
-            this.buyingPower = buyingPower;
-        }
+	private List<ProviderSummary> providers;
 
-        public BigDecimal getMarginBalance() {
-            return marginBalance;
-        }
+	private List<PortfolioPositionResponse> allPositions;
 
-        public void setMarginBalance(BigDecimal marginBalance) {
-            this.marginBalance = marginBalance;
-        }
+	private AssetAllocation assetAllocation;
 
-        public BigDecimal getLiquidationValue() {
-            return liquidationValue;
-        }
+	private List<CategoryAllocationResponse> categoryAllocations;
 
-        public void setLiquidationValue(BigDecimal liquidationValue) {
-            this.liquidationValue = liquidationValue;
-        }
+	private long lastUpdated;
 
-        public BigDecimal getTotalProfitLoss() {
-            return totalProfitLoss;
-        }
+	/**
+	 * Summary of each connected provider
+	 */
+	public static class ProviderSummary {
 
-        public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
-            this.totalProfitLoss = totalProfitLoss;
-        }
+		private String providerId;
 
-        public int getPositionCount() {
-            return positionCount;
-        }
-        
-        public void setPositionCount(int positionCount) {
-            this.positionCount = positionCount;
-        }
-        
-        public String getSyncStatus() {
-            return syncStatus;
-        }
-        
-        public void setSyncStatus(String syncStatus) {
-            this.syncStatus = syncStatus;
-        }
-        
-        public long getLastSynced() {
-            return lastSynced;
-        }
-        
-        public void setLastSynced(long lastSynced) {
-            this.lastSynced = lastSynced;
-        }
-    }
-    
-    /**
-     * Asset allocation breakdown (percentage-based)
-     */
-    public static class AssetAllocation {
-        private BigDecimal cryptoPercent;
-        private BigDecimal stockPercent;
-        private BigDecimal forexPercent;
-        private BigDecimal cashPercent;
-        private BigDecimal otherPercent;
+		private String providerName;
 
-        // Getters and Setters
-        public BigDecimal getCryptoPercent() {
-            return cryptoPercent;
-        }
+		private String providerType; // crypto, equity, forex
 
-        public void setCryptoPercent(BigDecimal cryptoPercent) {
-            this.cryptoPercent = cryptoPercent;
-        }
+		private String providerCategory; // exchange, brokerage
 
-        public BigDecimal getStockPercent() {
-            return stockPercent;
-        }
+		private boolean connected;
 
-        public void setStockPercent(BigDecimal stockPercent) {
-            this.stockPercent = stockPercent;
-        }
+		private BigDecimal totalValue;
 
-        public BigDecimal getForexPercent() {
-            return forexPercent;
-        }
+		private BigDecimal dayChange;
 
-        public void setForexPercent(BigDecimal forexPercent) {
-            this.forexPercent = forexPercent;
-        }
+		private BigDecimal cashBalance;
 
-        public BigDecimal getCashPercent() {
-            return cashPercent;
-        }
+		private BigDecimal buyingPower;
 
-        public void setCashPercent(BigDecimal cashPercent) {
-            this.cashPercent = cashPercent;
-        }
+		private BigDecimal marginBalance;
 
-        public BigDecimal getOtherPercent() {
-            return otherPercent;
-        }
+		private BigDecimal liquidationValue;
 
-        public void setOtherPercent(BigDecimal otherPercent) {
-            this.otherPercent = otherPercent;
-        }
-    }
+		private BigDecimal totalProfitLoss;
 
-    /**
-     * Category allocation for pie chart display.
-     * Contains category details with value, percentage, and color.
-     */
-    public static class CategoryAllocationResponse {
-        private String category;      // CRYPTOCURRENCY, STOCKS, CASH, FOREX
-        private String categoryName;  // "Cryptocurrencies", "Stocks & Equities"
-        private String color;         // "#39FF14"
-        private BigDecimal value;
-        private BigDecimal percentage;
-        private Integer assetCount;
+		private int positionCount;
 
-        // Getters and Setters
-        public String getCategory() {
-            return category;
-        }
+		private String syncStatus;
 
-        public void setCategory(String category) {
-            this.category = category;
-        }
+		private long lastSynced;
 
-        public String getCategoryName() {
-            return categoryName;
-        }
+		// Getters and Setters
+		public String getProviderId() {
+			return providerId;
+		}
 
-        public void setCategoryName(String categoryName) {
-            this.categoryName = categoryName;
-        }
+		public void setProviderId(String providerId) {
+			this.providerId = providerId;
+		}
 
-        public String getColor() {
-            return color;
-        }
+		public String getProviderName() {
+			return providerName;
+		}
 
-        public void setColor(String color) {
-            this.color = color;
-        }
+		public void setProviderName(String providerName) {
+			this.providerName = providerName;
+		}
 
-        public BigDecimal getValue() {
-            return value;
-        }
+		public String getProviderType() {
+			return providerType;
+		}
 
-        public void setValue(BigDecimal value) {
-            this.value = value;
-        }
+		public void setProviderType(String providerType) {
+			this.providerType = providerType;
+		}
 
-        public BigDecimal getPercentage() {
-            return percentage;
-        }
+		public String getProviderCategory() {
+			return providerCategory;
+		}
 
-        public void setPercentage(BigDecimal percentage) {
-            this.percentage = percentage;
-        }
+		public void setProviderCategory(String providerCategory) {
+			this.providerCategory = providerCategory;
+		}
 
-        public Integer getAssetCount() {
-            return assetCount;
-        }
+		public boolean isConnected() {
+			return connected;
+		}
 
-        public void setAssetCount(Integer assetCount) {
-            this.assetCount = assetCount;
-        }
-    }
-    
-    // Main class getters and setters
-    public BigDecimal getTotalValue() {
-        return totalValue;
-    }
-    
-    public void setTotalValue(BigDecimal totalValue) {
-        this.totalValue = totalValue;
-    }
-    
-    public BigDecimal getDayChange() {
-        return dayChange;
-    }
-    
-    public void setDayChange(BigDecimal dayChange) {
-        this.dayChange = dayChange;
-    }
-    
-    public BigDecimal getDayChangePercent() {
-        return dayChangePercent;
-    }
-    
-    public void setDayChangePercent(BigDecimal dayChangePercent) {
-        this.dayChangePercent = dayChangePercent;
-    }
-    
-    public BigDecimal getTotalProfitLoss() {
-        return totalProfitLoss;
-    }
-    
-    public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
-        this.totalProfitLoss = totalProfitLoss;
-    }
-    
-    public BigDecimal getTotalProfitLossPercent() {
-        return totalProfitLossPercent;
-    }
-    
-    public void setTotalProfitLossPercent(BigDecimal totalProfitLossPercent) {
-        this.totalProfitLossPercent = totalProfitLossPercent;
-    }
-    
-    public BigDecimal getTotalCashBalance() {
-        return totalCashBalance;
-    }
-    
-    public void setTotalCashBalance(BigDecimal totalCashBalance) {
-        this.totalCashBalance = totalCashBalance;
-    }
-    
-    public List<ProviderSummary> getProviders() {
-        return providers;
-    }
-    
-    public void setProviders(List<ProviderSummary> providers) {
-        this.providers = providers;
-    }
-    
-    public List<PortfolioPositionResponse> getAllPositions() {
-        return allPositions;
-    }
-    
-    public void setAllPositions(List<PortfolioPositionResponse> allPositions) {
-        this.allPositions = allPositions;
-    }
-    
-    public AssetAllocation getAssetAllocation() {
-        return assetAllocation;
-    }
+		public void setConnected(boolean connected) {
+			this.connected = connected;
+		}
 
-    public void setAssetAllocation(AssetAllocation assetAllocation) {
-        this.assetAllocation = assetAllocation;
-    }
+		public BigDecimal getTotalValue() {
+			return totalValue;
+		}
 
-    public List<CategoryAllocationResponse> getCategoryAllocations() {
-        return categoryAllocations;
-    }
+		public void setTotalValue(BigDecimal totalValue) {
+			this.totalValue = totalValue;
+		}
 
-    public void setCategoryAllocations(List<CategoryAllocationResponse> categoryAllocations) {
-        this.categoryAllocations = categoryAllocations;
-    }
+		public BigDecimal getDayChange() {
+			return dayChange;
+		}
 
-    public long getLastUpdated() {
-        return lastUpdated;
-    }
+		public void setDayChange(BigDecimal dayChange) {
+			this.dayChange = dayChange;
+		}
 
-    public void setLastUpdated(long lastUpdated) {
-        this.lastUpdated = lastUpdated;
-    }
+		public BigDecimal getCashBalance() {
+			return cashBalance;
+		}
+
+		public void setCashBalance(BigDecimal cashBalance) {
+			this.cashBalance = cashBalance;
+		}
+
+		public BigDecimal getBuyingPower() {
+			return buyingPower;
+		}
+
+		public void setBuyingPower(BigDecimal buyingPower) {
+			this.buyingPower = buyingPower;
+		}
+
+		public BigDecimal getMarginBalance() {
+			return marginBalance;
+		}
+
+		public void setMarginBalance(BigDecimal marginBalance) {
+			this.marginBalance = marginBalance;
+		}
+
+		public BigDecimal getLiquidationValue() {
+			return liquidationValue;
+		}
+
+		public void setLiquidationValue(BigDecimal liquidationValue) {
+			this.liquidationValue = liquidationValue;
+		}
+
+		public BigDecimal getTotalProfitLoss() {
+			return totalProfitLoss;
+		}
+
+		public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
+			this.totalProfitLoss = totalProfitLoss;
+		}
+
+		public int getPositionCount() {
+			return positionCount;
+		}
+
+		public void setPositionCount(int positionCount) {
+			this.positionCount = positionCount;
+		}
+
+		public String getSyncStatus() {
+			return syncStatus;
+		}
+
+		public void setSyncStatus(String syncStatus) {
+			this.syncStatus = syncStatus;
+		}
+
+		public long getLastSynced() {
+			return lastSynced;
+		}
+
+		public void setLastSynced(long lastSynced) {
+			this.lastSynced = lastSynced;
+		}
+
+	}
+
+	/**
+	 * Asset allocation breakdown (percentage-based)
+	 */
+	public static class AssetAllocation {
+
+		private BigDecimal cryptoPercent;
+
+		private BigDecimal stockPercent;
+
+		private BigDecimal forexPercent;
+
+		private BigDecimal cashPercent;
+
+		private BigDecimal otherPercent;
+
+		// Getters and Setters
+		public BigDecimal getCryptoPercent() {
+			return cryptoPercent;
+		}
+
+		public void setCryptoPercent(BigDecimal cryptoPercent) {
+			this.cryptoPercent = cryptoPercent;
+		}
+
+		public BigDecimal getStockPercent() {
+			return stockPercent;
+		}
+
+		public void setStockPercent(BigDecimal stockPercent) {
+			this.stockPercent = stockPercent;
+		}
+
+		public BigDecimal getForexPercent() {
+			return forexPercent;
+		}
+
+		public void setForexPercent(BigDecimal forexPercent) {
+			this.forexPercent = forexPercent;
+		}
+
+		public BigDecimal getCashPercent() {
+			return cashPercent;
+		}
+
+		public void setCashPercent(BigDecimal cashPercent) {
+			this.cashPercent = cashPercent;
+		}
+
+		public BigDecimal getOtherPercent() {
+			return otherPercent;
+		}
+
+		public void setOtherPercent(BigDecimal otherPercent) {
+			this.otherPercent = otherPercent;
+		}
+
+	}
+
+	/**
+	 * Category allocation for pie chart display. Contains category details with value,
+	 * percentage, and color.
+	 */
+	public static class CategoryAllocationResponse {
+
+		private String category; // CRYPTOCURRENCY, STOCKS, CASH, FOREX
+
+		private String categoryName; // "Cryptocurrencies", "Stocks & Equities"
+
+		private String color; // "#39FF14"
+
+		private BigDecimal value;
+
+		private BigDecimal percentage;
+
+		private Integer assetCount;
+
+		// Getters and Setters
+		public String getCategory() {
+			return category;
+		}
+
+		public void setCategory(String category) {
+			this.category = category;
+		}
+
+		public String getCategoryName() {
+			return categoryName;
+		}
+
+		public void setCategoryName(String categoryName) {
+			this.categoryName = categoryName;
+		}
+
+		public String getColor() {
+			return color;
+		}
+
+		public void setColor(String color) {
+			this.color = color;
+		}
+
+		public BigDecimal getValue() {
+			return value;
+		}
+
+		public void setValue(BigDecimal value) {
+			this.value = value;
+		}
+
+		public BigDecimal getPercentage() {
+			return percentage;
+		}
+
+		public void setPercentage(BigDecimal percentage) {
+			this.percentage = percentage;
+		}
+
+		public Integer getAssetCount() {
+			return assetCount;
+		}
+
+		public void setAssetCount(Integer assetCount) {
+			this.assetCount = assetCount;
+		}
+
+	}
+
+	// Main class getters and setters
+	public BigDecimal getTotalValue() {
+		return totalValue;
+	}
+
+	public void setTotalValue(BigDecimal totalValue) {
+		this.totalValue = totalValue;
+	}
+
+	public BigDecimal getDayChange() {
+		return dayChange;
+	}
+
+	public void setDayChange(BigDecimal dayChange) {
+		this.dayChange = dayChange;
+	}
+
+	public BigDecimal getDayChangePercent() {
+		return dayChangePercent;
+	}
+
+	public void setDayChangePercent(BigDecimal dayChangePercent) {
+		this.dayChangePercent = dayChangePercent;
+	}
+
+	public BigDecimal getTotalProfitLoss() {
+		return totalProfitLoss;
+	}
+
+	public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
+		this.totalProfitLoss = totalProfitLoss;
+	}
+
+	public BigDecimal getTotalProfitLossPercent() {
+		return totalProfitLossPercent;
+	}
+
+	public void setTotalProfitLossPercent(BigDecimal totalProfitLossPercent) {
+		this.totalProfitLossPercent = totalProfitLossPercent;
+	}
+
+	public BigDecimal getTotalCashBalance() {
+		return totalCashBalance;
+	}
+
+	public void setTotalCashBalance(BigDecimal totalCashBalance) {
+		this.totalCashBalance = totalCashBalance;
+	}
+
+	public List<ProviderSummary> getProviders() {
+		return providers;
+	}
+
+	public void setProviders(List<ProviderSummary> providers) {
+		this.providers = providers;
+	}
+
+	public List<PortfolioPositionResponse> getAllPositions() {
+		return allPositions;
+	}
+
+	public void setAllPositions(List<PortfolioPositionResponse> allPositions) {
+		this.allPositions = allPositions;
+	}
+
+	public AssetAllocation getAssetAllocation() {
+		return assetAllocation;
+	}
+
+	public void setAssetAllocation(AssetAllocation assetAllocation) {
+		this.assetAllocation = assetAllocation;
+	}
+
+	public List<CategoryAllocationResponse> getCategoryAllocations() {
+		return categoryAllocations;
+	}
+
+	public void setCategoryAllocations(List<CategoryAllocationResponse> categoryAllocations) {
+		this.categoryAllocations = categoryAllocations;
+	}
+
+	public long getLastUpdated() {
+		return lastUpdated;
+	}
+
+	public void setLastUpdated(long lastUpdated) {
+		this.lastUpdated = lastUpdated;
+	}
+
 }

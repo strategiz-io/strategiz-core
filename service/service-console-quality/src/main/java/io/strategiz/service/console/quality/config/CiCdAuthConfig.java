@@ -11,8 +11,7 @@ import jakarta.annotation.PostConstruct;
 /**
  * Configuration for CI/CD authentication tokens loaded from Vault.
  *
- * Vault path: secret/strategiz/ci-cd
- * Required key: quality-api-token
+ * Vault path: secret/strategiz/ci-cd Required key: quality-api-token
  */
 @Configuration
 public class CiCdAuthConfig {

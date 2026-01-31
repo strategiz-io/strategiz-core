@@ -28,217 +28,210 @@ import org.slf4j.LoggerFactory;
 import jakarta.validation.Valid;
 
 /**
- * Controller for user profile management.
- * Provides endpoints for creating, reading, updating profile information.
- * Uses clean architecture - returns resources directly, no wrappers.
+ * Controller for user profile management. Provides endpoints for creating, reading,
+ * updating profile information. Uses clean architecture - returns resources directly, no
+ * wrappers.
  */
 @RestController
 @RequestMapping("/v1")
 @Validated
 public class ProfileController extends BaseController {
 
-    @Override
-    protected String getModuleName() {
-        return "service-profile";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-profile";
+	}
 
-    private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
+	private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
 
-    private final ProfileService profileService;
-    private final ProfileImageService profileImageService;
+	private final ProfileService profileService;
 
-    public ProfileController(ProfileService profileService, ProfileImageService profileImageService) {
-        this.profileService = profileService;
-        this.profileImageService = profileImageService;
-    }
+	private final ProfileImageService profileImageService;
 
-    /**
-     * Create a new user profile
-     * 
-     * @param request Profile creation request
-     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/users/profiles")
-    public ResponseEntity<ReadProfileResponse> createProfile(@Valid @RequestBody UpdateProfileRequest request) {
-        log.info("Creating profile for user: {}", request.getEmail());
-        
-        // Create profile - let exceptions bubble up
-        ReadProfileResponse profile = profileService.createProfile(request);
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.status(HttpStatus.CREATED).body(profile);
-    }
+	public ProfileController(ProfileService profileService, ProfileImageService profileImageService) {
+		this.profileService = profileService;
+		this.profileImageService = profileImageService;
+	}
 
-    /**
-     * Get the current user's profile
-     *
-     * @param user The authenticated user from token
-     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @GetMapping("/users/profiles/me")
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<ReadProfileResponse> getMyProfile(@AuthUser AuthenticatedUser user) {
-        String userId = user.getUserId();
-        log.info("Retrieving profile for user: {}", userId);
+	/**
+	 * Create a new user profile
+	 * @param request Profile creation request
+	 * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@PostMapping("/users/profiles")
+	public ResponseEntity<ReadProfileResponse> createProfile(@Valid @RequestBody UpdateProfileRequest request) {
+		log.info("Creating profile for user: {}", request.getEmail());
 
-        // Get profile - let exceptions bubble up
-        ReadProfileResponse profile = profileService.getProfile(userId);
+		// Create profile - let exceptions bubble up
+		ReadProfileResponse profile = profileService.createProfile(request);
 
-        if (profile == null) {
-            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
-        }
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.status(HttpStatus.CREATED).body(profile);
+	}
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(profile);
-    }
+	/**
+	 * Get the current user's profile
+	 * @param user The authenticated user from token
+	 * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@GetMapping("/users/profiles/me")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<ReadProfileResponse> getMyProfile(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Retrieving profile for user: {}", userId);
 
-    /**
-     * Get profile by user ID.
-     * This endpoint requires authentication and users can only access their own profile.
-     *
-     * @param userId The user ID to get profile for (must match authenticated user)
-     * @param user The authenticated user from token
-     * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @GetMapping("/users/profiles/{userId}")
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<ReadProfileResponse> getProfileById(
-            @PathVariable String userId,
-            @AuthUser AuthenticatedUser user) {
+		// Get profile - let exceptions bubble up
+		ReadProfileResponse profile = profileService.getProfile(userId);
 
-        // Users can only access their own profile
-        if (!userId.equals(user.getUserId())) {
-            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
-        }
+		if (profile == null) {
+			throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
+		}
 
-        log.info("Retrieving profile for user ID: {}", userId);
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(profile);
+	}
 
-        // Get profile - let exceptions bubble up
-        ReadProfileResponse profile = profileService.getProfile(userId);
+	/**
+	 * Get profile by user ID. This endpoint requires authentication and users can only
+	 * access their own profile.
+	 * @param userId The user ID to get profile for (must match authenticated user)
+	 * @param user The authenticated user from token
+	 * @return Clean profile response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@GetMapping("/users/profiles/{userId}")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<ReadProfileResponse> getProfileById(@PathVariable String userId,
+			@AuthUser AuthenticatedUser user) {
 
-        if (profile == null) {
-            throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
-        }
+		// Users can only access their own profile
+		if (!userId.equals(user.getUserId())) {
+			throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
+		}
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(profile);
-    }
+		log.info("Retrieving profile for user ID: {}", userId);
 
-    /**
-     * Upload profile image for a user.
-     * This endpoint requires authentication and users can only upload to their own profile.
-     *
-     * @param userId The user ID to upload image for (must match authenticated user)
-     * @param image The image file to upload
-     * @param user The authenticated user from token
-     * @return Response with the new image URL
-     */
-    @PostMapping(value = "/users/profiles/{userId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<UploadImageResponse> uploadProfileImage(
-            @PathVariable String userId,
-            @RequestParam("image") MultipartFile image,
-            @AuthUser AuthenticatedUser user) {
+		// Get profile - let exceptions bubble up
+		ReadProfileResponse profile = profileService.getProfile(userId);
 
-        // Users can only upload to their own profile
-        if (!userId.equals(user.getUserId())) {
-            throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
-        }
+		if (profile == null) {
+			throw new StrategizException(ProfileErrors.PROFILE_NOT_FOUND, "service-profile", userId);
+		}
 
-        log.info("Uploading profile image for user ID: {}", userId);
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(profile);
+	}
 
-        // Upload image and get URL
-        String imageUrl = profileImageService.uploadProfileImage(userId, image);
+	/**
+	 * Upload profile image for a user. This endpoint requires authentication and users
+	 * can only upload to their own profile.
+	 * @param userId The user ID to upload image for (must match authenticated user)
+	 * @param image The image file to upload
+	 * @param user The authenticated user from token
+	 * @return Response with the new image URL
+	 */
+	@PostMapping(value = "/users/profiles/{userId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<UploadImageResponse> uploadProfileImage(@PathVariable String userId,
+			@RequestParam("image") MultipartFile image, @AuthUser AuthenticatedUser user) {
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(new UploadImageResponse(imageUrl));
-    }
+		// Users can only upload to their own profile
+		if (!userId.equals(user.getUserId())) {
+			throw new StrategizException(ProfileErrors.PROFILE_ACCESS_DENIED, "service-profile", userId);
+		}
 
-    /**
-     * Update the current user's profile
-     *
-     * @param request Profile update request
-     * @param user The authenticated user from token
-     * @return Clean updated profile response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PutMapping("/users/profiles/me")
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<ReadProfileResponse> updateMyProfile(
-            @Valid @RequestBody UpdateProfileRequest request,
-            @AuthUser AuthenticatedUser user) {
+		log.info("Uploading profile image for user ID: {}", userId);
 
-        String userId = user.getUserId();
-        log.info("Updating profile for user: {}", userId);
+		// Upload image and get URL
+		String imageUrl = profileImageService.uploadProfileImage(userId, image);
 
-        // Update profile - let exceptions bubble up
-        ReadProfileResponse updatedProfile = profileService.updateProfile(userId, request);
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(new UploadImageResponse(imageUrl));
+	}
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(updatedProfile);
-    }
+	/**
+	 * Update the current user's profile
+	 * @param request Profile update request
+	 * @param user The authenticated user from token
+	 * @return Clean updated profile response - no wrapper, let GlobalExceptionHandler
+	 * handle errors
+	 */
+	@PutMapping("/users/profiles/me")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<ReadProfileResponse> updateMyProfile(@Valid @RequestBody UpdateProfileRequest request,
+			@AuthUser AuthenticatedUser user) {
 
-    /**
-     * Verify user's email address
-     *
-     * @param request Verification request containing verification code
-     * @param user The authenticated user from token
-     * @return Clean verified profile response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/users/profiles/verify-email")
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<ReadProfileResponse> verifyEmail(
-            @Valid @RequestBody UpdateProfileVerificationRequest request,
-            @AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Updating profile for user: {}", userId);
 
-        String userId = user.getUserId();
-        log.info("Verifying email for user: {}", userId);
+		// Update profile - let exceptions bubble up
+		ReadProfileResponse updatedProfile = profileService.updateProfile(userId, request);
 
-        // Verify email - let exceptions bubble up
-        ReadProfileResponse verifiedProfile = profileService.verifyEmail(userId, request.getVerificationCode());
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(updatedProfile);
+	}
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(verifiedProfile);
-    }
+	/**
+	 * Verify user's email address
+	 * @param request Verification request containing verification code
+	 * @param user The authenticated user from token
+	 * @return Clean verified profile response - no wrapper, let GlobalExceptionHandler
+	 * handle errors
+	 */
+	@PostMapping("/users/profiles/verify-email")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<ReadProfileResponse> verifyEmail(@Valid @RequestBody UpdateProfileVerificationRequest request,
+			@AuthUser AuthenticatedUser user) {
 
-    /**
-     * Update the current user's demo mode
-     *
-     * @param request Demo mode update request
-     * @param user The authenticated user from token
-     * @return Response with new JWT tokens containing updated demo mode
-     */
-    @PutMapping("/profile/demo-mode")
-    @RequireAuth(minAcr = "1")
-    public ResponseEntity<UpdateDemoModeResponse> updateDemoMode(
-            @Valid @RequestBody UpdateDemoModeRequest request,
-            @AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Verifying email for user: {}", userId);
 
-        String userId = user.getUserId();
-        log.info("Updating demo mode for user: {} to: {}", userId, request.isDemoMode());
+		// Verify email - let exceptions bubble up
+		ReadProfileResponse verifiedProfile = profileService.verifyEmail(userId, request.getVerificationCode());
 
-        // Update demo mode and get new tokens
-        UpdateDemoModeResponse response = profileService.updateDemoMode(userId, request.isDemoMode());
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(verifiedProfile);
+	}
 
-        // Return response with new tokens
-        return ResponseEntity.ok(response);
-    }
+	/**
+	 * Update the current user's demo mode
+	 * @param request Demo mode update request
+	 * @param user The authenticated user from token
+	 * @return Response with new JWT tokens containing updated demo mode
+	 */
+	@PutMapping("/profile/demo-mode")
+	@RequireAuth(minAcr = "1")
+	public ResponseEntity<UpdateDemoModeResponse> updateDemoMode(@Valid @RequestBody UpdateDemoModeRequest request,
+			@AuthUser AuthenticatedUser user) {
 
-    /**
-     * Deactivate the current user's profile
-     *
-     * @param user The authenticated user from token
-     * @return Empty response indicating successful deactivation
-     */
-    @DeleteMapping("/users/profiles/me")
-    @RequireAuth(minAcr = "2")  // Require MFA for account deletion
-    public ResponseEntity<Void> deactivateProfile(@AuthUser AuthenticatedUser user) {
-        String userId = user.getUserId();
-        log.info("Deactivating profile for user: {}", userId);
+		String userId = user.getUserId();
+		log.info("Updating demo mode for user: {} to: {}", userId, request.isDemoMode());
 
-        // Deactivate profile - let exceptions bubble up
-        profileService.deactivateProfile(userId);
+		// Update demo mode and get new tokens
+		UpdateDemoModeResponse response = profileService.updateDemoMode(userId, request.isDemoMode());
 
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.noContent().build();
-    }
+		// Return response with new tokens
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Deactivate the current user's profile
+	 * @param user The authenticated user from token
+	 * @return Empty response indicating successful deactivation
+	 */
+	@DeleteMapping("/users/profiles/me")
+	@RequireAuth(minAcr = "2") // Require MFA for account deletion
+	public ResponseEntity<Void> deactivateProfile(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Deactivating profile for user: {}", userId);
+
+		// Deactivate profile - let exceptions bubble up
+		profileService.deactivateProfile(userId);
+
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.noContent().build();
+	}
+
 }

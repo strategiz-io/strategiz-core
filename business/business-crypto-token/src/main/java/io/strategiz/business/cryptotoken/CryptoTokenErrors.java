@@ -22,8 +22,7 @@ public enum CryptoTokenErrors implements ErrorDetails {
 	MINIMUM_PURCHASE(HttpStatus.BAD_REQUEST, "minimum-purchase"),
 	DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "daily-limit-exceeded"),
 	CONVERSION_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "conversion-not-allowed"),
-	PACK_NOT_FOUND(HttpStatus.NOT_FOUND, "pack-not-found"),
-	PACK_DISABLED(HttpStatus.BAD_REQUEST, "pack-disabled");
+	PACK_NOT_FOUND(HttpStatus.NOT_FOUND, "pack-not-found"), PACK_DISABLED(HttpStatus.BAD_REQUEST, "pack-disabled");
 
 	private final HttpStatus httpStatus;
 

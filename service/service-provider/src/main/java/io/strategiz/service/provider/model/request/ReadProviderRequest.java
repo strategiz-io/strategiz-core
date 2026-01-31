@@ -8,270 +8,271 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 
 /**
- * Request model for reading provider data.
- * Used for querying provider information, balances, transactions, etc.
+ * Request model for reading provider data. Used for querying provider information,
+ * balances, transactions, etc.
  */
 public class ReadProviderRequest {
-    
-    @NotBlank(message = "Provider ID is required when reading specific provider")
-    private String providerId;
-    
-    @NotBlank(message = "User ID is required")
-    private String userId;
-    
-    // Optional: Status filter
-    @Pattern(regexp = "^(connected|disconnected|pending|error)$", 
-             message = "Status must be one of: connected, disconnected, pending, error")
-    private String status;
-    
-    // Data type to retrieve
-    @Pattern(regexp = "^(info|balance|transactions|orders|positions|all)$",
-             message = "Data type must be one of: info, balance, transactions, orders, positions, all")
-    private String dataType = "info"; // Default to basic info
-    
-    // Pagination for transactions/orders
-    @Min(value = 1, message = "Page must be greater than 0")
-    private Integer page = 1;
-    
-    @Min(value = 1, message = "Limit must be greater than 0")
-    @Max(value = 500, message = "Limit must not exceed 500")
-    private Integer limit = 50;
-    
-    // Date range filtering
-    private String startDate; // ISO format: 2024-01-01T00:00:00Z
-    private String endDate;   // ISO format: 2024-12-31T23:59:59Z
-    
-    // Account filtering
-    private String accountId; // Optional: specific account ID
-    private String accountType; // Optional: paper, live, all
-    
-    // Symbol/asset filtering
-    private String symbol; // Optional: specific trading symbol
-    private List<String> assets; // Optional: specific assets to retrieve
-    
-    // Response formatting
-    private boolean includeMetadata = false;
-    private boolean includeRawData = false;
-    
-    // Control what data to include
-    private boolean includeBalances = false;
-    private boolean includeTransactions = false;
-    private boolean includeOrders = false;
-    private boolean includePositions = false;
-    
-    // Lightweight status check flag
-    private boolean statusOnly = false;
-    
-    // Constructors
-    public ReadProviderRequest() {
-    }
 
-    public ReadProviderRequest(String providerId) {
-        this.providerId = providerId;
-    }
+	@NotBlank(message = "Provider ID is required when reading specific provider")
+	private String providerId;
 
-    public ReadProviderRequest(String providerId, String dataType) {
-        this.providerId = providerId;
-        this.dataType = dataType;
-    }
+	@NotBlank(message = "User ID is required")
+	private String userId;
 
-    // Getters and Setters
-    public String getProviderId() {
-        return providerId;
-    }
+	// Optional: Status filter
+	@Pattern(regexp = "^(connected|disconnected|pending|error)$",
+			message = "Status must be one of: connected, disconnected, pending, error")
+	private String status;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	// Data type to retrieve
+	@Pattern(regexp = "^(info|balance|transactions|orders|positions|all)$",
+			message = "Data type must be one of: info, balance, transactions, orders, positions, all")
+	private String dataType = "info"; // Default to basic info
 
-    public String getStatus() {
-        return status;
-    }
+	// Pagination for transactions/orders
+	@Min(value = 1, message = "Page must be greater than 0")
+	private Integer page = 1;
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	@Min(value = 1, message = "Limit must be greater than 0")
+	@Max(value = 500, message = "Limit must not exceed 500")
+	private Integer limit = 50;
 
-    public String getDataType() {
-        return dataType;
-    }
+	// Date range filtering
+	private String startDate; // ISO format: 2024-01-01T00:00:00Z
 
-    public void setDataType(String dataType) {
-        this.dataType = dataType;
-    }
+	private String endDate; // ISO format: 2024-12-31T23:59:59Z
 
-    public Integer getPage() {
-        return page;
-    }
+	// Account filtering
+	private String accountId; // Optional: specific account ID
 
-    public void setPage(Integer page) {
-        this.page = page;
-    }
+	private String accountType; // Optional: paper, live, all
 
-    public Integer getLimit() {
-        return limit;
-    }
+	// Symbol/asset filtering
+	private String symbol; // Optional: specific trading symbol
 
-    public void setLimit(Integer limit) {
-        this.limit = limit;
-    }
+	private List<String> assets; // Optional: specific assets to retrieve
 
-    public String getStartDate() {
-        return startDate;
-    }
+	// Response formatting
+	private boolean includeMetadata = false;
 
-    public void setStartDate(String startDate) {
-        this.startDate = startDate;
-    }
+	private boolean includeRawData = false;
 
-    public String getEndDate() {
-        return endDate;
-    }
+	// Control what data to include
+	private boolean includeBalances = false;
 
-    public void setEndDate(String endDate) {
-        this.endDate = endDate;
-    }
+	private boolean includeTransactions = false;
 
-    public String getAccountId() {
-        return accountId;
-    }
+	private boolean includeOrders = false;
 
-    public void setAccountId(String accountId) {
-        this.accountId = accountId;
-    }
+	private boolean includePositions = false;
 
-    public String getAccountType() {
-        return accountType;
-    }
+	// Lightweight status check flag
+	private boolean statusOnly = false;
 
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
-    }
+	// Constructors
+	public ReadProviderRequest() {
+	}
 
-    public String getSymbol() {
-        return symbol;
-    }
+	public ReadProviderRequest(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	public ReadProviderRequest(String providerId, String dataType) {
+		this.providerId = providerId;
+		this.dataType = dataType;
+	}
 
-    public List<String> getAssets() {
-        return assets;
-    }
+	// Getters and Setters
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setAssets(List<String> assets) {
-        this.assets = assets;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public boolean isIncludeMetadata() {
-        return includeMetadata;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setIncludeMetadata(boolean includeMetadata) {
-        this.includeMetadata = includeMetadata;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public boolean isIncludeRawData() {
-        return includeRawData;
-    }
+	public String getDataType() {
+		return dataType;
+	}
 
-    public void setIncludeRawData(boolean includeRawData) {
-        this.includeRawData = includeRawData;
-    }
+	public void setDataType(String dataType) {
+		this.dataType = dataType;
+	}
 
-    public boolean isIncludeBalances() {
-        return includeBalances;
-    }
+	public Integer getPage() {
+		return page;
+	}
 
-    public void setIncludeBalances(boolean includeBalances) {
-        this.includeBalances = includeBalances;
-    }
+	public void setPage(Integer page) {
+		this.page = page;
+	}
 
-    public boolean isIncludeTransactions() {
-        return includeTransactions;
-    }
+	public Integer getLimit() {
+		return limit;
+	}
 
-    public void setIncludeTransactions(boolean includeTransactions) {
-        this.includeTransactions = includeTransactions;
-    }
+	public void setLimit(Integer limit) {
+		this.limit = limit;
+	}
 
-    public boolean isIncludeOrders() {
-        return includeOrders;
-    }
+	public String getStartDate() {
+		return startDate;
+	}
 
-    public void setIncludeOrders(boolean includeOrders) {
-        this.includeOrders = includeOrders;
-    }
+	public void setStartDate(String startDate) {
+		this.startDate = startDate;
+	}
 
-    public boolean isIncludePositions() {
-        return includePositions;
-    }
+	public String getEndDate() {
+		return endDate;
+	}
 
-    public void setIncludePositions(boolean includePositions) {
-        this.includePositions = includePositions;
-    }
+	public void setEndDate(String endDate) {
+		this.endDate = endDate;
+	}
 
-    public boolean isStatusOnly() {
-        return statusOnly;
-    }
+	public String getAccountId() {
+		return accountId;
+	}
 
-    public void setStatusOnly(boolean statusOnly) {
-        this.statusOnly = statusOnly;
-    }
+	public void setAccountId(String accountId) {
+		this.accountId = accountId;
+	}
 
-    public String getUserId() {
-        return userId;
-    }
+	public String getAccountType() {
+		return accountType;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public void setAccountType(String accountType) {
+		this.accountType = accountType;
+	}
 
-    // Helper methods
-    public boolean isSpecificProvider() {
-        return providerId != null && !providerId.trim().isEmpty();
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public boolean hasDateRange() {
-        return startDate != null && endDate != null;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public boolean isPaginated() {
-        return page != null && limit != null;
-    }
+	public List<String> getAssets() {
+		return assets;
+	}
 
-    public boolean isAllProviders() {
-        return providerId == null || providerId.trim().isEmpty();
-    }
+	public void setAssets(List<String> assets) {
+		this.assets = assets;
+	}
 
-    public boolean isInfoOnly() {
-        return "info".equals(dataType);
-    }
+	public boolean isIncludeMetadata() {
+		return includeMetadata;
+	}
 
-    public boolean isTransactionData() {
-        return "transactions".equals(dataType);
-    }
+	public void setIncludeMetadata(boolean includeMetadata) {
+		this.includeMetadata = includeMetadata;
+	}
 
-    public boolean isBalanceData() {
-        return "balance".equals(dataType);
-    }
+	public boolean isIncludeRawData() {
+		return includeRawData;
+	}
 
-    public boolean isAllData() {
-        return "all".equals(dataType);
-    }
+	public void setIncludeRawData(boolean includeRawData) {
+		this.includeRawData = includeRawData;
+	}
 
-    @Override
-    public String toString() {
-        return "ReadProviderRequest{" +
-                "providerId='" + providerId + '\'' +
-                ", status='" + status + '\'' +
-                ", dataType='" + dataType + '\'' +
-                ", page=" + page +
-                ", limit=" + limit +
-                ", hasDateRange=" + hasDateRange() +
-                ", accountId='" + accountId + '\'' +
-                ", symbol='" + symbol + '\'' +
-                '}';
-    }
-} 
+	public boolean isIncludeBalances() {
+		return includeBalances;
+	}
+
+	public void setIncludeBalances(boolean includeBalances) {
+		this.includeBalances = includeBalances;
+	}
+
+	public boolean isIncludeTransactions() {
+		return includeTransactions;
+	}
+
+	public void setIncludeTransactions(boolean includeTransactions) {
+		this.includeTransactions = includeTransactions;
+	}
+
+	public boolean isIncludeOrders() {
+		return includeOrders;
+	}
+
+	public void setIncludeOrders(boolean includeOrders) {
+		this.includeOrders = includeOrders;
+	}
+
+	public boolean isIncludePositions() {
+		return includePositions;
+	}
+
+	public void setIncludePositions(boolean includePositions) {
+		this.includePositions = includePositions;
+	}
+
+	public boolean isStatusOnly() {
+		return statusOnly;
+	}
+
+	public void setStatusOnly(boolean statusOnly) {
+		this.statusOnly = statusOnly;
+	}
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	// Helper methods
+	public boolean isSpecificProvider() {
+		return providerId != null && !providerId.trim().isEmpty();
+	}
+
+	public boolean hasDateRange() {
+		return startDate != null && endDate != null;
+	}
+
+	public boolean isPaginated() {
+		return page != null && limit != null;
+	}
+
+	public boolean isAllProviders() {
+		return providerId == null || providerId.trim().isEmpty();
+	}
+
+	public boolean isInfoOnly() {
+		return "info".equals(dataType);
+	}
+
+	public boolean isTransactionData() {
+		return "transactions".equals(dataType);
+	}
+
+	public boolean isBalanceData() {
+		return "balance".equals(dataType);
+	}
+
+	public boolean isAllData() {
+		return "all".equals(dataType);
+	}
+
+	@Override
+	public String toString() {
+		return "ReadProviderRequest{" + "providerId='" + providerId + '\'' + ", status='" + status + '\''
+				+ ", dataType='" + dataType + '\'' + ", page=" + page + ", limit=" + limit + ", hasDateRange="
+				+ hasDateRange() + ", accountId='" + accountId + '\'' + ", symbol='" + symbol + '\'' + '}';
+	}
+
+}

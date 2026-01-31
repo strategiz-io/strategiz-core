@@ -17,62 +17,66 @@ import org.springframework.stereotype.Service;
 @Service
 public class SecretCacheService implements SecretCache {
 
-  private static final Logger log = LoggerFactory.getLogger(SecretCacheService.class);
+	private static final Logger log = LoggerFactory.getLogger(SecretCacheService.class);
 
-  private final Map<String, CachedSecret> cache = new ConcurrentHashMap<>();
+	private final Map<String, CachedSecret> cache = new ConcurrentHashMap<>();
 
-  @Override
-  public Optional<String> get(String key) {
-    CachedSecret cached = cache.get(key);
-    if (cached != null && !cached.isExpired()) {
-      log.debug("Cache hit for key: {}", key);
-      return Optional.of(cached.getValue());
-    }
+	@Override
+	public Optional<String> get(String key) {
+		CachedSecret cached = cache.get(key);
+		if (cached != null && !cached.isExpired()) {
+			log.debug("Cache hit for key: {}", key);
+			return Optional.of(cached.getValue());
+		}
 
-    // Remove expired entry
-    if (cached != null) {
-      cache.remove(key);
-    }
+		// Remove expired entry
+		if (cached != null) {
+			cache.remove(key);
+		}
 
-    log.debug("Cache miss for key: {}", key);
-    return Optional.empty();
-  }
+		log.debug("Cache miss for key: {}", key);
+		return Optional.empty();
+	}
 
-  @Override
-  public void put(String key, String value, Duration ttl) {
-    Instant expiryTime = Instant.now().plus(ttl);
-    cache.put(key, new CachedSecret(value, expiryTime));
-    log.debug("Cached secret for key: {} with TTL: {}", key, ttl);
-  }
+	@Override
+	public void put(String key, String value, Duration ttl) {
+		Instant expiryTime = Instant.now().plus(ttl);
+		cache.put(key, new CachedSecret(value, expiryTime));
+		log.debug("Cached secret for key: {} with TTL: {}", key, ttl);
+	}
 
-  @Override
-  public void evict(String key) {
-    cache.remove(key);
-    log.debug("Evicted secret for key: {}", key);
-  }
+	@Override
+	public void evict(String key) {
+		cache.remove(key);
+		log.debug("Evicted secret for key: {}", key);
+	}
 
-  @Override
-  public void evictAll() {
-    cache.clear();
-    log.debug("Evicted all cached secrets");
-  }
+	@Override
+	public void evictAll() {
+		cache.clear();
+		log.debug("Evicted all cached secrets");
+	}
 
-  /** Helper class to store cached secrets with expiry. */
-  private static class CachedSecret {
-    private final String value;
-    private final Instant expiryTime;
+	/** Helper class to store cached secrets with expiry. */
+	private static class CachedSecret {
 
-    public CachedSecret(String value, Instant expiryTime) {
-      this.value = value;
-      this.expiryTime = expiryTime;
-    }
+		private final String value;
 
-    public String getValue() {
-      return value;
-    }
+		private final Instant expiryTime;
 
-    public boolean isExpired() {
-      return Instant.now().isAfter(expiryTime);
-    }
-  }
+		public CachedSecret(String value, Instant expiryTime) {
+			this.value = value;
+			this.expiryTime = expiryTime;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public boolean isExpired() {
+			return Instant.now().isAfter(expiryTime);
+		}
+
+	}
+
 }

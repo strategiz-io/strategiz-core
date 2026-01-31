@@ -1,8 +1,8 @@
 package io.strategiz.client.base.llm.model;
 
 /**
- * Unified response format from LLM providers.
- * Provider-agnostic representation of an LLM response.
+ * Unified response format from LLM providers. Provider-agnostic representation of an LLM
+ * response.
  */
 public class LLMResponse {
 

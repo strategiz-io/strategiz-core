@@ -36,395 +36,393 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge, News Sentinel)
+ * REST controller for AI Agents (Signal Scout, Strategy Optimizer, Earnings Edge, News
+ * Sentinel)
  */
 @RestController
 @RequestMapping("/v1/agents")
-@Tag(name = "AI Agents", description = "AI-powered trading agents for signals, strategy optimization, earnings analysis, and news")
+@Tag(name = "AI Agents",
+		description = "AI-powered trading agents for signals, strategy optimization, earnings analysis, and news")
 public class AIAgentsController {
 
-    private static final Logger logger = LoggerFactory.getLogger(AIAgentsController.class);
-
-    private final Optional<SignalScoutService> signalScoutService;
-    private final StrategyOptimizerService strategyOptimizerService;
-    private final EarningsEdgeService earningsEdgeService;
-    private final Optional<NewsSentinelService> newsSentinelService;
-    private final PortfolioInsightsService portfolioInsightsService;
-    private final SubscriptionService subscriptionService;
-    private final FeatureFlagService featureFlagService;
-
-    @Autowired
-    public AIAgentsController(
-            @Autowired(required = false) SignalScoutService signalScoutService,
-            StrategyOptimizerService strategyOptimizerService,
-            EarningsEdgeService earningsEdgeService,
-            @Autowired(required = false) NewsSentinelService newsSentinelService,
-            PortfolioInsightsService portfolioInsightsService,
-            SubscriptionService subscriptionService,
-            FeatureFlagService featureFlagService) {
-        this.signalScoutService = Optional.ofNullable(signalScoutService);
-        this.strategyOptimizerService = strategyOptimizerService;
-        this.earningsEdgeService = earningsEdgeService;
-        this.newsSentinelService = Optional.ofNullable(newsSentinelService);
-        this.portfolioInsightsService = portfolioInsightsService;
-        this.subscriptionService = subscriptionService;
-        this.featureFlagService = featureFlagService;
-    }
-
-    // ==================== Signal Scout ====================
-
-    @PostMapping("/signal-scout/chat")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Signal Scout chat", description = "Chat with Signal Scout for market signals and trading opportunities")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful response",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
-        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-    })
-    public Mono<ResponseEntity<AgentChatResponse>> signalScoutChat(
-            @Valid @RequestBody AgentChatRequest request,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Signal Scout chat request from user: {}", userId);
-
-        if (!checkRateLimits(userId)) {
-            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(AgentChatResponse.error("signalScout", "Daily message limit exceeded.")));
-        }
-
-        if (signalScoutService.isEmpty()) {
-            return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(AgentChatResponse.error("signalScout", "Signal Scout service is not available. FMP API not configured.")));
-        }
-
-        return signalScoutService.get().chat(request, userId)
-            .doOnSuccess(response -> recordUsage(userId, response))
-            .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(AgentChatResponse.error("signalScout", "Failed to generate response")));
-    }
-
-    @GetMapping(value = "/signal-scout/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Signal Scout streaming chat", description = "Streaming chat with Signal Scout")
-    public Flux<AgentChatResponse> signalScoutChatStream(
-            @RequestParam String message,
-            @RequestParam(required = false) String model,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Signal Scout streaming chat from user: {}, model: {}", userId, model);
-
-        if (!checkRateLimits(userId)) {
-            return Flux.just(AgentChatResponse.error("signalScout", "Daily message limit exceeded."));
-        }
-
-        subscriptionService.recordMessageUsage(userId);
-
-        AgentChatRequest request = new AgentChatRequest();
-        request.setMessage(message);
-        request.setModel(model);
-        request.setAgentId("signalScout");
-
-        if (signalScoutService.isEmpty()) {
-            return Flux.just(AgentChatResponse.error("signalScout", "Signal Scout service is not available. FMP API not configured."));
-        }
-
-        return signalScoutService.get().chatStream(request, userId);
-    }
-
-    @GetMapping("/signal-scout/insights")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Get market signals", description = "Get current market signals for the insights panel")
-    public ResponseEntity<List<MarketSignalDto>> getMarketSignals(
-            @RequestParam(defaultValue = "5") int limit,
-            @AuthUser AuthenticatedUser user) {
-
-        logger.info("Fetching market signals for user: {}", user.getUserId());
-        if (signalScoutService.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
-        }
-        List<MarketSignalDto> signals = signalScoutService.get().getMarketSignalsInsights(limit);
-        return ResponseEntity.ok(signals);
-    }
-
-    // ==================== Strategy Optimizer ====================
-
-    @PostMapping("/strategy-optimizer/chat")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Strategy Optimizer chat", description = "Chat with Strategy Optimizer for trading strategy improvements")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful response",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
-        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-    })
-    public Mono<ResponseEntity<AgentChatResponse>> strategyOptimizerChat(
-            @Valid @RequestBody AgentChatRequest request,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Strategy Optimizer chat request from user: {}", userId);
-
-        if (!checkRateLimits(userId)) {
-            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(AgentChatResponse.error("strategyOptimizer", "Daily message limit exceeded.")));
-        }
-
-        return strategyOptimizerService.chat(request, userId)
-            .doOnSuccess(response -> recordUsage(userId, response))
-            .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(AgentChatResponse.error("strategyOptimizer", "Failed to generate response")));
-    }
-
-    @GetMapping(value = "/strategy-optimizer/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Strategy Optimizer streaming chat", description = "Streaming chat with Strategy Optimizer")
-    public Flux<AgentChatResponse> strategyOptimizerChatStream(
-            @RequestParam String message,
-            @RequestParam(required = false) String model,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Strategy Optimizer streaming chat from user: {}, model: {}", userId, model);
-
-        if (!checkRateLimits(userId)) {
-            return Flux.just(AgentChatResponse.error("strategyOptimizer", "Daily message limit exceeded."));
-        }
-
-        subscriptionService.recordMessageUsage(userId);
-
-        AgentChatRequest request = new AgentChatRequest();
-        request.setMessage(message);
-        request.setModel(model);
-        request.setAgentId("strategyOptimizer");
-
-        return strategyOptimizerService.chatStream(request, userId);
-    }
-
-    // ==================== Earnings Edge ====================
-
-    @PostMapping("/earnings-edge/chat")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Earnings Edge chat", description = "Chat with Earnings Edge for earnings analysis and trading ideas")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful response",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
-        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-    })
-    public Mono<ResponseEntity<AgentChatResponse>> earningsEdgeChat(
-            @Valid @RequestBody AgentChatRequest request,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Earnings Edge chat request from user: {}", userId);
-
-        if (!checkRateLimits(userId)) {
-            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(AgentChatResponse.error("earningsEdge", "Daily message limit exceeded.")));
-        }
-
-        return earningsEdgeService.chat(request, userId)
-            .doOnSuccess(response -> recordUsage(userId, response))
-            .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(AgentChatResponse.error("earningsEdge", "Failed to generate response")));
-    }
-
-    @GetMapping(value = "/earnings-edge/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Earnings Edge streaming chat", description = "Streaming chat with Earnings Edge")
-    public Flux<AgentChatResponse> earningsEdgeChatStream(
-            @RequestParam String message,
-            @RequestParam(required = false) String model,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Earnings Edge streaming chat from user: {}, model: {}", userId, model);
-
-        if (!checkRateLimits(userId)) {
-            return Flux.just(AgentChatResponse.error("earningsEdge", "Daily message limit exceeded."));
-        }
-
-        subscriptionService.recordMessageUsage(userId);
-
-        AgentChatRequest request = new AgentChatRequest();
-        request.setMessage(message);
-        request.setModel(model);
-        request.setAgentId("earningsEdge");
-
-        return earningsEdgeService.chatStream(request, userId);
-    }
-
-    @GetMapping("/earnings-edge/insights")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Get upcoming earnings", description = "Get upcoming earnings calendar for the insights panel")
-    public ResponseEntity<List<EarningsInsightDto>> getEarningsInsights(
-            @RequestParam(defaultValue = "10") int limit,
-            @AuthUser AuthenticatedUser user) {
-
-        logger.info("Fetching earnings insights for user: {}", user.getUserId());
-        List<EarningsInsightDto> earnings = earningsEdgeService.getEarningsInsights(limit);
-        return ResponseEntity.ok(earnings);
-    }
-
-    // ==================== News Sentinel ====================
-
-    @PostMapping("/news-sentinel/chat")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "News Sentinel chat", description = "Chat with News Sentinel for market news and sentiment analysis")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful response",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
-        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-    })
-    public Mono<ResponseEntity<AgentChatResponse>> newsSentinelChat(
-            @Valid @RequestBody AgentChatRequest request,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("News Sentinel chat request from user: {}", userId);
-
-        if (!checkRateLimits(userId)) {
-            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded.")));
-        }
-
-        if (newsSentinelService.isEmpty()) {
-            return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(AgentChatResponse.error("newsSentinel", "News Sentinel service is not available. FMP API not configured.")));
-        }
-
-        return newsSentinelService.get().chat(request, userId)
-            .doOnSuccess(response -> recordUsage(userId, response))
-            .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(AgentChatResponse.error("newsSentinel", "Failed to generate response")));
-    }
-
-    @GetMapping(value = "/news-sentinel/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "News Sentinel streaming chat", description = "Streaming chat with News Sentinel")
-    public Flux<AgentChatResponse> newsSentinelChatStream(
-            @RequestParam String message,
-            @RequestParam(required = false) String model,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("News Sentinel streaming chat from user: {}, model: {}", userId, model);
-
-        if (!checkRateLimits(userId)) {
-            return Flux.just(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded."));
-        }
-
-        if (newsSentinelService.isEmpty()) {
-            return Flux.just(AgentChatResponse.error("newsSentinel", "News Sentinel service is not available. FMP API not configured."));
-        }
-
-        subscriptionService.recordMessageUsage(userId);
-
-        AgentChatRequest request = new AgentChatRequest();
-        request.setMessage(message);
-        request.setModel(model);
-        request.setAgentId("newsSentinel");
-
-        return newsSentinelService.get().chatStream(request, userId);
-    }
-
-    @GetMapping("/news-sentinel/insights")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Get news items", description = "Get current market news for the insights panel")
-    public ResponseEntity<List<NewsItemDto>> getNewsInsights(
-            @RequestParam(defaultValue = "5") int limit,
-            @AuthUser AuthenticatedUser user) {
-
-        logger.info("Fetching news insights for user: {}", user.getUserId());
-        if (newsSentinelService.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
-        }
-        List<NewsItemDto> news = newsSentinelService.get().getNewsInsights(limit);
-        return ResponseEntity.ok(news);
-    }
-
-    // ==================== Portfolio Insights ====================
-
-    @PostMapping("/portfolio-insights/chat")
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Portfolio Insights chat", description = "Chat with Portfolio Agent for portfolio analysis and recommendations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successful response",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = AgentChatResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Unauthorized"),
-        @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
-    })
-    public Mono<ResponseEntity<AgentChatResponse>> portfolioInsightsChat(
-            @Valid @RequestBody AgentChatRequest request,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Portfolio Insights chat request from user: {}", userId);
-
-        if (!checkRateLimits(userId)) {
-            return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded.")));
-        }
-
-        return portfolioInsightsService.chat(request, userId)
-            .doOnSuccess(response -> recordUsage(userId, response))
-            .map(ResponseEntity::ok)
-            .defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(AgentChatResponse.error("portfolioInsights", "Failed to generate response")));
-    }
-
-    @GetMapping(value = "/portfolio-insights/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RequireAuth(minAcr = "1")
-    @Operation(summary = "Portfolio Insights streaming chat", description = "Streaming chat with Portfolio Agent")
-    public Flux<AgentChatResponse> portfolioInsightsChatStream(
-            @RequestParam String message,
-            @RequestParam(required = false) String model,
-            @AuthUser AuthenticatedUser user) {
-
-        String userId = user.getUserId();
-        logger.info("Portfolio Insights streaming chat from user: {}, model: {}", userId, model);
-
-        if (!checkRateLimits(userId)) {
-            return Flux.just(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded."));
-        }
-
-        subscriptionService.recordMessageUsage(userId);
-
-        AgentChatRequest request = new AgentChatRequest();
-        request.setMessage(message);
-        request.setModel(model);
-        request.setAgentId("portfolioInsights");
-
-        return portfolioInsightsService.chatStream(request, userId);
-    }
-
-    // ==================== Health Check ====================
-
-    @GetMapping("/health")
-    @Operation(summary = "Health check", description = "Check if AI Agents service is available")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("AI Agents service is healthy");
-    }
-
-    // ==================== Helper Methods ====================
-
-    private boolean checkRateLimits(String userId) {
-        return subscriptionService.canSendMessage(userId);
-    }
-
-    private void recordUsage(String userId, AgentChatResponse response) {
-        if (response != null && response.getContent() != null) {
-            subscriptionService.recordMessageUsage(userId);
-            logger.debug("Recorded message usage for user {}", userId);
-        }
-    }
+	private static final Logger logger = LoggerFactory.getLogger(AIAgentsController.class);
+
+	private final Optional<SignalScoutService> signalScoutService;
+
+	private final StrategyOptimizerService strategyOptimizerService;
+
+	private final EarningsEdgeService earningsEdgeService;
+
+	private final Optional<NewsSentinelService> newsSentinelService;
+
+	private final PortfolioInsightsService portfolioInsightsService;
+
+	private final SubscriptionService subscriptionService;
+
+	private final FeatureFlagService featureFlagService;
+
+	@Autowired
+	public AIAgentsController(@Autowired(required = false) SignalScoutService signalScoutService,
+			StrategyOptimizerService strategyOptimizerService, EarningsEdgeService earningsEdgeService,
+			@Autowired(required = false) NewsSentinelService newsSentinelService,
+			PortfolioInsightsService portfolioInsightsService, SubscriptionService subscriptionService,
+			FeatureFlagService featureFlagService) {
+		this.signalScoutService = Optional.ofNullable(signalScoutService);
+		this.strategyOptimizerService = strategyOptimizerService;
+		this.earningsEdgeService = earningsEdgeService;
+		this.newsSentinelService = Optional.ofNullable(newsSentinelService);
+		this.portfolioInsightsService = portfolioInsightsService;
+		this.subscriptionService = subscriptionService;
+		this.featureFlagService = featureFlagService;
+	}
+
+	// ==================== Signal Scout ====================
+
+	@PostMapping("/signal-scout/chat")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Signal Scout chat",
+			description = "Chat with Signal Scout for market signals and trading opportunities")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = AgentChatResponse.class))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded") })
+	public Mono<ResponseEntity<AgentChatResponse>> signalScoutChat(@Valid @RequestBody AgentChatRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Signal Scout chat request from user: {}", userId);
+
+		if (!checkRateLimits(userId)) {
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(AgentChatResponse.error("signalScout", "Daily message limit exceeded.")));
+		}
+
+		if (signalScoutService.isEmpty()) {
+			return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body(AgentChatResponse.error("signalScout",
+						"Signal Scout service is not available. FMP API not configured.")));
+		}
+
+		return signalScoutService.get()
+			.chat(request, userId)
+			.doOnSuccess(response -> recordUsage(userId, response))
+			.map(ResponseEntity::ok)
+			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(AgentChatResponse.error("signalScout", "Failed to generate response")));
+	}
+
+	@GetMapping(value = "/signal-scout/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Signal Scout streaming chat", description = "Streaming chat with Signal Scout")
+	public Flux<AgentChatResponse> signalScoutChatStream(@RequestParam String message,
+			@RequestParam(required = false) String model, @AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Signal Scout streaming chat from user: {}, model: {}", userId, model);
+
+		if (!checkRateLimits(userId)) {
+			return Flux.just(AgentChatResponse.error("signalScout", "Daily message limit exceeded."));
+		}
+
+		subscriptionService.recordMessageUsage(userId);
+
+		AgentChatRequest request = new AgentChatRequest();
+		request.setMessage(message);
+		request.setModel(model);
+		request.setAgentId("signalScout");
+
+		if (signalScoutService.isEmpty()) {
+			return Flux.just(AgentChatResponse.error("signalScout",
+					"Signal Scout service is not available. FMP API not configured."));
+		}
+
+		return signalScoutService.get().chatStream(request, userId);
+	}
+
+	@GetMapping("/signal-scout/insights")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Get market signals", description = "Get current market signals for the insights panel")
+	public ResponseEntity<List<MarketSignalDto>> getMarketSignals(@RequestParam(defaultValue = "5") int limit,
+			@AuthUser AuthenticatedUser user) {
+
+		logger.info("Fetching market signals for user: {}", user.getUserId());
+		if (signalScoutService.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+		}
+		List<MarketSignalDto> signals = signalScoutService.get().getMarketSignalsInsights(limit);
+		return ResponseEntity.ok(signals);
+	}
+
+	// ==================== Strategy Optimizer ====================
+
+	@PostMapping("/strategy-optimizer/chat")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Strategy Optimizer chat",
+			description = "Chat with Strategy Optimizer for trading strategy improvements")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = AgentChatResponse.class))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded") })
+	public Mono<ResponseEntity<AgentChatResponse>> strategyOptimizerChat(@Valid @RequestBody AgentChatRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Strategy Optimizer chat request from user: {}", userId);
+
+		if (!checkRateLimits(userId)) {
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(AgentChatResponse.error("strategyOptimizer", "Daily message limit exceeded.")));
+		}
+
+		return strategyOptimizerService.chat(request, userId)
+			.doOnSuccess(response -> recordUsage(userId, response))
+			.map(ResponseEntity::ok)
+			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(AgentChatResponse.error("strategyOptimizer", "Failed to generate response")));
+	}
+
+	@GetMapping(value = "/strategy-optimizer/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Strategy Optimizer streaming chat", description = "Streaming chat with Strategy Optimizer")
+	public Flux<AgentChatResponse> strategyOptimizerChatStream(@RequestParam String message,
+			@RequestParam(required = false) String model, @AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Strategy Optimizer streaming chat from user: {}, model: {}", userId, model);
+
+		if (!checkRateLimits(userId)) {
+			return Flux.just(AgentChatResponse.error("strategyOptimizer", "Daily message limit exceeded."));
+		}
+
+		subscriptionService.recordMessageUsage(userId);
+
+		AgentChatRequest request = new AgentChatRequest();
+		request.setMessage(message);
+		request.setModel(model);
+		request.setAgentId("strategyOptimizer");
+
+		return strategyOptimizerService.chatStream(request, userId);
+	}
+
+	// ==================== Earnings Edge ====================
+
+	@PostMapping("/earnings-edge/chat")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Earnings Edge chat",
+			description = "Chat with Earnings Edge for earnings analysis and trading ideas")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = AgentChatResponse.class))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded") })
+	public Mono<ResponseEntity<AgentChatResponse>> earningsEdgeChat(@Valid @RequestBody AgentChatRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Earnings Edge chat request from user: {}", userId);
+
+		if (!checkRateLimits(userId)) {
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(AgentChatResponse.error("earningsEdge", "Daily message limit exceeded.")));
+		}
+
+		return earningsEdgeService.chat(request, userId)
+			.doOnSuccess(response -> recordUsage(userId, response))
+			.map(ResponseEntity::ok)
+			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(AgentChatResponse.error("earningsEdge", "Failed to generate response")));
+	}
+
+	@GetMapping(value = "/earnings-edge/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Earnings Edge streaming chat", description = "Streaming chat with Earnings Edge")
+	public Flux<AgentChatResponse> earningsEdgeChatStream(@RequestParam String message,
+			@RequestParam(required = false) String model, @AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Earnings Edge streaming chat from user: {}, model: {}", userId, model);
+
+		if (!checkRateLimits(userId)) {
+			return Flux.just(AgentChatResponse.error("earningsEdge", "Daily message limit exceeded."));
+		}
+
+		subscriptionService.recordMessageUsage(userId);
+
+		AgentChatRequest request = new AgentChatRequest();
+		request.setMessage(message);
+		request.setModel(model);
+		request.setAgentId("earningsEdge");
+
+		return earningsEdgeService.chatStream(request, userId);
+	}
+
+	@GetMapping("/earnings-edge/insights")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Get upcoming earnings", description = "Get upcoming earnings calendar for the insights panel")
+	public ResponseEntity<List<EarningsInsightDto>> getEarningsInsights(@RequestParam(defaultValue = "10") int limit,
+			@AuthUser AuthenticatedUser user) {
+
+		logger.info("Fetching earnings insights for user: {}", user.getUserId());
+		List<EarningsInsightDto> earnings = earningsEdgeService.getEarningsInsights(limit);
+		return ResponseEntity.ok(earnings);
+	}
+
+	// ==================== News Sentinel ====================
+
+	@PostMapping("/news-sentinel/chat")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "News Sentinel chat",
+			description = "Chat with News Sentinel for market news and sentiment analysis")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = AgentChatResponse.class))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded") })
+	public Mono<ResponseEntity<AgentChatResponse>> newsSentinelChat(@Valid @RequestBody AgentChatRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("News Sentinel chat request from user: {}", userId);
+
+		if (!checkRateLimits(userId)) {
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded.")));
+		}
+
+		if (newsSentinelService.isEmpty()) {
+			return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body(AgentChatResponse.error("newsSentinel",
+						"News Sentinel service is not available. FMP API not configured.")));
+		}
+
+		return newsSentinelService.get()
+			.chat(request, userId)
+			.doOnSuccess(response -> recordUsage(userId, response))
+			.map(ResponseEntity::ok)
+			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(AgentChatResponse.error("newsSentinel", "Failed to generate response")));
+	}
+
+	@GetMapping(value = "/news-sentinel/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "News Sentinel streaming chat", description = "Streaming chat with News Sentinel")
+	public Flux<AgentChatResponse> newsSentinelChatStream(@RequestParam String message,
+			@RequestParam(required = false) String model, @AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("News Sentinel streaming chat from user: {}, model: {}", userId, model);
+
+		if (!checkRateLimits(userId)) {
+			return Flux.just(AgentChatResponse.error("newsSentinel", "Daily message limit exceeded."));
+		}
+
+		if (newsSentinelService.isEmpty()) {
+			return Flux.just(AgentChatResponse.error("newsSentinel",
+					"News Sentinel service is not available. FMP API not configured."));
+		}
+
+		subscriptionService.recordMessageUsage(userId);
+
+		AgentChatRequest request = new AgentChatRequest();
+		request.setMessage(message);
+		request.setModel(model);
+		request.setAgentId("newsSentinel");
+
+		return newsSentinelService.get().chatStream(request, userId);
+	}
+
+	@GetMapping("/news-sentinel/insights")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Get news items", description = "Get current market news for the insights panel")
+	public ResponseEntity<List<NewsItemDto>> getNewsInsights(@RequestParam(defaultValue = "5") int limit,
+			@AuthUser AuthenticatedUser user) {
+
+		logger.info("Fetching news insights for user: {}", user.getUserId());
+		if (newsSentinelService.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(List.of());
+		}
+		List<NewsItemDto> news = newsSentinelService.get().getNewsInsights(limit);
+		return ResponseEntity.ok(news);
+	}
+
+	// ==================== Portfolio Insights ====================
+
+	@PostMapping("/portfolio-insights/chat")
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Portfolio Insights chat",
+			description = "Chat with Portfolio Agent for portfolio analysis and recommendations")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Successful response",
+					content = @Content(mediaType = "application/json",
+							schema = @Schema(implementation = AgentChatResponse.class))),
+			@ApiResponse(responseCode = "401", description = "Unauthorized"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded") })
+	public Mono<ResponseEntity<AgentChatResponse>> portfolioInsightsChat(@Valid @RequestBody AgentChatRequest request,
+			@AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Portfolio Insights chat request from user: {}", userId);
+
+		if (!checkRateLimits(userId)) {
+			return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.body(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded.")));
+		}
+
+		return portfolioInsightsService.chat(request, userId)
+			.doOnSuccess(response -> recordUsage(userId, response))
+			.map(ResponseEntity::ok)
+			.defaultIfEmpty(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(AgentChatResponse.error("portfolioInsights", "Failed to generate response")));
+	}
+
+	@GetMapping(value = "/portfolio-insights/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@RequireAuth(minAcr = "1")
+	@Operation(summary = "Portfolio Insights streaming chat", description = "Streaming chat with Portfolio Agent")
+	public Flux<AgentChatResponse> portfolioInsightsChatStream(@RequestParam String message,
+			@RequestParam(required = false) String model, @AuthUser AuthenticatedUser user) {
+
+		String userId = user.getUserId();
+		logger.info("Portfolio Insights streaming chat from user: {}, model: {}", userId, model);
+
+		if (!checkRateLimits(userId)) {
+			return Flux.just(AgentChatResponse.error("portfolioInsights", "Daily message limit exceeded."));
+		}
+
+		subscriptionService.recordMessageUsage(userId);
+
+		AgentChatRequest request = new AgentChatRequest();
+		request.setMessage(message);
+		request.setModel(model);
+		request.setAgentId("portfolioInsights");
+
+		return portfolioInsightsService.chatStream(request, userId);
+	}
+
+	// ==================== Health Check ====================
+
+	@GetMapping("/health")
+	@Operation(summary = "Health check", description = "Check if AI Agents service is available")
+	public ResponseEntity<String> health() {
+		return ResponseEntity.ok("AI Agents service is healthy");
+	}
+
+	// ==================== Helper Methods ====================
+
+	private boolean checkRateLimits(String userId) {
+		return subscriptionService.canSendMessage(userId);
+	}
+
+	private void recordUsage(String userId, AgentChatResponse response) {
+		if (response != null && response.getContent() != null) {
+			subscriptionService.recordMessageUsage(userId);
+			logger.debug("Recorded message usage for user {}", userId);
+		}
+	}
 
 }

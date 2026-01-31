@@ -9,7 +9,8 @@ import java.util.List;
 
 /**
  * Interface for billing/usage data providers. Each LLM provider (OpenAI, Anthropic, GCP)
- * implements this interface to fetch cost and usage data from their respective billing APIs.
+ * implements this interface to fetch cost and usage data from their respective billing
+ * APIs.
  */
 public interface BillingProvider {
 

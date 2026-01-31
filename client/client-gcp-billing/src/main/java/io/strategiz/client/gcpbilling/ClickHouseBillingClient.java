@@ -22,9 +22,9 @@ import java.util.Base64;
 /**
  * Client for retrieving ClickHouse Cloud billing data via the official API.
  *
- * API Documentation: https://clickhouse.com/docs/en/cloud/manage/billing/api
- * Endpoint: GET https://api.clickhouse.cloud/v1/organizations/{orgId}/usageCost
- * Auth: HTTP Basic Auth (API Key ID : API Key Secret)
+ * API Documentation: https://clickhouse.com/docs/en/cloud/manage/billing/api Endpoint:
+ * GET https://api.clickhouse.cloud/v1/organizations/{orgId}/usageCost Auth: HTTP Basic
+ * Auth (API Key ID : API Key Secret)
  *
  * Note: Maximum query window is 31 days.
  *
@@ -124,15 +124,8 @@ public class ClickHouseBillingClient {
 	/**
 	 * Parse the ClickHouse Cloud API cost response.
 	 *
-	 * Example response:
-	 * {
-	 *   "result": {
-	 *     "storageCHC": "0.50",
-	 *     "computeCHC": "2.30",
-	 *     "backupCHC": "0.10",
-	 *     "dataTransferCHC": "0.05"
-	 *   }
-	 * }
+	 * Example response: { "result": { "storageCHC": "0.50", "computeCHC": "2.30",
+	 * "backupCHC": "0.10", "dataTransferCHC": "0.05" } }
 	 */
 	private ClickHouseCloudCost parseCostResponse(String jsonResponse, LocalDate startDate, LocalDate endDate) {
 		try {
@@ -161,8 +154,7 @@ public class ClickHouseBillingClient {
 
 			BigDecimal totalCost = storageCost.add(computeCost).add(backupCost).add(dataTransferCost);
 
-			log.info(
-					"Parsed ClickHouse Cloud costs: total=${}, compute=${}, storage=${}, backup=${}, transfer=${}",
+			log.info("Parsed ClickHouse Cloud costs: total=${}, compute=${}, storage=${}, backup=${}, transfer=${}",
 					totalCost, computeCost, storageCost, backupCost, dataTransferCost);
 
 			return new ClickHouseCloudCost(startDate, endDate, totalCost, computeCost, storageCost, backupCost,

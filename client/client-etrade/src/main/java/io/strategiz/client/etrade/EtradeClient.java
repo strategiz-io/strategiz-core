@@ -10,22 +10,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Main orchestrator for E*TRADE API operations.
- * This class provides a unified interface for OAuth and data operations.
+ * Main orchestrator for E*TRADE API operations. This class provides a unified interface
+ * for OAuth and data operations.
  *
  * E*TRADE API uses OAuth 1.0a authentication with HMAC-SHA1 signing.
  *
- * Key differences from OAuth 2.0:
- * - No refresh tokens - access tokens expire after 2 hours of inactivity
- * - Each request must be signed with HMAC-SHA1
- * - Uses consumer key/secret instead of client ID/secret
+ * Key differences from OAuth 2.0: - No refresh tokens - access tokens expire after 2
+ * hours of inactivity - Each request must be signed with HMAC-SHA1 - Uses consumer
+ * key/secret instead of client ID/secret
  *
- * Usage:
- * 1. Call getRequestToken() to start OAuth flow
- * 2. Redirect user to generateAuthorizationUrl(requestToken)
- * 3. Receive callback with oauth_verifier
- * 4. Call getAccessToken(requestToken, requestTokenSecret, verifier)
- * 5. Use access token + secret for all API calls
+ * Usage: 1. Call getRequestToken() to start OAuth flow 2. Redirect user to
+ * generateAuthorizationUrl(requestToken) 3. Receive callback with oauth_verifier 4. Call
+ * getAccessToken(requestToken, requestTokenSecret, verifier) 5. Use access token + secret
+ * for all API calls
  */
 @Component
 public class EtradeClient {

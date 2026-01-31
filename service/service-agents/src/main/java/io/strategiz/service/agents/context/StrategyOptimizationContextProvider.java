@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides strategy optimization context for the Optimizer Agent. Includes optimization frameworks,
- * guidelines, and market conditions.
+ * Provides strategy optimization context for the Optimizer Agent. Includes optimization
+ * frameworks, guidelines, and market conditions.
  */
 @Component
 public class StrategyOptimizationContextProvider {
@@ -96,8 +96,8 @@ public class StrategyOptimizationContextProvider {
 			if (portfolioContext != null && !portfolioContext.isEmpty()) {
 				context.append("USER PORTFOLIO CONTEXT:\n");
 				context.append("-".repeat(50)).append("\n");
-				portfolioContext
-					.forEach((key, value) -> context.append("  • ").append(key).append(": ").append(value).append("\n"));
+				portfolioContext.forEach(
+						(key, value) -> context.append("  • ").append(key).append(": ").append(value).append("\n"));
 				context.append("\n");
 			}
 		}

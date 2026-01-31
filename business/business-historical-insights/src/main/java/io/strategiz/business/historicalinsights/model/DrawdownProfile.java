@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Comprehensive drawdown analysis profile.
- * Provides insights into historical risk characteristics including maximum drawdowns,
- * average drawdowns, recovery times, and drawdown frequency.
+ * Comprehensive drawdown analysis profile. Provides insights into historical risk
+ * characteristics including maximum drawdowns, average drawdowns, recovery times, and
+ * drawdown frequency.
  */
 public class DrawdownProfile {
 
@@ -191,8 +191,8 @@ public class DrawdownProfile {
 	}
 
 	/**
-	 * Calculate recommended stop loss based on historical drawdown patterns.
-	 * Uses the average drawdown as a baseline with a safety margin.
+	 * Calculate recommended stop loss based on historical drawdown patterns. Uses the
+	 * average drawdown as a baseline with a safety margin.
 	 */
 	public double getRecommendedStopLoss() {
 		// Stop loss should be larger than average drawdown to avoid false triggers

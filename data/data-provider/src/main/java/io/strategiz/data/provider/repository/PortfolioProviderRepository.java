@@ -20,280 +20,283 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Repository for PortfolioProviderEntity.
- * Handles user-scoped collection: users/{userId}/portfolio/{providerId}
+ * Repository for PortfolioProviderEntity. Handles user-scoped collection:
+ * users/{userId}/portfolio/{providerId}
  *
- * Provider documents are stored directly in the portfolio collection with providerId as document ID.
- * Example: users/{userId}/portfolio/coinbase, users/{userId}/portfolio/alpaca
+ * Provider documents are stored directly in the portfolio collection with providerId as
+ * document ID. Example: users/{userId}/portfolio/coinbase,
+ * users/{userId}/portfolio/alpaca
  *
- * This repository correctly handles delete operations by using the proper collection path.
+ * This repository correctly handles delete operations by using the proper collection
+ * path.
  */
 @Repository
 public class PortfolioProviderRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(PortfolioProviderRepository.class);
+	private static final Logger log = LoggerFactory.getLogger(PortfolioProviderRepository.class);
 
-    private final Firestore firestore;
+	private final Firestore firestore;
 
-    public PortfolioProviderRepository(Firestore firestore) {
-        this.firestore = firestore;
-    }
+	public PortfolioProviderRepository(Firestore firestore) {
+		this.firestore = firestore;
+	}
 
-    /**
-     * Get the collection reference for a user's portfolio.
-     * Path: users/{userId}/portfolio
-     *
-     * Provider documents are stored directly in this collection with providerId as the document ID.
-     * Example: users/{userId}/portfolio/coinbase
-     */
-    private CollectionReference getPortfolioCollection(String userId) {
-        return firestore.collection("users")
-                .document(userId)
-                .collection("portfolio");
-    }
+	/**
+	 * Get the collection reference for a user's portfolio. Path: users/{userId}/portfolio
+	 *
+	 * Provider documents are stored directly in this collection with providerId as the
+	 * document ID. Example: users/{userId}/portfolio/coinbase
+	 */
+	private CollectionReference getPortfolioCollection(String userId) {
+		return firestore.collection("users").document(userId).collection("portfolio");
+	}
 
-    /**
-     * Save a provider entity (create or update).
-     * Uses providerId as the document ID.
-     */
-    public PortfolioProviderEntity save(PortfolioProviderEntity entity, String userId) {
-        try {
-            validateInputs(entity, userId);
+	/**
+	 * Save a provider entity (create or update). Uses providerId as the document ID.
+	 */
+	public PortfolioProviderEntity save(PortfolioProviderEntity entity, String userId) {
+		try {
+			validateInputs(entity, userId);
 
-            boolean isCreate = !entity._hasAudit();
+			boolean isCreate = !entity._hasAudit();
 
-            if (isCreate) {
-                entity._initAudit(userId);
-            } else {
-                entity._updateAudit(userId);
-            }
+			if (isCreate) {
+				entity._initAudit(userId);
+			}
+			else {
+				entity._updateAudit(userId);
+			}
 
-            // Use providerId as document ID
-            String docId = entity.getProviderId();
-            entity.setId(docId);
+			// Use providerId as document ID
+			String docId = entity.getProviderId();
+			entity.setId(docId);
 
-            getPortfolioCollection(userId).document(docId).set(entity).get();
+			getPortfolioCollection(userId).document(docId).set(entity).get();
 
-            log.debug("Saved PortfolioProviderEntity for provider {} by user {}", docId, userId);
-            return entity;
+			log.debug("Saved PortfolioProviderEntity for provider {} by user {}", docId, userId);
+			return entity;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "PortfolioProviderEntity");
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e, "PortfolioProviderEntity");
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e,
+					"PortfolioProviderEntity");
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_SAVE_FAILED, e,
+					"PortfolioProviderEntity");
+		}
+	}
 
-    /**
-     * Find a provider by userId and providerId.
-     * Only returns active (non-deleted) providers.
-     */
-    public Optional<PortfolioProviderEntity> findByUserIdAndProviderId(String userId, String providerId) {
-        try {
-            DocumentSnapshot doc = getPortfolioCollection(userId).document(providerId).get().get();
+	/**
+	 * Find a provider by userId and providerId. Only returns active (non-deleted)
+	 * providers.
+	 */
+	public Optional<PortfolioProviderEntity> findByUserIdAndProviderId(String userId, String providerId) {
+		try {
+			DocumentSnapshot doc = getPortfolioCollection(userId).document(providerId).get().get();
 
-            if (doc.exists()) {
-                PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
-                if (entity != null && Boolean.TRUE.equals(entity.getIsActive())) {
-                    entity.setId(doc.getId());
-                    return Optional.of(entity);
-                }
-            }
-            return Optional.empty();
+			if (doc.exists()) {
+				PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
+				if (entity != null && Boolean.TRUE.equals(entity.getIsActive())) {
+					entity.setId(doc.getId());
+					return Optional.of(entity);
+				}
+			}
+			return Optional.empty();
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", providerId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", providerId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+	}
 
-    /**
-     * Find all providers for a user.
-     * Returns all providers that are not explicitly disconnected or deleted.
-     * Note: Does NOT filter by isActive since legacy documents may not have this field.
-     */
-    public List<PortfolioProviderEntity> findAllByUserId(String userId) {
-        try {
-            log.info("=====> PortfolioProviderRepository.findAllByUserId for userId: {}", userId);
+	/**
+	 * Find all providers for a user. Returns all providers that are not explicitly
+	 * disconnected or deleted. Note: Does NOT filter by isActive since legacy documents
+	 * may not have this field.
+	 */
+	public List<PortfolioProviderEntity> findAllByUserId(String userId) {
+		try {
+			log.info("=====> PortfolioProviderRepository.findAllByUserId for userId: {}", userId);
 
-            // Get all documents in the portfolio collection for this user
-            // Don't filter by isActive - legacy documents may not have this field
-            List<QueryDocumentSnapshot> docs = getPortfolioCollection(userId).get().get().getDocuments();
+			// Get all documents in the portfolio collection for this user
+			// Don't filter by isActive - legacy documents may not have this field
+			List<QueryDocumentSnapshot> docs = getPortfolioCollection(userId).get().get().getDocuments();
 
-            log.info("=====> Found {} total documents in portfolio collection for userId: {}", docs.size(), userId);
+			log.info("=====> Found {} total documents in portfolio collection for userId: {}", docs.size(), userId);
 
-            // Log each document for debugging
-            for (QueryDocumentSnapshot doc : docs) {
-                log.info("=====> Document: id={}, status={}, isActive={}, totalValue={}",
-                    doc.getId(),
-                    doc.getString("status"),
-                    doc.getBoolean("isActive"),
-                    doc.get("totalValue"));
-            }
+			// Log each document for debugging
+			for (QueryDocumentSnapshot doc : docs) {
+				log.info("=====> Document: id={}, status={}, isActive={}, totalValue={}", doc.getId(),
+						doc.getString("status"), doc.getBoolean("isActive"), doc.get("totalValue"));
+			}
 
-            // Filter: exclude "summary" document and disconnected providers
-            List<PortfolioProviderEntity> providers = docs.stream()
-                    .filter(doc -> {
-                        String docId = doc.getId();
-                        // Skip the "summary" document
-                        if ("summary".equals(docId)) {
-                            log.debug("Skipping summary document");
-                            return false;
-                        }
-                        // Skip explicitly disconnected providers
-                        String status = doc.getString("status");
-                        if ("disconnected".equals(status)) {
-                            log.debug("Skipping disconnected provider: {}", docId);
-                            return false;
-                        }
-                        // Skip if isActive is explicitly false (not null)
-                        Boolean isActive = doc.getBoolean("isActive");
-                        if (Boolean.FALSE.equals(isActive)) {
-                            log.debug("Skipping inactive provider: {}", docId);
-                            return false;
-                        }
-                        return true;
-                    })
-                    .map(doc -> {
-                        PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
-                        entity.setId(doc.getId());
-                        return entity;
-                    })
-                    .collect(Collectors.toList());
+			// Filter: exclude "summary" document and disconnected providers
+			List<PortfolioProviderEntity> providers = docs.stream().filter(doc -> {
+				String docId = doc.getId();
+				// Skip the "summary" document
+				if ("summary".equals(docId)) {
+					log.debug("Skipping summary document");
+					return false;
+				}
+				// Skip explicitly disconnected providers
+				String status = doc.getString("status");
+				if ("disconnected".equals(status)) {
+					log.debug("Skipping disconnected provider: {}", docId);
+					return false;
+				}
+				// Skip if isActive is explicitly false (not null)
+				Boolean isActive = doc.getBoolean("isActive");
+				if (Boolean.FALSE.equals(isActive)) {
+					log.debug("Skipping inactive provider: {}", docId);
+					return false;
+				}
+				return true;
+			}).map(doc -> {
+				PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
+				entity.setId(doc.getId());
+				return entity;
+			}).collect(Collectors.toList());
 
-            log.info("=====> Returning {} connected providers for userId: {}", providers.size(), userId);
-            return providers;
+			log.info("=====> Returning {} connected providers for userId: {}", providers.size(), userId);
+			return providers;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", userId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", userId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", userId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", userId);
+		}
+	}
 
-    /**
-     * Find all providers for a user (including all statuses).
-     * Only returns active (non-deleted) providers.
-     */
-    public List<PortfolioProviderEntity> findAllByUserIdIncludingDisconnected(String userId) {
-        try {
-            Query query = getPortfolioCollection(userId)
-                    .whereEqualTo("isActive", true);
+	/**
+	 * Find all providers for a user (including all statuses). Only returns active
+	 * (non-deleted) providers.
+	 */
+	public List<PortfolioProviderEntity> findAllByUserIdIncludingDisconnected(String userId) {
+		try {
+			Query query = getPortfolioCollection(userId).whereEqualTo("isActive", true);
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
-            return docs.stream()
-                    .map(doc -> {
-                        PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
-                        entity.setId(doc.getId());
-                        return entity;
-                    })
-                    .collect(Collectors.toList());
+			return docs.stream().map(doc -> {
+				PortfolioProviderEntity entity = doc.toObject(PortfolioProviderEntity.class);
+				entity.setId(doc.getId());
+				return entity;
+			}).collect(Collectors.toList());
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", userId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e, "PortfolioProviderEntity", userId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", userId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_FIND_FAILED, e,
+					"PortfolioProviderEntity", userId);
+		}
+	}
 
-    /**
-     * Soft delete a provider by marking isActive = false.
-     * This is the proper delete that uses the correct collection path.
-     */
-    public boolean delete(String userId, String providerId) {
-        try {
-            Optional<PortfolioProviderEntity> optional = findByUserIdAndProviderId(userId, providerId);
+	/**
+	 * Soft delete a provider by marking isActive = false. This is the proper delete that
+	 * uses the correct collection path.
+	 */
+	public boolean delete(String userId, String providerId) {
+		try {
+			Optional<PortfolioProviderEntity> optional = findByUserIdAndProviderId(userId, providerId);
 
-            if (optional.isPresent()) {
-                PortfolioProviderEntity entity = optional.get();
-                entity._softDelete(userId);
-                entity.setStatus("disconnected");
+			if (optional.isPresent()) {
+				PortfolioProviderEntity entity = optional.get();
+				entity._softDelete(userId);
+				entity.setStatus("disconnected");
 
-                getPortfolioCollection(userId).document(providerId).set(entity).get();
+				getPortfolioCollection(userId).document(providerId).set(entity).get();
 
-                log.info("Soft deleted provider {} for userId: {}", providerId, userId);
-                return true;
-            }
+				log.info("Soft deleted provider {} for userId: {}", providerId, userId);
+				return true;
+			}
 
-            log.warn("Provider {} not found for userId: {} - cannot delete", providerId, userId);
-            return false;
+			log.warn("Provider {} not found for userId: {} - cannot delete", providerId, userId);
+			return false;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "PortfolioProviderEntity", providerId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "PortfolioProviderEntity", providerId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+	}
 
-    /**
-     * Hard delete a provider (permanently removes the document).
-     * Use with caution - this cannot be undone.
-     */
-    public boolean hardDelete(String userId, String providerId) {
-        try {
-            getPortfolioCollection(userId).document(providerId).delete().get();
-            log.info("Hard deleted provider {} for userId: {}", providerId, userId);
-            return true;
+	/**
+	 * Hard delete a provider (permanently removes the document). Use with caution - this
+	 * cannot be undone.
+	 */
+	public boolean hardDelete(String userId, String providerId) {
+		try {
+			getPortfolioCollection(userId).document(providerId).delete().get();
+			log.info("Hard deleted provider {} for userId: {}", providerId, userId);
+			return true;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "PortfolioProviderEntity", providerId);
-        } catch (ExecutionException e) {
-            throw new ProviderIntegrationException(
-                    DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e, "PortfolioProviderEntity", providerId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+		catch (ExecutionException e) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.REPOSITORY_DELETE_FAILED, e,
+					"PortfolioProviderEntity", providerId);
+		}
+	}
 
-    /**
-     * Check if a provider exists and is active.
-     */
-    public boolean exists(String userId, String providerId) {
-        return findByUserIdAndProviderId(userId, providerId).isPresent();
-    }
+	/**
+	 * Check if a provider exists and is active.
+	 */
+	public boolean exists(String userId, String providerId) {
+		return findByUserIdAndProviderId(userId, providerId).isPresent();
+	}
 
-    /**
-     * Update provider status.
-     */
-    public void updateStatus(String userId, String providerId, String status) {
-        Optional<PortfolioProviderEntity> optional = findByUserIdAndProviderId(userId, providerId);
+	/**
+	 * Update provider status.
+	 */
+	public void updateStatus(String userId, String providerId, String status) {
+		Optional<PortfolioProviderEntity> optional = findByUserIdAndProviderId(userId, providerId);
 
-        if (optional.isPresent()) {
-            PortfolioProviderEntity entity = optional.get();
-            entity.setStatus(status);
-            save(entity, userId);
-        }
-    }
+		if (optional.isPresent()) {
+			PortfolioProviderEntity entity = optional.get();
+			entity.setStatus(status);
+			save(entity, userId);
+		}
+	}
 
-    private void validateInputs(PortfolioProviderEntity entity, String userId) {
-        if (entity == null) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "PortfolioProviderEntity", "Entity cannot be null");
-        }
-        if (userId == null || userId.trim().isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "PortfolioProviderEntity", "User ID cannot be null or empty");
-        }
-        if (entity.getProviderId() == null || entity.getProviderId().trim().isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "PortfolioProviderEntity", "Provider ID cannot be null or empty");
-        }
-    }
+	private void validateInputs(PortfolioProviderEntity entity, String userId) {
+		if (entity == null) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "PortfolioProviderEntity",
+					"Entity cannot be null");
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "PortfolioProviderEntity",
+					"User ID cannot be null or empty");
+		}
+		if (entity.getProviderId() == null || entity.getProviderId().trim().isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "PortfolioProviderEntity",
+					"Provider ID cannot be null or empty");
+		}
+	}
+
 }

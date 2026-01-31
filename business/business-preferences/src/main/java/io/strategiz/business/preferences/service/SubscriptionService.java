@@ -29,9 +29,9 @@ public class SubscriptionService {
 	private static final String ADMIN_ROLE = "ADMIN";
 
 	/**
-	 * Minimum tier level required for Historical Market Insights (Autonomous AI).
-	 * Level 1 = STRATEGIST tier and above (STRATEGIST, QUANT)
-	 * Tier levels: EXPLORER=0, STRATEGIST=1, QUANT=2
+	 * Minimum tier level required for Historical Market Insights (Autonomous AI). Level 1
+	 * = STRATEGIST tier and above (STRATEGIST, QUANT) Tier levels: EXPLORER=0,
+	 * STRATEGIST=1, QUANT=2
 	 */
 	private static final int MIN_TIER_LEVEL_HISTORICAL_INSIGHTS = 1;
 
@@ -68,8 +68,8 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if a model is allowed for the user's subscription tier.
-	 * ADMIN users have access to all models for testing purposes.
+	 * Check if a model is allowed for the user's subscription tier. ADMIN users have
+	 * access to all models for testing purposes.
 	 * @param userId The user ID
 	 * @param modelId The model ID
 	 * @return true if the model is allowed or user is admin
@@ -99,10 +99,10 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user can use Historical Market Insights (Autonomous AI mode).
-	 * Analyzes 7 years of historical data to generate optimized strategies.
-	 * Historical Market Insights requires tier level 1 or higher (EXPLORER+).
-	 * ADMIN users and service accounts have access for testing purposes.
+	 * Check if user can use Historical Market Insights (Autonomous AI mode). Analyzes 7
+	 * years of historical data to generate optimized strategies. Historical Market
+	 * Insights requires tier level 1 or higher (EXPLORER+). ADMIN users and service
+	 * accounts have access for testing purposes.
 	 * @param userId The user ID
 	 * @return true if user can use Historical Market Insights
 	 */
@@ -123,7 +123,8 @@ public class SubscriptionService {
 		boolean canUse = tier.meetsMinimumLevel(MIN_TIER_LEVEL_HISTORICAL_INSIGHTS);
 
 		if (!canUse) {
-			logger.info("Historical Market Insights not available for user {} on tier {} (level {}). Requires level {} or higher.",
+			logger.info(
+					"Historical Market Insights not available for user {} on tier {} (level {}). Requires level {} or higher.",
 					userId, tier.getId(), tier.getLevel(), MIN_TIER_LEVEL_HISTORICAL_INSIGHTS);
 		}
 
@@ -131,9 +132,9 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user has STRAT available for AI usage.
-	 * Checks BOTH wallet balance > 0 AND monthly tier cap not exceeded.
-	 * ADMIN users and service accounts bypass all limits for testing purposes.
+	 * Check if user has STRAT available for AI usage. Checks BOTH wallet balance > 0 AND
+	 * monthly tier cap not exceeded. ADMIN users and service accounts bypass all limits
+	 * for testing purposes.
 	 * @param userId The user ID
 	 * @return true if user has remaining STRAT or is admin/service account
 	 */
@@ -203,9 +204,8 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if user can send a message (has credits available).
-	 * Covers both Learn AI Chat and Labs Strategy Generation.
-	 * ADMIN users bypass all limits for testing purposes.
+	 * Check if user can send a message (has credits available). Covers both Learn AI Chat
+	 * and Labs Strategy Generation. ADMIN users bypass all limits for testing purposes.
 	 * @param userId The user ID
 	 * @return true if has credits or user is admin
 	 * @deprecated Use {@link #hasCreditsAvailable(String)} instead
@@ -278,7 +278,8 @@ public class SubscriptionService {
 	 * Initialize a new user with the free Explorer tier.
 	 * @param userId The user ID
 	 * @return The initialized subscription
-	 * @deprecated Trial tier has been removed. Use {@link #initializeExplorer(String)} instead.
+	 * @deprecated Trial tier has been removed. Use {@link #initializeExplorer(String)}
+	 * instead.
 	 */
 	@Deprecated(forRemoval = true)
 	public PlatformSubscription initializeTrial(String userId) {
@@ -365,11 +366,10 @@ public class SubscriptionService {
 	 */
 	public List<TierInfo> getAllTiers() {
 		return Arrays.stream(SubscriptionTier.values())
-				.filter(tier -> !tier.isTrial())
-				.map(tier -> new TierInfo(tier.getId(), tier.getDisplayName(), tier.getPriceInCents(),
-						tier.getDescription(), tier.getAllowedModels(), tier.getMonthlyStrat(),
-						tier.getLevel()))
-				.collect(Collectors.toList());
+			.filter(tier -> !tier.isTrial())
+			.map(tier -> new TierInfo(tier.getId(), tier.getDisplayName(), tier.getPriceInCents(),
+					tier.getDescription(), tier.getAllowedModels(), tier.getMonthlyStrat(), tier.getLevel()))
+			.collect(Collectors.toList());
 	}
 
 	/**
@@ -419,8 +419,8 @@ public class SubscriptionService {
 	}
 
 	/**
-	 * Check if the userId represents a service account.
-	 * Service accounts are used for programmatic API access (e.g., integration testing).
+	 * Check if the userId represents a service account. Service accounts are used for
+	 * programmatic API access (e.g., integration testing).
 	 * @param userId The user ID
 	 * @return true if userId starts with "sa:" prefix
 	 */

@@ -9,208 +9,220 @@ import java.util.Objects;
  * Sentiment data for a specific asset.
  */
 public class AssetSentiment {
-    private String assetId;
-    private String symbol;
-    private String name;
-    private String sentiment;
-    private BigDecimal sentimentScore;
-    private String color;
-    private List<String> signals;
-    private Map<String, BigDecimal> technicalIndicators;
-    private String sentimentCategory;
 
-    // Constructors
-    public AssetSentiment() {}
+	private String assetId;
 
-    public AssetSentiment(String assetId, String symbol, String name, String sentiment,
-                        BigDecimal sentimentScore, String color, List<String> signals,
-                        Map<String, BigDecimal> technicalIndicators, String sentimentCategory) {
-        this.assetId = assetId;
-        this.symbol = symbol;
-        this.name = name;
-        this.sentiment = sentiment;
-        this.sentimentScore = sentimentScore;
-        this.color = color;
-        this.signals = signals;
-        this.technicalIndicators = technicalIndicators;
-        this.sentimentCategory = sentimentCategory;
-    }
+	private String symbol;
 
-    // Getters and Setters
-    public String getAssetId() {
-        return assetId;
-    }
+	private String name;
 
-    public void setAssetId(String assetId) {
-        this.assetId = assetId;
-    }
+	private String sentiment;
 
-    public String getSymbol() {
-        return symbol;
-    }
+	private BigDecimal sentimentScore;
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	private String color;
 
-    public String getName() {
-        return name;
-    }
+	private List<String> signals;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private Map<String, BigDecimal> technicalIndicators;
 
-    public String getSentiment() {
-        return sentiment;
-    }
+	private String sentimentCategory;
 
-    public void setSentiment(String sentiment) {
-        this.sentiment = sentiment;
-    }
+	// Constructors
+	public AssetSentiment() {
+	}
 
-    public BigDecimal getSentimentScore() {
-        return sentimentScore;
-    }
+	public AssetSentiment(String assetId, String symbol, String name, String sentiment, BigDecimal sentimentScore,
+			String color, List<String> signals, Map<String, BigDecimal> technicalIndicators, String sentimentCategory) {
+		this.assetId = assetId;
+		this.symbol = symbol;
+		this.name = name;
+		this.sentiment = sentiment;
+		this.sentimentScore = sentimentScore;
+		this.color = color;
+		this.signals = signals;
+		this.technicalIndicators = technicalIndicators;
+		this.sentimentCategory = sentimentCategory;
+	}
 
-    public void setSentimentScore(BigDecimal sentimentScore) {
-        this.sentimentScore = sentimentScore;
-    }
+	// Getters and Setters
+	public String getAssetId() {
+		return assetId;
+	}
 
-    public String getColor() {
-        return color;
-    }
+	public void setAssetId(String assetId) {
+		this.assetId = assetId;
+	}
 
-    public void setColor(String color) {
-        this.color = color;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public List<String> getSignals() {
-        return signals;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public void setSignals(List<String> signals) {
-        this.signals = signals;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public Map<String, BigDecimal> getTechnicalIndicators() {
-        return technicalIndicators;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setTechnicalIndicators(Map<String, BigDecimal> technicalIndicators) {
-        this.technicalIndicators = technicalIndicators;
-    }
+	public String getSentiment() {
+		return sentiment;
+	}
 
-    public String getSentimentCategory() {
-        return sentimentCategory;
-    }
+	public void setSentiment(String sentiment) {
+		this.sentiment = sentiment;
+	}
 
-    public void setSentimentCategory(String sentimentCategory) {
-        this.sentimentCategory = sentimentCategory;
-    }
+	public BigDecimal getSentimentScore() {
+		return sentimentScore;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AssetSentiment that = (AssetSentiment) o;
-        return Objects.equals(assetId, that.assetId) &&
-               Objects.equals(symbol, that.symbol) &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(sentiment, that.sentiment) &&
-               Objects.equals(sentimentScore, that.sentimentScore) &&
-               Objects.equals(color, that.color) &&
-               Objects.equals(signals, that.signals) &&
-               Objects.equals(technicalIndicators, that.technicalIndicators) &&
-               Objects.equals(sentimentCategory, that.sentimentCategory);
-    }
+	public void setSentimentScore(BigDecimal sentimentScore) {
+		this.sentimentScore = sentimentScore;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(assetId, symbol, name, sentiment, sentimentScore, color, 
-                          signals, technicalIndicators, sentimentCategory);
-    }
+	public String getColor() {
+		return color;
+	}
 
-    @Override
-    public String toString() {
-        return "AssetSentiment{" +
-               "assetId='" + assetId + '\'' +
-               ", symbol='" + symbol + '\'' +
-               ", name='" + name + '\'' +
-               ", sentiment='" + sentiment + '\'' +
-               ", sentimentScore=" + sentimentScore +
-               ", color='" + color + '\'' +
-               ", signals=" + signals +
-               ", technicalIndicators=" + technicalIndicators +
-               ", sentimentCategory='" + sentimentCategory + '\'' +
-               '}';
-    }
+	public void setColor(String color) {
+		this.color = color;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public List<String> getSignals() {
+		return signals;
+	}
 
-    public static class Builder {
-        private String assetId;
-        private String symbol;
-        private String name;
-        private String sentiment;
-        private BigDecimal sentimentScore;
-        private String color;
-        private List<String> signals;
-        private Map<String, BigDecimal> technicalIndicators;
-        private String sentimentCategory;
+	public void setSignals(List<String> signals) {
+		this.signals = signals;
+	}
 
-        public Builder withAssetId(String assetId) {
-            this.assetId = assetId;
-            return this;
-        }
+	public Map<String, BigDecimal> getTechnicalIndicators() {
+		return technicalIndicators;
+	}
 
-        public Builder withSymbol(String symbol) {
-            this.symbol = symbol;
-            return this;
-        }
+	public void setTechnicalIndicators(Map<String, BigDecimal> technicalIndicators) {
+		this.technicalIndicators = technicalIndicators;
+	}
 
-        public Builder withName(String name) {
-            this.name = name;
-            return this;
-        }
+	public String getSentimentCategory() {
+		return sentimentCategory;
+	}
 
-        public Builder withSentiment(String sentiment) {
-            this.sentiment = sentiment;
-            return this;
-        }
+	public void setSentimentCategory(String sentimentCategory) {
+		this.sentimentCategory = sentimentCategory;
+	}
 
-        public Builder withSentimentScore(BigDecimal sentimentScore) {
-            this.sentimentScore = sentimentScore;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		AssetSentiment that = (AssetSentiment) o;
+		return Objects.equals(assetId, that.assetId) && Objects.equals(symbol, that.symbol)
+				&& Objects.equals(name, that.name) && Objects.equals(sentiment, that.sentiment)
+				&& Objects.equals(sentimentScore, that.sentimentScore) && Objects.equals(color, that.color)
+				&& Objects.equals(signals, that.signals)
+				&& Objects.equals(technicalIndicators, that.technicalIndicators)
+				&& Objects.equals(sentimentCategory, that.sentimentCategory);
+	}
 
-        public Builder withColor(String color) {
-            this.color = color;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(assetId, symbol, name, sentiment, sentimentScore, color, signals, technicalIndicators,
+				sentimentCategory);
+	}
 
-        public Builder withSignals(List<String> signals) {
-            this.signals = signals;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "AssetSentiment{" + "assetId='" + assetId + '\'' + ", symbol='" + symbol + '\'' + ", name='" + name
+				+ '\'' + ", sentiment='" + sentiment + '\'' + ", sentimentScore=" + sentimentScore + ", color='" + color
+				+ '\'' + ", signals=" + signals + ", technicalIndicators=" + technicalIndicators
+				+ ", sentimentCategory='" + sentimentCategory + '\'' + '}';
+	}
 
-        public Builder withTechnicalIndicators(Map<String, BigDecimal> technicalIndicators) {
-            this.technicalIndicators = technicalIndicators;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withSentimentCategory(String sentimentCategory) {
-            this.sentimentCategory = sentimentCategory;
-            return this;
-        }
+	public static class Builder {
 
-        public AssetSentiment build() {
-            return new AssetSentiment(assetId, symbol, name, sentiment, sentimentScore, 
-                                    color, signals, technicalIndicators, sentimentCategory);
-        }
-    }
+		private String assetId;
+
+		private String symbol;
+
+		private String name;
+
+		private String sentiment;
+
+		private BigDecimal sentimentScore;
+
+		private String color;
+
+		private List<String> signals;
+
+		private Map<String, BigDecimal> technicalIndicators;
+
+		private String sentimentCategory;
+
+		public Builder withAssetId(String assetId) {
+			this.assetId = assetId;
+			return this;
+		}
+
+		public Builder withSymbol(String symbol) {
+			this.symbol = symbol;
+			return this;
+		}
+
+		public Builder withName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Builder withSentiment(String sentiment) {
+			this.sentiment = sentiment;
+			return this;
+		}
+
+		public Builder withSentimentScore(BigDecimal sentimentScore) {
+			this.sentimentScore = sentimentScore;
+			return this;
+		}
+
+		public Builder withColor(String color) {
+			this.color = color;
+			return this;
+		}
+
+		public Builder withSignals(List<String> signals) {
+			this.signals = signals;
+			return this;
+		}
+
+		public Builder withTechnicalIndicators(Map<String, BigDecimal> technicalIndicators) {
+			this.technicalIndicators = technicalIndicators;
+			return this;
+		}
+
+		public Builder withSentimentCategory(String sentimentCategory) {
+			this.sentimentCategory = sentimentCategory;
+			return this;
+		}
+
+		public AssetSentiment build() {
+			return new AssetSentiment(assetId, symbol, name, sentiment, sentimentScore, color, signals,
+					technicalIndicators, sentimentCategory);
+		}
+
+	}
+
 }

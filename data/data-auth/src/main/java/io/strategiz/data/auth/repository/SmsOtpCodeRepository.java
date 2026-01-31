@@ -5,24 +5,28 @@ import io.strategiz.data.auth.entity.SmsOtpCodeEntity;
 import java.util.Optional;
 
 /**
- * Repository for managing SMS OTP codes in Firestore.
- * SMS OTP codes are stored in the sms_otp_codes top-level collection.
+ * Repository for managing SMS OTP codes in Firestore. SMS OTP codes are stored in the
+ * sms_otp_codes top-level collection.
  *
- * <p>Key operations:</p>
+ * <p>
+ * Key operations:
+ * </p>
  * <ul>
- *   <li>Save OTP codes with hashed values</li>
- *   <li>Find active code by phone number</li>
- *   <li>Find code by ID for verification</li>
- *   <li>Update attempts on verification failure</li>
- *   <li>Delete code after successful verification</li>
- *   <li>Cleanup of expired codes</li>
+ * <li>Save OTP codes with hashed values</li>
+ * <li>Find active code by phone number</li>
+ * <li>Find code by ID for verification</li>
+ * <li>Update attempts on verification failure</li>
+ * <li>Delete code after successful verification</li>
+ * <li>Cleanup of expired codes</li>
  * </ul>
  *
- * <p>Industry standard configuration:</p>
+ * <p>
+ * Industry standard configuration:
+ * </p>
  * <ul>
- *   <li>Expiration: 5 minutes</li>
- *   <li>Max attempts: 5</li>
- *   <li>Rate limiting: 60 seconds between requests</li>
+ * <li>Expiration: 5 minutes</li>
+ * <li>Max attempts: 5</li>
+ * <li>Rate limiting: 60 seconds between requests</li>
  * </ul>
  */
 public interface SmsOtpCodeRepository {
@@ -58,8 +62,8 @@ public interface SmsOtpCodeRepository {
 	Optional<SmsOtpCodeEntity> findActiveByPhoneNumberAndPurpose(String phoneNumber, String purpose);
 
 	/**
-	 * Find the most recent code for a phone number (regardless of status).
-	 * Used for rate limiting checks.
+	 * Find the most recent code for a phone number (regardless of status). Used for rate
+	 * limiting checks.
 	 * @param phoneNumber the phone number in E.164 format
 	 * @return the most recent code if found
 	 */
@@ -74,29 +78,26 @@ public interface SmsOtpCodeRepository {
 	SmsOtpCodeEntity update(SmsOtpCodeEntity entity, String systemUserId);
 
 	/**
-	 * Delete an SMS OTP code by ID.
-	 * Called after successful verification.
+	 * Delete an SMS OTP code by ID. Called after successful verification.
 	 * @param id the code ID
 	 */
 	void deleteById(String id);
 
 	/**
-	 * Delete all codes for a phone number.
-	 * Called after successful verification to cleanup old codes.
+	 * Delete all codes for a phone number. Called after successful verification to
+	 * cleanup old codes.
 	 * @param phoneNumber the phone number
 	 */
 	void deleteByPhoneNumber(String phoneNumber);
 
 	/**
-	 * Delete all expired SMS OTP codes.
-	 * Called periodically to clean up old codes.
+	 * Delete all expired SMS OTP codes. Called periodically to clean up old codes.
 	 * @return number of deleted codes
 	 */
 	int deleteExpired();
 
 	/**
-	 * Count codes for a phone number in the last N minutes.
-	 * Used for rate limiting.
+	 * Count codes for a phone number in the last N minutes. Used for rate limiting.
 	 * @param phoneNumber the phone number
 	 * @param minutes the time window in minutes
 	 * @return number of codes created
@@ -104,9 +105,8 @@ public interface SmsOtpCodeRepository {
 	long countByPhoneNumberInLastMinutes(String phoneNumber, int minutes);
 
 	/**
-	 * Check if a phone number can send a new OTP (rate limit check).
-	 * Returns true if no code exists or the last code was created
-	 * more than RATE_LIMIT_SECONDS ago.
+	 * Check if a phone number can send a new OTP (rate limit check). Returns true if no
+	 * code exists or the last code was created more than RATE_LIMIT_SECONDS ago.
 	 * @param phoneNumber the phone number
 	 * @return true if OTP can be sent
 	 */

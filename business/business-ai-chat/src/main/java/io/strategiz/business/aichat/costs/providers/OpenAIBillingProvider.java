@@ -29,8 +29,8 @@ import java.util.Map;
  *
  * API Documentation: https://platform.openai.com/docs/api-reference/usage
  *
- * Endpoints used: - GET /v1/organization/usage/completions - Usage data grouped by model -
- * GET /v1/organization/costs - Cost data with daily breakdown
+ * Endpoints used: - GET /v1/organization/usage/completions - Usage data grouped by model
+ * - GET /v1/organization/costs - Cost data with daily breakdown
  */
 @Component
 @ConditionalOnProperty(name = "llm.billing.openai.enabled", havingValue = "true", matchIfMissing = false)
@@ -134,8 +134,8 @@ public class OpenAIBillingProvider implements BillingProvider {
 							long outputTokens = result.has("output_tokens") ? result.get("output_tokens").asLong() : 0;
 							long cachedTokens = result.has("input_cached_tokens")
 									? result.get("input_cached_tokens").asLong() : 0;
-							long requests = result.has("num_model_requests")
-									? result.get("num_model_requests").asLong() : 0;
+							long requests = result.has("num_model_requests") ? result.get("num_model_requests").asLong()
+									: 0;
 
 							// Accumulate to report totals
 							report.setInputTokens(report.getInputTokens() + inputTokens);

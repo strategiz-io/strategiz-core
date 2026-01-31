@@ -28,13 +28,11 @@ import java.util.Optional;
 /**
  * Controller for handling Stripe webhook events.
  *
- * Handles subscription lifecycle events:
- * - checkout.session.completed: New subscription created
- * - customer.subscription.created: Subscription activated
- * - customer.subscription.updated: Subscription status changed
- * - customer.subscription.deleted: Subscription cancelled/expired
- * - invoice.paid: Payment successful
- * - invoice.payment_failed: Payment failed
+ * Handles subscription lifecycle events: - checkout.session.completed: New subscription
+ * created - customer.subscription.created: Subscription activated -
+ * customer.subscription.updated: Subscription status changed -
+ * customer.subscription.deleted: Subscription cancelled/expired - invoice.paid: Payment
+ * successful - invoice.payment_failed: Payment failed
  *
  * Webhook endpoint: POST /v1/webhooks/stripe
  */
@@ -103,7 +101,8 @@ public class StripeWebhookController {
 		}
 		catch (Exception e) {
 			logger.error("Error processing Stripe webhook: {}", e.getMessage(), e);
-			// Return 200 to prevent Stripe from retrying (we'll handle the error internally)
+			// Return 200 to prevent Stripe from retrying (we'll handle the error
+			// internally)
 			// Only return error for signature verification failures
 			if (e.getMessage() != null && e.getMessage().contains("signature")) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Signature verification failed");
@@ -113,9 +112,9 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle checkout.session.completed event. This is when a user completes the Stripe checkout
-	 * and the subscription is created (for owner subscriptions) or a one-time purchase is completed
-	 * (for STRAT pack purchases).
+	 * Handle checkout.session.completed event. This is when a user completes the Stripe
+	 * checkout and the subscription is created (for owner subscriptions) or a one-time
+	 * purchase is completed (for STRAT pack purchases).
 	 */
 	private void handleCheckoutCompleted(Event event) {
 		// First, check if this is a STRAT pack purchase
@@ -127,7 +126,7 @@ public class StripeWebhookController {
 
 		// Check if this is a platform subscription checkout (Strategist/Quant)
 		Optional<PlatformSubscriptionCheckoutData> platformOpt = stripeWebhookService
-				.parsePlatformCheckoutCompleted(event);
+			.parsePlatformCheckoutCompleted(event);
 		if (platformOpt.isPresent()) {
 			handlePlatformSubscriptionCheckout(platformOpt.get());
 			return;
@@ -163,13 +162,13 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle STRAT pack purchase checkout completion.
-	 * Publishes a StratPackPurchaseEvent that can be listened to by service-crypto-token
-	 * to credit the purchased STRAT tokens to the user's wallet.
+	 * Handle STRAT pack purchase checkout completion. Publishes a StratPackPurchaseEvent
+	 * that can be listened to by service-crypto-token to credit the purchased STRAT
+	 * tokens to the user's wallet.
 	 */
 	private void handleStratPackCheckoutCompleted(StratPackCheckoutData data) {
-		logger.info("Processing STRAT pack purchase: userId={}, packId={}, stratAmount={}", data.userId(), data.packId(),
-				data.stratAmount());
+		logger.info("Processing STRAT pack purchase: userId={}, packId={}, stratAmount={}", data.userId(),
+				data.packId(), data.stratAmount());
 
 		try {
 			// Publish event for listeners (service-crypto-token will handle the credit)
@@ -187,8 +186,8 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle platform subscription checkout (Strategist/Quant tier).
-	 * Credits initial monthly STRAT allocation to user's wallet.
+	 * Handle platform subscription checkout (Strategist/Quant tier). Credits initial
+	 * monthly STRAT allocation to user's wallet.
 	 */
 	private void handlePlatformSubscriptionCheckout(PlatformSubscriptionCheckoutData data) {
 		logger.info("Processing platform subscription checkout: userId={}, tier={}", data.userId(), data.tier());
@@ -212,8 +211,8 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle customer.subscription.created event. This is when Stripe creates the subscription
-	 * object.
+	 * Handle customer.subscription.created event. This is when Stripe creates the
+	 * subscription object.
 	 */
 	private void handleSubscriptionCreated(Event event) {
 		Optional<OwnerSubscriptionEventData> dataOpt = stripeWebhookService.parseSubscriptionEvent(event);
@@ -239,8 +238,8 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle customer.subscription.updated event. This covers status changes like active ->
-	 * past_due -> canceled.
+	 * Handle customer.subscription.updated event. This covers status changes like active
+	 * -> past_due -> canceled.
 	 */
 	private void handleSubscriptionUpdated(Event event) {
 		Optional<OwnerSubscriptionEventData> dataOpt = stripeWebhookService.parseSubscriptionEvent(event);
@@ -266,8 +265,8 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle customer.subscription.deleted event. This is when a subscription is fully cancelled
-	 * (not just scheduled for cancellation).
+	 * Handle customer.subscription.deleted event. This is when a subscription is fully
+	 * cancelled (not just scheduled for cancellation).
 	 */
 	private void handleSubscriptionDeleted(Event event) {
 		Optional<OwnerSubscriptionEventData> dataOpt = stripeWebhookService.parseSubscriptionEvent(event);
@@ -291,13 +290,12 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle invoice.paid event. This confirms a subscription payment was successful.
-	 * For platform subscriptions, this grants monthly STRAT allocation.
+	 * Handle invoice.paid event. This confirms a subscription payment was successful. For
+	 * platform subscriptions, this grants monthly STRAT allocation.
 	 */
 	private void handleInvoicePaid(Event event) {
 		// Check for platform subscription renewal first
-		Optional<PlatformSubscriptionInvoiceData> platformOpt = stripeWebhookService
-				.parsePlatformInvoiceEvent(event);
+		Optional<PlatformSubscriptionInvoiceData> platformOpt = stripeWebhookService.parsePlatformInvoiceEvent(event);
 		if (platformOpt.isPresent()) {
 			handlePlatformInvoicePaid(platformOpt.get());
 		}
@@ -363,8 +361,9 @@ public class StripeWebhookController {
 	}
 
 	/**
-	 * Handle account.updated event. This is when a Stripe Connect account's status changes. Used to
-	 * track when owners complete onboarding and become ready to receive payments.
+	 * Handle account.updated event. This is when a Stripe Connect account's status
+	 * changes. Used to track when owners complete onboarding and become ready to receive
+	 * payments.
 	 */
 	private void handleAccountUpdated(Event event) {
 		Optional<ConnectAccountEventData> dataOpt = stripeWebhookService.parseConnectAccountEvent(event);

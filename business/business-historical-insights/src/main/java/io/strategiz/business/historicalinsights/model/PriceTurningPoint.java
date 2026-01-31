@@ -5,14 +5,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 
 /**
- * Represents a major price turning point (peak or trough) in historical data.
- * Used by Autonomous AI mode to give the AI perfect hindsight about optimal entry/exit points.
+ * Represents a major price turning point (peak or trough) in historical data. Used by
+ * Autonomous AI mode to give the AI perfect hindsight about optimal entry/exit points.
  */
 public class PriceTurningPoint {
 
 	public enum PointType {
-		PEAK,   // Local maximum - optimal SELL point
-		TROUGH  // Local minimum - optimal BUY point
+
+		PEAK, // Local maximum - optimal SELL point
+		TROUGH // Local minimum - optimal BUY point
+
 	}
 
 	@JsonProperty("type")
@@ -186,8 +188,8 @@ public class PriceTurningPoint {
 
 	@Override
 	public String toString() {
-		return String.format("%s @ %s: $%.2f (%.1f%% from previous, %d days, RSI=%.1f)",
-				type, timestamp, price, priceChangeFromPrevious, daysFromPrevious, rsiAtPoint);
+		return String.format("%s @ %s: $%.2f (%.1f%% from previous, %d days, RSI=%.1f)", type, timestamp, price,
+				priceChangeFromPrevious, daysFromPrevious, rsiAtPoint);
 	}
 
 }

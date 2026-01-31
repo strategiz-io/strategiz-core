@@ -18,12 +18,12 @@ import java.util.List;
 /**
  * GCP billing provider that fetches Vertex AI costs from BigQuery billing export.
  *
- * Prerequisites: 1. Enable billing export to BigQuery in GCP Console 2. Grant BigQuery read
- * access to the service account
+ * Prerequisites: 1. Enable billing export to BigQuery in GCP Console 2. Grant BigQuery
+ * read access to the service account
  *
- * This provider queries the billing export table for Vertex AI services including: - Gemini
- * models - Claude via Model Garden - OpenAI via Model Garden - Llama, Mistral, Cohere via
- * Model Garden
+ * This provider queries the billing export table for Vertex AI services including: -
+ * Gemini models - Claude via Model Garden - OpenAI via Model Garden - Llama, Mistral,
+ * Cohere via Model Garden
  *
  * Note: BigQuery integration requires the google-cloud-bigquery dependency. For now, this
  * provides a stub implementation that can be expanded when BigQuery is configured.
@@ -90,9 +90,9 @@ public class GcpBillingProvider implements BillingProvider {
 		 *
 		 * SELECT service.description as service, sku.description as model, SUM(cost) as
 		 * total_cost, SUM(usage.amount) as total_usage FROM
-		 * `{billingDataset}.gcp_billing_export_v1` WHERE service.description LIKE '%Vertex
-		 * AI%' AND usage_start_time >= @startDate AND usage_start_time < @endDate GROUP BY
-		 * service, model ORDER BY total_cost DESC
+		 * `{billingDataset}.gcp_billing_export_v1` WHERE service.description LIKE
+		 * '%Vertex AI%' AND usage_start_time >= @startDate AND usage_start_time
+		 * < @endDate GROUP BY service, model ORDER BY total_cost DESC
 		 */
 
 		// Placeholder implementation - returns empty report
@@ -126,8 +126,8 @@ public class GcpBillingProvider implements BillingProvider {
 	}
 
 	/**
-	 * Estimate Vertex AI costs based on known models This is a fallback when BigQuery is not
-	 * configured
+	 * Estimate Vertex AI costs based on known models This is a fallback when BigQuery is
+	 * not configured
 	 */
 	private List<ModelCostBreakdown> estimateVertexAICosts() {
 		List<ModelCostBreakdown> models = new ArrayList<>();

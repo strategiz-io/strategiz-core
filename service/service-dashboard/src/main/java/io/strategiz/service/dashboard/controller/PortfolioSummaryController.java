@@ -21,50 +21,50 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controller for portfolio summary data.
- * Provides endpoints for retrieving portfolio summary information.
- * Uses clean architecture - returns resources directly, no wrappers.
+ * Controller for portfolio summary data. Provides endpoints for retrieving portfolio
+ * summary information. Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/v1/dashboard/portfolio")
 @RequireAuth(minAcr = "1")
 public class PortfolioSummaryController extends BaseController {
-    
-    @Override
-    protected String getModuleName() {
-        return "service-dashboard";
-    }
-    
-    private final PortfolioSummaryService portfolioSummaryService;
-    
-    public PortfolioSummaryController(PortfolioSummaryService portfolioSummaryService) {
-        this.portfolioSummaryService = portfolioSummaryService;
-    }
-    
-    /**
-     * Get portfolio summary data for the authenticated user.
-     *
-     * @param user The authenticated user from token
-     * @return Clean portfolio summary data - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
-        String userId = user.getUserId();
-        log.info("Retrieving portfolio summary for user: {}", userId);
-        
-        // Get data from service - let exceptions bubble up
-        PortfolioSummaryResponse portfolioSummary = portfolioSummaryService.getPortfolioSummary(userId);
-        
-        // Check if portfolio exists
-        if (portfolioSummary == null) {
-            throw new StrategizException(ServiceDashboardErrorDetails.PORTFOLIO_NOT_FOUND, "service-dashboard", userId);
-        }
-        
-        // Create response
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("portfolioSummary", portfolioSummary);
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(responseData);
-    }
+
+	@Override
+	protected String getModuleName() {
+		return "service-dashboard";
+	}
+
+	private final PortfolioSummaryService portfolioSummaryService;
+
+	public PortfolioSummaryController(PortfolioSummaryService portfolioSummaryService) {
+		this.portfolioSummaryService = portfolioSummaryService;
+	}
+
+	/**
+	 * Get portfolio summary data for the authenticated user.
+	 * @param user The authenticated user from token
+	 * @return Clean portfolio summary data - no wrapper, let GlobalExceptionHandler
+	 * handle errors
+	 */
+	@GetMapping("/summary")
+	public ResponseEntity<Map<String, Object>> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Retrieving portfolio summary for user: {}", userId);
+
+		// Get data from service - let exceptions bubble up
+		PortfolioSummaryResponse portfolioSummary = portfolioSummaryService.getPortfolioSummary(userId);
+
+		// Check if portfolio exists
+		if (portfolioSummary == null) {
+			throw new StrategizException(ServiceDashboardErrorDetails.PORTFOLIO_NOT_FOUND, "service-dashboard", userId);
+		}
+
+		// Create response
+		Map<String, Object> responseData = new HashMap<>();
+		responseData.put("portfolioSummary", portfolioSummary);
+
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(responseData);
+	}
+
 }

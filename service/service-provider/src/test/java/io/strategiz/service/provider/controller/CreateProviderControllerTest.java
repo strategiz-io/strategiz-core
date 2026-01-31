@@ -23,185 +23,181 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for CreateProviderController.
- * Tests provider connection creation for OAuth and API key based providers.
- * 
+ * Unit tests for CreateProviderController. Tests provider connection creation for OAuth
+ * and API key based providers.
+ *
  * @author Strategiz Team
  * @version 1.0
  */
 @ExtendWith(MockitoExtension.class)
 class CreateProviderControllerTest {
 
-    @Mock
-    private CreateProviderService createProviderService;
+	@Mock
+	private CreateProviderService createProviderService;
 
-    @InjectMocks
-    private CreateProviderController createProviderController;
+	@InjectMocks
+	private CreateProviderController createProviderController;
 
-    private CreateProviderRequest validRequest;
-    private CreateProviderResponse mockResponse;
-    private AuthenticatedUser mockUser;
-    
-    @BeforeEach
-    void setUp() {
-        // Setup mock authenticated user
-        mockUser = AuthenticatedUser.builder()
-                .userId("user123")
-                .build();
+	private CreateProviderRequest validRequest;
 
-        // Setup valid request
-        validRequest = new CreateProviderRequest();
-        validRequest.setProviderId("coinbase");
-        validRequest.setConnectionType("oauth");
-        validRequest.setScope("wallet:accounts:read");
+	private CreateProviderResponse mockResponse;
 
-        // Setup mock response
-        mockResponse = new CreateProviderResponse();
-        mockResponse.setProviderId("coinbase");
-        mockResponse.setStatus("PENDING_AUTHORIZATION");
-        mockResponse.setAuthorizationUrl("https://www.coinbase.com/oauth/authorize?client_id=test");
-        mockResponse.setState("random-state-123");
-    }
-    
-    @Test
-    void testCreateProvider_Success_OAuth() {
-        // Given
-        when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(mockResponse);
+	private AuthenticatedUser mockUser;
 
-        // When
-        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, mockUser);
+	@BeforeEach
+	void setUp() {
+		// Setup mock authenticated user
+		mockUser = AuthenticatedUser.builder().userId("user123").build();
 
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("coinbase", response.getBody().getProviderId());
-        assertEquals("PENDING_AUTHORIZATION", response.getBody().getStatus());
-        assertNotNull(response.getBody().getAuthorizationUrl());
+		// Setup valid request
+		validRequest = new CreateProviderRequest();
+		validRequest.setProviderId("coinbase");
+		validRequest.setConnectionType("oauth");
+		validRequest.setScope("wallet:accounts:read");
 
-        verify(createProviderService, times(1)).createProvider(any(CreateProviderRequest.class));
-        assertEquals("user123", validRequest.getUserId());
-    }
-    
-    @Test
-    void testCreateProvider_Success_ApiKey() {
-        // Given
-        validRequest.setConnectionType("api_key");
-        validRequest.setProviderId("alphavantage");
+		// Setup mock response
+		mockResponse = new CreateProviderResponse();
+		mockResponse.setProviderId("coinbase");
+		mockResponse.setStatus("PENDING_AUTHORIZATION");
+		mockResponse.setAuthorizationUrl("https://www.coinbase.com/oauth/authorize?client_id=test");
+		mockResponse.setState("random-state-123");
+	}
 
-        CreateProviderResponse apiKeyResponse = new CreateProviderResponse();
-        apiKeyResponse.setProviderId("alphavantage");
-        apiKeyResponse.setStatus("ACTIVE");
-        apiKeyResponse.setConnectionId("conn-456");
+	@Test
+	void testCreateProvider_Success_OAuth() {
+		// Given
+		when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(mockResponse);
 
-        when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(apiKeyResponse);
+		// When
+		ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest,
+				mockUser);
 
-        // When
-        ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest, mockUser);
+		// Then
+		assertNotNull(response);
+		assertEquals(HttpStatus.CREATED, response.getStatusCode());
+		assertNotNull(response.getBody());
+		assertEquals("coinbase", response.getBody().getProviderId());
+		assertEquals("PENDING_AUTHORIZATION", response.getBody().getStatus());
+		assertNotNull(response.getBody().getAuthorizationUrl());
 
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("alphavantage", response.getBody().getProviderId());
-        assertEquals("ACTIVE", response.getBody().getStatus());
-        assertNotNull(response.getBody().getConnectionId());
-        assertNull(response.getBody().getAuthorizationUrl());
-    }
-    
-    @Test
-    void testCreateProvider_MissingProviderId_ThrowsException() {
-        // Given
-        validRequest.setProviderId(null);
+		verify(createProviderService, times(1)).createProvider(any(CreateProviderRequest.class));
+		assertEquals("user123", validRequest.getUserId());
+	}
 
-        // When & Then
-        StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, mockUser);
-        });
+	@Test
+	void testCreateProvider_Success_ApiKey() {
+		// Given
+		validRequest.setConnectionType("api_key");
+		validRequest.setProviderId("alphavantage");
 
-        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
-                    exception.getErrorDetails());
-        assertTrue(exception.getMessage().contains("providerId"));
-    }
+		CreateProviderResponse apiKeyResponse = new CreateProviderResponse();
+		apiKeyResponse.setProviderId("alphavantage");
+		apiKeyResponse.setStatus("ACTIVE");
+		apiKeyResponse.setConnectionId("conn-456");
 
-    @Test
-    void testCreateProvider_EmptyProviderId_ThrowsException() {
-        // Given
-        validRequest.setProviderId("");
+		when(createProviderService.createProvider(any(CreateProviderRequest.class))).thenReturn(apiKeyResponse);
 
-        // When & Then
-        StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, mockUser);
-        });
+		// When
+		ResponseEntity<CreateProviderResponse> response = createProviderController.createProvider(validRequest,
+				mockUser);
 
-        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
-                    exception.getErrorDetails());
-    }
+		// Then
+		assertNotNull(response);
+		assertEquals(HttpStatus.CREATED, response.getStatusCode());
+		assertNotNull(response.getBody());
+		assertEquals("alphavantage", response.getBody().getProviderId());
+		assertEquals("ACTIVE", response.getBody().getStatus());
+		assertNotNull(response.getBody().getConnectionId());
+		assertNull(response.getBody().getAuthorizationUrl());
+	}
 
-    @Test
-    void testCreateProvider_MissingConnectionType_ThrowsException() {
-        // Given
-        validRequest.setConnectionType(null);
+	@Test
+	void testCreateProvider_MissingProviderId_ThrowsException() {
+		// Given
+		validRequest.setProviderId(null);
 
-        // When & Then
-        StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, mockUser);
-        });
+		// When & Then
+		StrategizException exception = assertThrows(StrategizException.class, () -> {
+			createProviderController.createProvider(validRequest, mockUser);
+		});
 
-        assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD,
-                    exception.getErrorDetails());
-        assertTrue(exception.getMessage().contains("connectionType"));
-    }
+		assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, exception.getErrorDetails());
+		assertTrue(exception.getMessage().contains("providerId"));
+	}
 
-    @Test
-    void testCreateProvider_MissingUser_ThrowsException() {
-        // Given
-        // No user provided (null)
+	@Test
+	void testCreateProvider_EmptyProviderId_ThrowsException() {
+		// Given
+		validRequest.setProviderId("");
 
-        // When & Then
-        StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, null);
-        });
+		// When & Then
+		StrategizException exception = assertThrows(StrategizException.class, () -> {
+			createProviderController.createProvider(validRequest, mockUser);
+		});
 
-        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
-                    exception.getErrorDetails());
-        assertTrue(exception.getMessage().contains("Authentication required to connect provider"));
-    }
+		assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, exception.getErrorDetails());
+	}
 
-    @Test
-    void testCreateProvider_InvalidUser_ThrowsException() {
-        // Given
-        AuthenticatedUser invalidUser = AuthenticatedUser.builder()
-                .userId(null)
-                .build();
+	@Test
+	void testCreateProvider_MissingConnectionType_ThrowsException() {
+		// Given
+		validRequest.setConnectionType(null);
 
-        // When & Then
-        StrategizException exception = assertThrows(StrategizException.class, () -> {
-            createProviderController.createProvider(validRequest, invalidUser);
-        });
+		// When & Then
+		StrategizException exception = assertThrows(StrategizException.class, () -> {
+			createProviderController.createProvider(validRequest, mockUser);
+		});
 
-        assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS,
-                    exception.getErrorDetails());
-    }
-    
-    @Test
-    void testHealthCheck() {
-        // When
-        ResponseEntity<String> response = createProviderController.health();
-        
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("CreateProviderController is healthy", response.getBody());
-    }
-    
-    @Test
-    void testGetModuleName() {
-        // When
-        String moduleName = createProviderController.getModuleName();
-        
-        // Then
-        assertNotNull(moduleName);
-        assertEquals("service-provider", moduleName);
-    }
+		assertEquals(ServiceProviderErrorDetails.MISSING_REQUIRED_FIELD, exception.getErrorDetails());
+		assertTrue(exception.getMessage().contains("connectionType"));
+	}
+
+	@Test
+	void testCreateProvider_MissingUser_ThrowsException() {
+		// Given
+		// No user provided (null)
+
+		// When & Then
+		StrategizException exception = assertThrows(StrategizException.class, () -> {
+			createProviderController.createProvider(validRequest, null);
+		});
+
+		assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, exception.getErrorDetails());
+		assertTrue(exception.getMessage().contains("Authentication required to connect provider"));
+	}
+
+	@Test
+	void testCreateProvider_InvalidUser_ThrowsException() {
+		// Given
+		AuthenticatedUser invalidUser = AuthenticatedUser.builder().userId(null).build();
+
+		// When & Then
+		StrategizException exception = assertThrows(StrategizException.class, () -> {
+			createProviderController.createProvider(validRequest, invalidUser);
+		});
+
+		assertEquals(ServiceProviderErrorDetails.PROVIDER_INVALID_CREDENTIALS, exception.getErrorDetails());
+	}
+
+	@Test
+	void testHealthCheck() {
+		// When
+		ResponseEntity<String> response = createProviderController.health();
+
+		// Then
+		assertNotNull(response);
+		assertEquals(HttpStatus.OK, response.getStatusCode());
+		assertEquals("CreateProviderController is healthy", response.getBody());
+	}
+
+	@Test
+	void testGetModuleName() {
+		// When
+		String moduleName = createProviderController.getModuleName();
+
+		// Then
+		assertNotNull(moduleName);
+		assertEquals("service-provider", moduleName);
+	}
+
 }

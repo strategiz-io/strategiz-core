@@ -10,7 +10,9 @@ import org.springframework.stereotype.Component;
 /**
  * Detects unusually high login frequency by counting recent sessions.
  *
- * <p>Scoring: &gt;5 sessions in recent history = +25, &gt;3 = +15</p>
+ * <p>
+ * Scoring: &gt;5 sessions in recent history = +25, &gt;3 = +15
+ * </p>
  */
 @Component
 public class LoginVelocityProvider implements RiskSignalProvider {
@@ -31,8 +33,7 @@ public class LoginVelocityProvider implements RiskSignalProvider {
 		long sessionCount = sessionRepository.countByUserIdAndRevokedFalse(context.userId());
 
 		if (sessionCount > 5) {
-			return new RiskSignal(name(), 25, MAX_SCORE,
-					"High login velocity: " + sessionCount + " active sessions");
+			return new RiskSignal(name(), 25, MAX_SCORE, "High login velocity: " + sessionCount + " active sessions");
 		}
 		if (sessionCount > 3) {
 			return new RiskSignal(name(), 15, MAX_SCORE,

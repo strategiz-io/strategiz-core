@@ -9,92 +9,93 @@ import java.util.Objects;
  */
 public class WatchlistResponse {
 
-    private String userId;
-    private List<WatchlistItem> assets;
-    private List<String> availableCategories;
-    private LocalDateTime lastUpdated;
+	private String userId;
 
-    public WatchlistResponse() {
-    }
+	private List<WatchlistItem> assets;
 
-    public WatchlistResponse(String userId, List<WatchlistItem> assets, List<String> availableCategories, LocalDateTime lastUpdated) {
-        this.userId = userId;
-        this.assets = assets;
-        this.availableCategories = availableCategories;
-        this.lastUpdated = lastUpdated;
-    }
+	private List<String> availableCategories;
 
-    // Getters and Setters
-    public String getUserId() {
-        return userId;
-    }
+	private LocalDateTime lastUpdated;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public WatchlistResponse() {
+	}
 
-    public List<WatchlistItem> getAssets() {
-        return assets;
-    }
+	public WatchlistResponse(String userId, List<WatchlistItem> assets, List<String> availableCategories,
+			LocalDateTime lastUpdated) {
+		this.userId = userId;
+		this.assets = assets;
+		this.availableCategories = availableCategories;
+		this.lastUpdated = lastUpdated;
+	}
 
-    public void setAssets(List<WatchlistItem> assets) {
-        this.assets = assets;
-    }
+	// Getters and Setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public List<String> getAvailableCategories() {
-        return availableCategories;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public void setAvailableCategories(List<String> availableCategories) {
-        this.availableCategories = availableCategories;
-    }
+	public List<WatchlistItem> getAssets() {
+		return assets;
+	}
 
-    public LocalDateTime getLastUpdated() {
-        return lastUpdated;
-    }
+	public void setAssets(List<WatchlistItem> assets) {
+		this.assets = assets;
+	}
 
-    public void setLastUpdated(LocalDateTime lastUpdated) {
-        this.lastUpdated = lastUpdated;
-    }
+	public List<String> getAvailableCategories() {
+		return availableCategories;
+	}
 
-    /**
-     * Alias for setAssets to maintain compatibility with existing code
-     *
-     * @param watchlistItems The list of watchlist items
-     */
-    public void setWatchlistItems(List<WatchlistItem> watchlistItems) {
-        this.assets = watchlistItems;
-    }
+	public void setAvailableCategories(List<String> availableCategories) {
+		this.availableCategories = availableCategories;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WatchlistResponse that = (WatchlistResponse) o;
-        return Objects.equals(userId, that.userId) &&
-                Objects.equals(assets, that.assets) &&
-                Objects.equals(availableCategories, that.availableCategories) &&
-                Objects.equals(lastUpdated, that.lastUpdated);
-    }
+	public LocalDateTime getLastUpdated() {
+		return lastUpdated;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(userId, assets, availableCategories, lastUpdated);
-    }
+	public void setLastUpdated(LocalDateTime lastUpdated) {
+		this.lastUpdated = lastUpdated;
+	}
 
-    @Override
-    public String toString() {
-        return "WatchlistResponse{" +
-                "userId='" + userId + '\'' +
-                ", assets=" + assets +
-                ", availableCategories=" + availableCategories +
-                ", lastUpdated=" + lastUpdated +
-                '}';
-    }
+	/**
+	 * Alias for setAssets to maintain compatibility with existing code
+	 * @param watchlistItems The list of watchlist items
+	 */
+	public void setWatchlistItems(List<WatchlistItem> watchlistItems) {
+		this.assets = watchlistItems;
+	}
 
-    // Builder pattern
-    public static WatchlistResponseBuilder builder() {
-        return new WatchlistResponseBuilder();
-    }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		WatchlistResponse that = (WatchlistResponse) o;
+		return Objects.equals(userId, that.userId) && Objects.equals(assets, that.assets)
+				&& Objects.equals(availableCategories, that.availableCategories)
+				&& Objects.equals(lastUpdated, that.lastUpdated);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(userId, assets, availableCategories, lastUpdated);
+	}
+
+	@Override
+	public String toString() {
+		return "WatchlistResponse{" + "userId='" + userId + '\'' + ", assets=" + assets + ", availableCategories="
+				+ availableCategories + ", lastUpdated=" + lastUpdated + '}';
+	}
+
+	// Builder pattern
+	public static WatchlistResponseBuilder builder() {
+		return new WatchlistResponseBuilder();
+	}
+
 }

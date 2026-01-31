@@ -17,253 +17,243 @@ import java.math.BigDecimal;
  *
  * Collection: strategy_ownership_transfers (top-level)
  *
- * Tracks:
- * - Which strategy was transferred (strategyId)
- * - Who owned it before (fromOwnerId)
- * - Who owns it now (toOwnerId)
- * - Purchase price
- * - When the transfer occurred
- * - How many subscribers were transferred
- * - Monthly revenue transferred
+ * Tracks: - Which strategy was transferred (strategyId) - Who owned it before
+ * (fromOwnerId) - Who owns it now (toOwnerId) - Purchase price - When the transfer
+ * occurred - How many subscribers were transferred - Monthly revenue transferred
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Collection("strategy_ownership_transfers")
 public class StrategyOwnershipTransfer extends BaseEntity {
 
-    @DocumentId
-    @PropertyName("id")
-    @JsonProperty("id")
-    private String id;
+	@DocumentId
+	@PropertyName("id")
+	@JsonProperty("id")
+	private String id;
 
-    @PropertyName("strategyId")
-    @JsonProperty("strategyId")
-    @NotBlank(message = "Strategy ID is required")
-    private String strategyId;
+	@PropertyName("strategyId")
+	@JsonProperty("strategyId")
+	@NotBlank(message = "Strategy ID is required")
+	private String strategyId;
 
-    @PropertyName("fromOwnerId")
-    @JsonProperty("fromOwnerId")
-    @NotBlank(message = "From owner ID is required")
-    private String fromOwnerId;
+	@PropertyName("fromOwnerId")
+	@JsonProperty("fromOwnerId")
+	@NotBlank(message = "From owner ID is required")
+	private String fromOwnerId;
 
-    @PropertyName("toOwnerId")
-    @JsonProperty("toOwnerId")
-    @NotBlank(message = "To owner ID is required")
-    private String toOwnerId;
+	@PropertyName("toOwnerId")
+	@JsonProperty("toOwnerId")
+	@NotBlank(message = "To owner ID is required")
+	private String toOwnerId;
 
-    @PropertyName("purchasePrice")
-    @JsonProperty("purchasePrice")
-    @NotNull(message = "Purchase price is required")
-    private BigDecimal purchasePrice;
+	@PropertyName("purchasePrice")
+	@JsonProperty("purchasePrice")
+	@NotNull(message = "Purchase price is required")
+	private BigDecimal purchasePrice;
 
-    @PropertyName("currency")
-    @JsonProperty("currency")
-    private String currency = "USD";
+	@PropertyName("currency")
+	@JsonProperty("currency")
+	private String currency = "USD";
 
-    @PropertyName("transferredAt")
-    @JsonProperty("transferredAt")
-    @NotNull(message = "Transferred timestamp is required")
-    private Timestamp transferredAt;
+	@PropertyName("transferredAt")
+	@JsonProperty("transferredAt")
+	@NotNull(message = "Transferred timestamp is required")
+	private Timestamp transferredAt;
 
-    @PropertyName("subscribersTransferred")
-    @JsonProperty("subscribersTransferred")
-    private Integer subscribersTransferred = 0;
+	@PropertyName("subscribersTransferred")
+	@JsonProperty("subscribersTransferred")
+	private Integer subscribersTransferred = 0;
 
-    @PropertyName("monthlyRevenueTransferred")
-    @JsonProperty("monthlyRevenueTransferred")
-    private BigDecimal monthlyRevenueTransferred;
+	@PropertyName("monthlyRevenueTransferred")
+	@JsonProperty("monthlyRevenueTransferred")
+	private BigDecimal monthlyRevenueTransferred;
 
-    @PropertyName("transactionId")
-    @JsonProperty("transactionId")
-    private String transactionId; // Stripe transaction ID
+	@PropertyName("transactionId")
+	@JsonProperty("transactionId")
+	private String transactionId; // Stripe transaction ID
 
-    @PropertyName("transferType")
-    @JsonProperty("transferType")
-    private String transferType; // PURCHASE, GIFT, TRANSFER
+	@PropertyName("transferType")
+	@JsonProperty("transferType")
+	private String transferType; // PURCHASE, GIFT, TRANSFER
 
-    // Denormalized fields for display
-    @PropertyName("strategyName")
-    @JsonProperty("strategyName")
-    private String strategyName;
+	// Denormalized fields for display
+	@PropertyName("strategyName")
+	@JsonProperty("strategyName")
+	private String strategyName;
 
-    @PropertyName("fromOwnerName")
-    @JsonProperty("fromOwnerName")
-    private String fromOwnerName;
+	@PropertyName("fromOwnerName")
+	@JsonProperty("fromOwnerName")
+	private String fromOwnerName;
 
-    @PropertyName("toOwnerName")
-    @JsonProperty("toOwnerName")
-    private String toOwnerName;
+	@PropertyName("toOwnerName")
+	@JsonProperty("toOwnerName")
+	private String toOwnerName;
 
-    // Constructors
-    public StrategyOwnershipTransfer() {
-        super();
-    }
+	// Constructors
+	public StrategyOwnershipTransfer() {
+		super();
+	}
 
-    public StrategyOwnershipTransfer(String strategyId, String fromOwnerId, String toOwnerId,
-                                    BigDecimal purchasePrice, Integer subscribersTransferred,
-                                    BigDecimal monthlyRevenueTransferred) {
-        super();
-        this.strategyId = strategyId;
-        this.fromOwnerId = fromOwnerId;
-        this.toOwnerId = toOwnerId;
-        this.purchasePrice = purchasePrice;
-        this.subscribersTransferred = subscribersTransferred;
-        this.monthlyRevenueTransferred = monthlyRevenueTransferred;
-        this.transferredAt = Timestamp.now();
-        this.transferType = "PURCHASE";
-    }
+	public StrategyOwnershipTransfer(String strategyId, String fromOwnerId, String toOwnerId, BigDecimal purchasePrice,
+			Integer subscribersTransferred, BigDecimal monthlyRevenueTransferred) {
+		super();
+		this.strategyId = strategyId;
+		this.fromOwnerId = fromOwnerId;
+		this.toOwnerId = toOwnerId;
+		this.purchasePrice = purchasePrice;
+		this.subscribersTransferred = subscribersTransferred;
+		this.monthlyRevenueTransferred = monthlyRevenueTransferred;
+		this.transferredAt = Timestamp.now();
+		this.transferType = "PURCHASE";
+	}
 
-    // Getters and Setters
-    @Override
-    public String getId() {
-        return id;
-    }
+	// Getters and Setters
+	@Override
+	public String getId() {
+		return id;
+	}
 
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
+	@Override
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getStrategyId() {
-        return strategyId;
-    }
+	public String getStrategyId() {
+		return strategyId;
+	}
 
-    public void setStrategyId(String strategyId) {
-        this.strategyId = strategyId;
-    }
+	public void setStrategyId(String strategyId) {
+		this.strategyId = strategyId;
+	}
 
-    public String getFromOwnerId() {
-        return fromOwnerId;
-    }
+	public String getFromOwnerId() {
+		return fromOwnerId;
+	}
 
-    public void setFromOwnerId(String fromOwnerId) {
-        this.fromOwnerId = fromOwnerId;
-    }
+	public void setFromOwnerId(String fromOwnerId) {
+		this.fromOwnerId = fromOwnerId;
+	}
 
-    public String getToOwnerId() {
-        return toOwnerId;
-    }
+	public String getToOwnerId() {
+		return toOwnerId;
+	}
 
-    public void setToOwnerId(String toOwnerId) {
-        this.toOwnerId = toOwnerId;
-    }
+	public void setToOwnerId(String toOwnerId) {
+		this.toOwnerId = toOwnerId;
+	}
 
-    public BigDecimal getPurchasePrice() {
-        return purchasePrice;
-    }
+	public BigDecimal getPurchasePrice() {
+		return purchasePrice;
+	}
 
-    public void setPurchasePrice(BigDecimal purchasePrice) {
-        this.purchasePrice = purchasePrice;
-    }
+	public void setPurchasePrice(BigDecimal purchasePrice) {
+		this.purchasePrice = purchasePrice;
+	}
 
-    public String getCurrency() {
-        return currency;
-    }
+	public String getCurrency() {
+		return currency;
+	}
 
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
+	public void setCurrency(String currency) {
+		this.currency = currency;
+	}
 
-    public Timestamp getTransferredAt() {
-        return transferredAt;
-    }
+	public Timestamp getTransferredAt() {
+		return transferredAt;
+	}
 
-    public void setTransferredAt(Timestamp transferredAt) {
-        this.transferredAt = transferredAt;
-    }
+	public void setTransferredAt(Timestamp transferredAt) {
+		this.transferredAt = transferredAt;
+	}
 
-    public Integer getSubscribersTransferred() {
-        return subscribersTransferred;
-    }
+	public Integer getSubscribersTransferred() {
+		return subscribersTransferred;
+	}
 
-    public void setSubscribersTransferred(Integer subscribersTransferred) {
-        this.subscribersTransferred = subscribersTransferred;
-    }
+	public void setSubscribersTransferred(Integer subscribersTransferred) {
+		this.subscribersTransferred = subscribersTransferred;
+	}
 
-    public BigDecimal getMonthlyRevenueTransferred() {
-        return monthlyRevenueTransferred;
-    }
+	public BigDecimal getMonthlyRevenueTransferred() {
+		return monthlyRevenueTransferred;
+	}
 
-    public void setMonthlyRevenueTransferred(BigDecimal monthlyRevenueTransferred) {
-        this.monthlyRevenueTransferred = monthlyRevenueTransferred;
-    }
+	public void setMonthlyRevenueTransferred(BigDecimal monthlyRevenueTransferred) {
+		this.monthlyRevenueTransferred = monthlyRevenueTransferred;
+	}
 
-    public String getTransactionId() {
-        return transactionId;
-    }
+	public String getTransactionId() {
+		return transactionId;
+	}
 
-    public void setTransactionId(String transactionId) {
-        this.transactionId = transactionId;
-    }
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
+	}
 
-    public String getTransferType() {
-        return transferType;
-    }
+	public String getTransferType() {
+		return transferType;
+	}
 
-    public void setTransferType(String transferType) {
-        this.transferType = transferType;
-    }
+	public void setTransferType(String transferType) {
+		this.transferType = transferType;
+	}
 
-    public String getStrategyName() {
-        return strategyName;
-    }
+	public String getStrategyName() {
+		return strategyName;
+	}
 
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
+	public void setStrategyName(String strategyName) {
+		this.strategyName = strategyName;
+	}
 
-    public String getFromOwnerName() {
-        return fromOwnerName;
-    }
+	public String getFromOwnerName() {
+		return fromOwnerName;
+	}
 
-    public void setFromOwnerName(String fromOwnerName) {
-        this.fromOwnerName = fromOwnerName;
-    }
+	public void setFromOwnerName(String fromOwnerName) {
+		this.fromOwnerName = fromOwnerName;
+	}
 
-    public String getToOwnerName() {
-        return toOwnerName;
-    }
+	public String getToOwnerName() {
+		return toOwnerName;
+	}
 
-    public void setToOwnerName(String toOwnerName) {
-        this.toOwnerName = toOwnerName;
-    }
+	public void setToOwnerName(String toOwnerName) {
+		this.toOwnerName = toOwnerName;
+	}
 
-    // Helper methods
+	// Helper methods
 
-    /**
-     * Check if transfer was a purchase (paid transfer).
-     */
-    public boolean isPurchase() {
-        return "PURCHASE".equals(this.transferType) && purchasePrice != null && purchasePrice.compareTo(BigDecimal.ZERO) > 0;
-    }
+	/**
+	 * Check if transfer was a purchase (paid transfer).
+	 */
+	public boolean isPurchase() {
+		return "PURCHASE".equals(this.transferType) && purchasePrice != null
+				&& purchasePrice.compareTo(BigDecimal.ZERO) > 0;
+	}
 
-    /**
-     * Check if transfer was a gift (free transfer).
-     */
-    public boolean isGift() {
-        return "GIFT".equals(this.transferType);
-    }
+	/**
+	 * Check if transfer was a gift (free transfer).
+	 */
+	public boolean isGift() {
+		return "GIFT".equals(this.transferType);
+	}
 
-    /**
-     * Get formatted purchase price with currency.
-     */
-    public String getFormattedPrice() {
-        if (purchasePrice == null) {
-            return "Free";
-        }
-        return String.format("%s %.2f", currency, purchasePrice);
-    }
+	/**
+	 * Get formatted purchase price with currency.
+	 */
+	public String getFormattedPrice() {
+		if (purchasePrice == null) {
+			return "Free";
+		}
+		return String.format("%s %.2f", currency, purchasePrice);
+	}
 
-    @Override
-    public String toString() {
-        return "StrategyOwnershipTransfer{" +
-                "id='" + id + '\'' +
-                ", strategyId='" + strategyId + '\'' +
-                ", fromOwnerId='" + fromOwnerId + '\'' +
-                ", toOwnerId='" + toOwnerId + '\'' +
-                ", purchasePrice=" + purchasePrice +
-                ", transferredAt=" + transferredAt +
-                ", subscribersTransferred=" + subscribersTransferred +
-                ", monthlyRevenueTransferred=" + monthlyRevenueTransferred +
-                '}';
-    }
+	@Override
+	public String toString() {
+		return "StrategyOwnershipTransfer{" + "id='" + id + '\'' + ", strategyId='" + strategyId + '\''
+				+ ", fromOwnerId='" + fromOwnerId + '\'' + ", toOwnerId='" + toOwnerId + '\'' + ", purchasePrice="
+				+ purchasePrice + ", transferredAt=" + transferredAt + ", subscribersTransferred="
+				+ subscribersTransferred + ", monthlyRevenueTransferred=" + monthlyRevenueTransferred + '}';
+	}
+
 }

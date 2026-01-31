@@ -22,8 +22,8 @@ import java.util.List;
  * Client for fetching SEC filings from Financial Modeling Prep API.
  *
  * <p>
- * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig to ensure
- * proper dependency ordering.
+ * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig
+ * to ensure proper dependency ordering.
  * </p>
  *
  * <p>
@@ -99,8 +99,7 @@ public class FmpFilingsClient {
 			return Collections.emptyList();
 		}
 		catch (HttpClientErrorException ex) {
-			log.warn("FMP API error fetching SEC filings for {}: {} - {}", symbol, ex.getStatusCode(),
-					ex.getMessage());
+			log.warn("FMP API error fetching SEC filings for {}: {} - {}", symbol, ex.getStatusCode(), ex.getMessage());
 			return Collections.emptyList();
 		}
 		catch (Exception ex) {
@@ -142,8 +141,7 @@ public class FmpFilingsClient {
 		return symbols.stream()
 			.flatMap(symbol -> getFilings(symbol, fromDate, today).stream())
 			.filter(FmpSECFiling::isMajorFiling)
-			.sorted(
-					Comparator.comparing(FmpSECFiling::getFiledDate, Comparator.nullsLast(Comparator.reverseOrder())))
+			.sorted(Comparator.comparing(FmpSECFiling::getFiledDate, Comparator.nullsLast(Comparator.reverseOrder())))
 			.limit(20)
 			.toList();
 	}

@@ -18,12 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
 /**
- * Dynamic job scheduler that reads job schedules from database instead of using @Scheduled
- * annotations. This allows schedules to be updated at runtime without code changes.
+ * Dynamic job scheduler that reads job schedules from database instead of
+ * using @Scheduled annotations. This allows schedules to be updated at runtime without
+ * code changes.
  *
- * Jobs are stored in the 'jobs' table in TimescaleDB with their schedules. On startup, this
- * service reads all enabled CRON jobs and schedules them. Admins can update schedules via REST API
- * and changes take effect immediately.
+ * Jobs are stored in the 'jobs' table in TimescaleDB with their schedules. On startup,
+ * this service reads all enabled CRON jobs and schedules them. Admins can update
+ * schedules via REST API and changes take effect immediately.
  */
 @Service
 public class DynamicJobSchedulerBusiness {
@@ -39,45 +40,47 @@ public class DynamicJobSchedulerBusiness {
 	// Track scheduled tasks so we can cancel/reschedule them
 	private final Map<String, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
 
-	public DynamicJobSchedulerBusiness(TaskScheduler taskScheduler, JobDefinitionFirestoreRepository jobDefinitionRepository,
-			ApplicationContext applicationContext) {
+	public DynamicJobSchedulerBusiness(TaskScheduler taskScheduler,
+			JobDefinitionFirestoreRepository jobDefinitionRepository, ApplicationContext applicationContext) {
 		this.taskScheduler = taskScheduler;
 		this.jobDefinitionRepository = jobDefinitionRepository;
 		this.applicationContext = applicationContext;
 	}
 
 	/**
-	 * Initialize job schedules from database on application startup. Only schedules enabled CRON
-	 * jobs. Manual jobs are triggered via REST API.
+	 * Initialize job schedules from database on application startup. Only schedules
+	 * enabled CRON jobs. Manual jobs are triggered via REST API.
 	 */
 	@PostConstruct
 	public void initializeSchedules() {
-		try {
-			List<JobDefinitionFirestoreEntity> jobs = jobDefinitionRepository.findScheduledJobs();
-			log.info("Initializing dynamic job scheduler with {} jobs from database", jobs.size());
+		// Run async to avoid blocking startup if Firestore is slow
+		Thread.ofVirtual().name("job-scheduler-init").start(() -> {
+			try {
+				List<JobDefinitionFirestoreEntity> jobs = jobDefinitionRepository.findScheduledJobs();
+				log.info("Initializing dynamic job scheduler with {} jobs from database", jobs.size());
 
-			for (JobDefinitionFirestoreEntity job : jobs) {
-				try {
-					scheduleJob(job);
-					log.info("Scheduled job: {} with cron: {}", job.getJobId(), job.getScheduleCron());
+				for (JobDefinitionFirestoreEntity job : jobs) {
+					try {
+						scheduleJob(job);
+						log.info("Scheduled job: {} with cron: {}", job.getJobId(), job.getScheduleCron());
+					}
+					catch (Exception e) {
+						log.error("Failed to schedule job {}: {}", job.getJobId(), e.getMessage(), e);
+					}
 				}
-				catch (Exception e) {
-					log.error("Failed to schedule job {}: {}", job.getJobId(), e.getMessage(), e);
-				}
+
+				log.info("Dynamic job scheduler initialized with {} active schedules", scheduledTasks.size());
 			}
-
-			log.info("Dynamic job scheduler initialized with {} active schedules", scheduledTasks.size());
-		}
-		catch (Exception e) {
-			log.error("Failed to initialize dynamic job scheduler: {}. App will start without scheduled jobs.",
-					e.getMessage(), e);
-		}
+			catch (Throwable e) {
+				log.error("Failed to initialize dynamic job scheduler: {}. App running without scheduled jobs.",
+						e.getMessage(), e);
+			}
+		});
 	}
 
 	/**
-	 * Schedule a job with its cron expression. If already scheduled, cancels the old schedule
-	 * first.
-	 *
+	 * Schedule a job with its cron expression. If already scheduled, cancels the old
+	 * schedule first.
 	 * @param job Job definition with schedule
 	 */
 	public void scheduleJob(JobDefinitionFirestoreEntity job) {
@@ -94,7 +97,6 @@ public class DynamicJobSchedulerBusiness {
 
 	/**
 	 * Update the schedule for a job. Cancels old schedule and creates new one.
-	 *
 	 * @param jobId Job ID
 	 * @param newCron New cron expression
 	 */
@@ -114,7 +116,6 @@ public class DynamicJobSchedulerBusiness {
 
 	/**
 	 * Cancel a scheduled job.
-	 *
 	 * @param jobId Job ID
 	 */
 	public void cancelJob(String jobId) {
@@ -126,9 +127,8 @@ public class DynamicJobSchedulerBusiness {
 	}
 
 	/**
-	 * Execute a job by invoking its execute() method via reflection. This is called by the
-	 * scheduler when the cron trigger fires.
-	 *
+	 * Execute a job by invoking its execute() method via reflection. This is called by
+	 * the scheduler when the cron trigger fires.
 	 * @param jobId Job ID (e.g., MARKETDATA_BACKFILL)
 	 */
 	public void executeJob(String jobId) {

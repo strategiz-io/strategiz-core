@@ -7,152 +7,157 @@ import java.util.Objects;
  * Diversification metric
  */
 public class DiversificationMetric {
-    /**
-     * Diversification score from 0 (lowest) to 100 (highest)
-     */
-    private BigDecimal score;
-    
-    /**
-     * Diversification category (Poor, Fair, Good, Excellent)
-     */
-    private String category;
-    
-    /**
-     * Number of unique assets in portfolio
-     */
-    private int assetCount;
-    
-    /**
-     * Percentage of portfolio in largest single asset
-     */
-    private BigDecimal largestAllocation;
-    
-    /**
-     * Herfindahl-Hirschman Index (concentration measure)
-     */
-    private BigDecimal concentrationIndex;
 
-    // Constructors
-    public DiversificationMetric() {}
+	/**
+	 * Diversification score from 0 (lowest) to 100 (highest)
+	 */
+	private BigDecimal score;
 
-    public DiversificationMetric(BigDecimal score, String category, int assetCount,
-                               BigDecimal largestAllocation, BigDecimal concentrationIndex) {
-        this.score = score;
-        this.category = category;
-        this.assetCount = assetCount;
-        this.largestAllocation = largestAllocation;
-        this.concentrationIndex = concentrationIndex;
-    }
+	/**
+	 * Diversification category (Poor, Fair, Good, Excellent)
+	 */
+	private String category;
 
-    // Getters and Setters
-    public BigDecimal getScore() {
-        return score;
-    }
+	/**
+	 * Number of unique assets in portfolio
+	 */
+	private int assetCount;
 
-    public void setScore(BigDecimal score) {
-        this.score = score;
-    }
+	/**
+	 * Percentage of portfolio in largest single asset
+	 */
+	private BigDecimal largestAllocation;
 
-    public String getCategory() {
-        return category;
-    }
+	/**
+	 * Herfindahl-Hirschman Index (concentration measure)
+	 */
+	private BigDecimal concentrationIndex;
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+	// Constructors
+	public DiversificationMetric() {
+	}
 
-    public int getAssetCount() {
-        return assetCount;
-    }
+	public DiversificationMetric(BigDecimal score, String category, int assetCount, BigDecimal largestAllocation,
+			BigDecimal concentrationIndex) {
+		this.score = score;
+		this.category = category;
+		this.assetCount = assetCount;
+		this.largestAllocation = largestAllocation;
+		this.concentrationIndex = concentrationIndex;
+	}
 
-    public void setAssetCount(int assetCount) {
-        this.assetCount = assetCount;
-    }
+	// Getters and Setters
+	public BigDecimal getScore() {
+		return score;
+	}
 
-    public BigDecimal getLargestAllocation() {
-        return largestAllocation;
-    }
+	public void setScore(BigDecimal score) {
+		this.score = score;
+	}
 
-    public void setLargestAllocation(BigDecimal largestAllocation) {
-        this.largestAllocation = largestAllocation;
-    }
+	public String getCategory() {
+		return category;
+	}
 
-    public BigDecimal getConcentrationIndex() {
-        return concentrationIndex;
-    }
+	public void setCategory(String category) {
+		this.category = category;
+	}
 
-    public void setConcentrationIndex(BigDecimal concentrationIndex) {
-        this.concentrationIndex = concentrationIndex;
-    }
+	public int getAssetCount() {
+		return assetCount;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DiversificationMetric that = (DiversificationMetric) o;
-        return assetCount == that.assetCount &&
-               Objects.equals(score, that.score) &&
-               Objects.equals(category, that.category) &&
-               Objects.equals(largestAllocation, that.largestAllocation) &&
-               Objects.equals(concentrationIndex, that.concentrationIndex);
-    }
+	public void setAssetCount(int assetCount) {
+		this.assetCount = assetCount;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(score, category, assetCount, largestAllocation, concentrationIndex);
-    }
+	public BigDecimal getLargestAllocation() {
+		return largestAllocation;
+	}
 
-    @Override
-    public String toString() {
-        return "DiversificationMetric{" +
-               "score=" + score +
-               ", category='" + category + '\'' +
-               ", assetCount=" + assetCount +
-               ", largestAllocation=" + largestAllocation +
-               ", concentrationIndex=" + concentrationIndex +
-               '}';
-    }
+	public void setLargestAllocation(BigDecimal largestAllocation) {
+		this.largestAllocation = largestAllocation;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public BigDecimal getConcentrationIndex() {
+		return concentrationIndex;
+	}
 
-    public static class Builder {
-        private BigDecimal score;
-        private String category;
-        private int assetCount;
-        private BigDecimal largestAllocation;
-        private BigDecimal concentrationIndex;
+	public void setConcentrationIndex(BigDecimal concentrationIndex) {
+		this.concentrationIndex = concentrationIndex;
+	}
 
-        public Builder withScore(BigDecimal score) {
-            this.score = score;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		DiversificationMetric that = (DiversificationMetric) o;
+		return assetCount == that.assetCount && Objects.equals(score, that.score)
+				&& Objects.equals(category, that.category) && Objects.equals(largestAllocation, that.largestAllocation)
+				&& Objects.equals(concentrationIndex, that.concentrationIndex);
+	}
 
-        public Builder withCategory(String category) {
-            this.category = category;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(score, category, assetCount, largestAllocation, concentrationIndex);
+	}
 
-        public Builder withAssetCount(int assetCount) {
-            this.assetCount = assetCount;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "DiversificationMetric{" + "score=" + score + ", category='" + category + '\'' + ", assetCount="
+				+ assetCount + ", largestAllocation=" + largestAllocation + ", concentrationIndex=" + concentrationIndex
+				+ '}';
+	}
 
-        public Builder withLargestAllocation(BigDecimal largestAllocation) {
-            this.largestAllocation = largestAllocation;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withConcentrationIndex(BigDecimal concentrationIndex) {
-            this.concentrationIndex = concentrationIndex;
-            return this;
-        }
+	public static class Builder {
 
-        public DiversificationMetric build() {
-            return new DiversificationMetric(score, category, assetCount, largestAllocation, concentrationIndex);
-        }
-    }
+		private BigDecimal score;
+
+		private String category;
+
+		private int assetCount;
+
+		private BigDecimal largestAllocation;
+
+		private BigDecimal concentrationIndex;
+
+		public Builder withScore(BigDecimal score) {
+			this.score = score;
+			return this;
+		}
+
+		public Builder withCategory(String category) {
+			this.category = category;
+			return this;
+		}
+
+		public Builder withAssetCount(int assetCount) {
+			this.assetCount = assetCount;
+			return this;
+		}
+
+		public Builder withLargestAllocation(BigDecimal largestAllocation) {
+			this.largestAllocation = largestAllocation;
+			return this;
+		}
+
+		public Builder withConcentrationIndex(BigDecimal concentrationIndex) {
+			this.concentrationIndex = concentrationIndex;
+			return this;
+		}
+
+		public DiversificationMetric build() {
+			return new DiversificationMetric(score, category, assetCount, largestAllocation, concentrationIndex);
+		}
+
+	}
+
 }

@@ -6,261 +6,274 @@ import com.google.cloud.Timestamp;
 import java.util.List;
 
 /**
- * Entity to cache AI-generated portfolio insights.
- * Stored at: users/{userId}/portfolio/insights/cached
+ * Entity to cache AI-generated portfolio insights. Stored at:
+ * users/{userId}/portfolio/insights/cached
  *
- * Cache is invalidated when:
- * - Provider sync occurs (new data fetched)
- * - Provider is connected
- * - Provider is disconnected
- * - TTL expires (24 hours as fallback)
+ * Cache is invalidated when: - Provider sync occurs (new data fetched) - Provider is
+ * connected - Provider is disconnected - TTL expires (24 hours as fallback)
  */
 public class PortfolioInsightsCacheEntity extends BaseEntity {
 
-    /**
-     * Document ID (typically "cached" since this is a singleton per user)
-     */
-    private String id;
+	/**
+	 * Document ID (typically "cached" since this is a singleton per user)
+	 */
+	private String id;
 
-    /**
-     * List of cached insight objects
-     */
-    private List<CachedInsight> insights;
+	/**
+	 * List of cached insight objects
+	 */
+	private List<CachedInsight> insights;
 
-    /**
-     * Timestamp when cache was generated
-     */
-    private Timestamp generatedAt;
+	/**
+	 * Timestamp when cache was generated
+	 */
+	private Timestamp generatedAt;
 
-    /**
-     * Timestamp when cache expires (24 hours after generation)
-     */
-    private Timestamp expiresAt;
+	/**
+	 * Timestamp when cache expires (24 hours after generation)
+	 */
+	private Timestamp expiresAt;
 
-    /**
-     * Model used to generate insights
-     */
-    private String model;
+	/**
+	 * Model used to generate insights
+	 */
+	private String model;
 
-    /**
-     * Hash of portfolio data at time of generation (for validation)
-     */
-    private String portfolioHash;
+	/**
+	 * Hash of portfolio data at time of generation (for validation)
+	 */
+	private String portfolioHash;
 
-    /**
-     * Whether cache is valid (not expired and portfolio hasn't changed)
-     */
-    private Boolean isValid;
+	/**
+	 * Whether cache is valid (not expired and portfolio hasn't changed)
+	 */
+	private Boolean isValid;
 
-    // Default constructor
-    public PortfolioInsightsCacheEntity() {
-    }
+	// Default constructor
+	public PortfolioInsightsCacheEntity() {
+	}
 
-    // Abstract method implementations from BaseEntity
-    @Override
-    public String getId() {
-        return id;
-    }
+	// Abstract method implementations from BaseEntity
+	@Override
+	public String getId() {
+		return id;
+	}
 
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
+	@Override
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    // Getters and setters
-    public List<CachedInsight> getInsights() {
-        return insights;
-    }
+	// Getters and setters
+	public List<CachedInsight> getInsights() {
+		return insights;
+	}
 
-    public void setInsights(List<CachedInsight> insights) {
-        this.insights = insights;
-    }
+	public void setInsights(List<CachedInsight> insights) {
+		this.insights = insights;
+	}
 
-    public Timestamp getGeneratedAt() {
-        return generatedAt;
-    }
+	public Timestamp getGeneratedAt() {
+		return generatedAt;
+	}
 
-    public void setGeneratedAt(Timestamp generatedAt) {
-        this.generatedAt = generatedAt;
-    }
+	public void setGeneratedAt(Timestamp generatedAt) {
+		this.generatedAt = generatedAt;
+	}
 
-    public Timestamp getExpiresAt() {
-        return expiresAt;
-    }
+	public Timestamp getExpiresAt() {
+		return expiresAt;
+	}
 
-    public void setExpiresAt(Timestamp expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public void setExpiresAt(Timestamp expiresAt) {
+		this.expiresAt = expiresAt;
+	}
 
-    public String getModel() {
-        return model;
-    }
+	public String getModel() {
+		return model;
+	}
 
-    public void setModel(String model) {
-        this.model = model;
-    }
+	public void setModel(String model) {
+		this.model = model;
+	}
 
-    public String getPortfolioHash() {
-        return portfolioHash;
-    }
+	public String getPortfolioHash() {
+		return portfolioHash;
+	}
 
-    public void setPortfolioHash(String portfolioHash) {
-        this.portfolioHash = portfolioHash;
-    }
+	public void setPortfolioHash(String portfolioHash) {
+		this.portfolioHash = portfolioHash;
+	}
 
-    public Boolean getIsValid() {
-        return isValid;
-    }
+	public Boolean getIsValid() {
+		return isValid;
+	}
 
-    public void setIsValid(Boolean isValid) {
-        this.isValid = isValid;
-    }
+	public void setIsValid(Boolean isValid) {
+		this.isValid = isValid;
+	}
 
-    /**
-     * Check if cache is still valid (not expired)
-     */
-    public boolean isCacheValid() {
-        if (Boolean.FALSE.equals(isValid)) {
-            return false;
-        }
-        if (expiresAt == null) {
-            return false;
-        }
-        return Timestamp.now().compareTo(expiresAt) < 0;
-    }
+	/**
+	 * Check if cache is still valid (not expired)
+	 */
+	public boolean isCacheValid() {
+		if (Boolean.FALSE.equals(isValid)) {
+			return false;
+		}
+		if (expiresAt == null) {
+			return false;
+		}
+		return Timestamp.now().compareTo(expiresAt) < 0;
+	}
 
-    /**
-     * Represents a single cached insight
-     */
-    public static class CachedInsight {
-        private String type;
-        private String title;
-        private String summary;
-        private String content;
-        private String riskLevel;
-        private List<ActionItem> actionItems;
-        private Long generatedAtEpoch;
-        private String model;
-        private Boolean success;
-        private String error;
+	/**
+	 * Represents a single cached insight
+	 */
+	public static class CachedInsight {
 
-        public CachedInsight() {
-        }
+		private String type;
 
-        public String getType() {
-            return type;
-        }
+		private String title;
 
-        public void setType(String type) {
-            this.type = type;
-        }
+		private String summary;
 
-        public String getTitle() {
-            return title;
-        }
+		private String content;
 
-        public void setTitle(String title) {
-            this.title = title;
-        }
+		private String riskLevel;
 
-        public String getSummary() {
-            return summary;
-        }
+		private List<ActionItem> actionItems;
 
-        public void setSummary(String summary) {
-            this.summary = summary;
-        }
+		private Long generatedAtEpoch;
 
-        public String getContent() {
-            return content;
-        }
+		private String model;
 
-        public void setContent(String content) {
-            this.content = content;
-        }
+		private Boolean success;
 
-        public String getRiskLevel() {
-            return riskLevel;
-        }
+		private String error;
 
-        public void setRiskLevel(String riskLevel) {
-            this.riskLevel = riskLevel;
-        }
+		public CachedInsight() {
+		}
 
-        public List<ActionItem> getActionItems() {
-            return actionItems;
-        }
+		public String getType() {
+			return type;
+		}
 
-        public void setActionItems(List<ActionItem> actionItems) {
-            this.actionItems = actionItems;
-        }
+		public void setType(String type) {
+			this.type = type;
+		}
 
-        public Long getGeneratedAtEpoch() {
-            return generatedAtEpoch;
-        }
+		public String getTitle() {
+			return title;
+		}
 
-        public void setGeneratedAtEpoch(Long generatedAtEpoch) {
-            this.generatedAtEpoch = generatedAtEpoch;
-        }
+		public void setTitle(String title) {
+			this.title = title;
+		}
 
-        public String getModel() {
-            return model;
-        }
+		public String getSummary() {
+			return summary;
+		}
 
-        public void setModel(String model) {
-            this.model = model;
-        }
+		public void setSummary(String summary) {
+			this.summary = summary;
+		}
 
-        public Boolean getSuccess() {
-            return success;
-        }
+		public String getContent() {
+			return content;
+		}
 
-        public void setSuccess(Boolean success) {
-            this.success = success;
-        }
+		public void setContent(String content) {
+			this.content = content;
+		}
 
-        public String getError() {
-            return error;
-        }
+		public String getRiskLevel() {
+			return riskLevel;
+		}
 
-        public void setError(String error) {
-            this.error = error;
-        }
-    }
+		public void setRiskLevel(String riskLevel) {
+			this.riskLevel = riskLevel;
+		}
 
-    /**
-     * Represents an action item within an insight
-     */
-    public static class ActionItem {
-        private String action;
-        private String rationale;
-        private String priority;
+		public List<ActionItem> getActionItems() {
+			return actionItems;
+		}
 
-        public ActionItem() {
-        }
+		public void setActionItems(List<ActionItem> actionItems) {
+			this.actionItems = actionItems;
+		}
 
-        public String getAction() {
-            return action;
-        }
+		public Long getGeneratedAtEpoch() {
+			return generatedAtEpoch;
+		}
 
-        public void setAction(String action) {
-            this.action = action;
-        }
+		public void setGeneratedAtEpoch(Long generatedAtEpoch) {
+			this.generatedAtEpoch = generatedAtEpoch;
+		}
 
-        public String getRationale() {
-            return rationale;
-        }
+		public String getModel() {
+			return model;
+		}
 
-        public void setRationale(String rationale) {
-            this.rationale = rationale;
-        }
+		public void setModel(String model) {
+			this.model = model;
+		}
 
-        public String getPriority() {
-            return priority;
-        }
+		public Boolean getSuccess() {
+			return success;
+		}
 
-        public void setPriority(String priority) {
-            this.priority = priority;
-        }
-    }
+		public void setSuccess(Boolean success) {
+			this.success = success;
+		}
+
+		public String getError() {
+			return error;
+		}
+
+		public void setError(String error) {
+			this.error = error;
+		}
+
+	}
+
+	/**
+	 * Represents an action item within an insight
+	 */
+	public static class ActionItem {
+
+		private String action;
+
+		private String rationale;
+
+		private String priority;
+
+		public ActionItem() {
+		}
+
+		public String getAction() {
+			return action;
+		}
+
+		public void setAction(String action) {
+			this.action = action;
+		}
+
+		public String getRationale() {
+			return rationale;
+		}
+
+		public void setRationale(String rationale) {
+			this.rationale = rationale;
+		}
+
+		public String getPriority() {
+			return priority;
+		}
+
+		public void setPriority(String priority) {
+			this.priority = priority;
+		}
+
+	}
+
 }

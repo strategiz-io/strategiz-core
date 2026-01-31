@@ -22,16 +22,13 @@ import java.util.List;
  * Service for collecting company fundamentals data from Financial Modeling Prep (FMP).
  *
  * <p>
- * Responsibilities:
- * - Fetch fundamentals for multiple symbols in batches
- * - Convert FMP DTOs to fundamentals entities
- * - Save to data repository with batch operations
- * - Track success/failure for each symbol
+ * Responsibilities: - Fetch fundamentals for multiple symbols in batches - Convert FMP
+ * DTOs to fundamentals entities - Save to data repository with batch operations - Track
+ * success/failure for each symbol
  * </p>
  *
  * <p>
- * Configuration (application.properties):
- * <pre>
+ * Configuration (application.properties): <pre>
  * strategiz.fmp.enabled=true
  * fmp.api-key=your-api-key
  * fundamentals.batch.delay-ms=150
@@ -56,10 +53,8 @@ public class FundamentalsCollectionService {
 	private CollectionResult currentJobStatus;
 
 	@Autowired
-	public FundamentalsCollectionService(
-			@Autowired(required = false) FmpFundamentalsClient fmpClient,
-			@Autowired(required = false) FmpFundamentalsConverter fmpConverter,
-			FundamentalsRepository repository) {
+	public FundamentalsCollectionService(@Autowired(required = false) FmpFundamentalsClient fmpClient,
+			@Autowired(required = false) FmpFundamentalsConverter fmpConverter, FundamentalsRepository repository) {
 		this.fmpClient = fmpClient;
 		this.fmpConverter = fmpConverter;
 		this.repository = repository;
@@ -67,7 +62,6 @@ public class FundamentalsCollectionService {
 
 	/**
 	 * Update fundamentals for all provided symbols.
-	 *
 	 * @param symbols List of stock symbols to fetch
 	 * @return CollectionResult with statistics
 	 */
@@ -121,8 +115,8 @@ public class FundamentalsCollectionService {
 		catch (Exception ex) {
 			result.complete();
 			log.error("Fundamentals collection failed", ex);
-			throw new StrategizException(FundamentalsErrorDetails.COLLECTION_FAILED,
-					"Failed to collect fundamentals", ex);
+			throw new StrategizException(FundamentalsErrorDetails.COLLECTION_FAILED, "Failed to collect fundamentals",
+					ex);
 		}
 		finally {
 			this.currentJobStatus = null;
@@ -131,7 +125,6 @@ public class FundamentalsCollectionService {
 
 	/**
 	 * Process a single symbol: fetch from FMP, convert, save.
-	 *
 	 * @param symbol Stock symbol
 	 * @return SymbolResult indicating success or failure
 	 */
@@ -164,7 +157,6 @@ public class FundamentalsCollectionService {
 
 	/**
 	 * Get current job status (for real-time monitoring).
-	 *
 	 * @return Current CollectionResult or null if no job running
 	 */
 	public CollectionResult getCurrentJobStatus() {
@@ -173,7 +165,6 @@ public class FundamentalsCollectionService {
 
 	/**
 	 * Batch save entities (used for bulk operations).
-	 *
 	 * @param entities List of entities to save
 	 */
 	public void batchSave(List<FundamentalsEntity> entities) {

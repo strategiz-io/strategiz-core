@@ -9,12 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Orchestrator that runs all registered {@link RiskSignalProvider} beans
- * and aggregates their scores into a single {@link RiskAssessmentResult}.
+ * Orchestrator that runs all registered {@link RiskSignalProvider} beans and aggregates
+ * their scores into a single {@link RiskAssessmentResult}.
  *
- * <p>Providers are auto-discovered via Spring component scanning.
- * Adding a new risk check = creating a new {@code @Component} that implements
- * {@link RiskSignalProvider}.</p>
+ * <p>
+ * Providers are auto-discovered via Spring component scanning. Adding a new risk check =
+ * creating a new {@code @Component} that implements {@link RiskSignalProvider}.
+ * </p>
  */
 @Component
 public class RiskAssessmentBusiness {

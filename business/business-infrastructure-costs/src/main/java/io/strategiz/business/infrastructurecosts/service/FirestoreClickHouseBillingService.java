@@ -18,9 +18,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
- * Service for managing ClickHouseDB billing data in Firestore.
- * Replaces ClickHouseBillingClient by storing and retrieving billing data from Firestore
- * instead of querying the ClickHouseDB Cloud API.
+ * Service for managing ClickHouseDB billing data in Firestore. Replaces
+ * ClickHouseBillingClient by storing and retrieving billing data from Firestore instead
+ * of querying the ClickHouseDB Cloud API.
  */
 @Service
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
@@ -66,10 +66,8 @@ public class FirestoreClickHouseBillingService {
 
 		for (ClickHouseCostEntity entity : costs) {
 			totalCost = totalCost.add(entity.getTotalCost() != null ? entity.getTotalCost() : BigDecimal.ZERO);
-			computeCost = computeCost
-				.add(entity.getComputeCost() != null ? entity.getComputeCost() : BigDecimal.ZERO);
-			storageCost = storageCost
-				.add(entity.getStorageCost() != null ? entity.getStorageCost() : BigDecimal.ZERO);
+			computeCost = computeCost.add(entity.getComputeCost() != null ? entity.getComputeCost() : BigDecimal.ZERO);
+			storageCost = storageCost.add(entity.getStorageCost() != null ? entity.getStorageCost() : BigDecimal.ZERO);
 			storageUsageGb = storageUsageGb
 				.add(entity.getStorageUsageGb() != null ? entity.getStorageUsageGb() : BigDecimal.ZERO);
 			computeHours = computeHours

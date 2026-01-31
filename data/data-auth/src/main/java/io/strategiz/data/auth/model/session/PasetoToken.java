@@ -4,195 +4,209 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * PASETO token model for business layer
- * This is a business domain object that represents a PASETO token
+ * PASETO token model for business layer This is a business domain object that represents
+ * a PASETO token
  */
 public class PasetoToken {
-    
-    private String id;
-    private String userId;
-    private String tokenType;
-    private String tokenValue;
-    private long issuedAt;
-    private long expiresAt;
-    private String deviceId;
-    private String issuedFrom;
-    private boolean revoked;
-    private long revokedAt;
-    private String revocationReason;
-    private Map<String, Object> claims;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public PasetoToken() {
-        this.revoked = false;
-    }
+	private String userId;
 
-    // === BUILDER PATTERN ===
+	private String tokenType;
 
-    public static Builder builder() {
-        return new Builder();
-    }
+	private String tokenValue;
 
-    public static class Builder {
-        private PasetoToken token = new PasetoToken();
+	private long issuedAt;
 
-        public Builder id(String id) {
-            token.id = id;
-            return this;
-        }
+	private long expiresAt;
 
-        public Builder userId(String userId) {
-            token.userId = userId;
-            return this;
-        }
+	private String deviceId;
 
-        public Builder tokenType(String tokenType) {
-            token.tokenType = tokenType;
-            return this;
-        }
+	private String issuedFrom;
 
-        public Builder tokenValue(String tokenValue) {
-            token.tokenValue = tokenValue;
-            return this;
-        }
+	private boolean revoked;
 
-        public Builder issuedAt(long issuedAt) {
-            token.issuedAt = issuedAt;
-            return this;
-        }
+	private long revokedAt;
 
-        public Builder expiresAt(long expiresAt) {
-            token.expiresAt = expiresAt;
-            return this;
-        }
+	private String revocationReason;
 
-        public Builder deviceId(String deviceId) {
-            token.deviceId = deviceId;
-            return this;
-        }
+	private Map<String, Object> claims;
 
-        public Builder issuedFrom(String issuedFrom) {
-            token.issuedFrom = issuedFrom;
-            return this;
-        }
+	// === CONSTRUCTORS ===
 
-        public Builder revoked(boolean revoked) {
-            token.revoked = revoked;
-            return this;
-        }
+	public PasetoToken() {
+		this.revoked = false;
+	}
 
-        public Builder claims(Map<String, Object> claims) {
-            token.claims = claims;
-            return this;
-        }
+	// === BUILDER PATTERN ===
 
-        public PasetoToken build() {
-            return token;
-        }
-    }
+	public static Builder builder() {
+		return new Builder();
+	}
 
-    // === CONVENIENCE METHODS ===
+	public static class Builder {
 
-    public boolean isValid() {
-        return !revoked && (expiresAt == 0 || Instant.ofEpochSecond(expiresAt).isAfter(Instant.now()));
-    }
+		private PasetoToken token = new PasetoToken();
 
-    public void setRevoked(boolean revoked) {
-        this.revoked = revoked;
-    }
+		public Builder id(String id) {
+			token.id = id;
+			return this;
+		}
 
-    public void setRevokedAt(long revokedAt) {
-        this.revokedAt = revokedAt;
-    }
+		public Builder userId(String userId) {
+			token.userId = userId;
+			return this;
+		}
 
-    public void setRevocationReason(String revocationReason) {
-        this.revocationReason = revocationReason;
-    }
+		public Builder tokenType(String tokenType) {
+			token.tokenType = tokenType;
+			return this;
+		}
 
-    // === GETTERS AND SETTERS ===
+		public Builder tokenValue(String tokenValue) {
+			token.tokenValue = tokenValue;
+			return this;
+		}
 
-    public String getId() {
-        return id;
-    }
+		public Builder issuedAt(long issuedAt) {
+			token.issuedAt = issuedAt;
+			return this;
+		}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+		public Builder expiresAt(long expiresAt) {
+			token.expiresAt = expiresAt;
+			return this;
+		}
 
-    public String getUserId() {
-        return userId;
-    }
+		public Builder deviceId(String deviceId) {
+			token.deviceId = deviceId;
+			return this;
+		}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+		public Builder issuedFrom(String issuedFrom) {
+			token.issuedFrom = issuedFrom;
+			return this;
+		}
 
-    public String getTokenType() {
-        return tokenType;
-    }
+		public Builder revoked(boolean revoked) {
+			token.revoked = revoked;
+			return this;
+		}
 
-    public void setTokenType(String tokenType) {
-        this.tokenType = tokenType;
-    }
+		public Builder claims(Map<String, Object> claims) {
+			token.claims = claims;
+			return this;
+		}
 
-    public String getTokenValue() {
-        return tokenValue;
-    }
+		public PasetoToken build() {
+			return token;
+		}
 
-    public void setTokenValue(String tokenValue) {
-        this.tokenValue = tokenValue;
-    }
+	}
 
-    public long getIssuedAt() {
-        return issuedAt;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public void setIssuedAt(long issuedAt) {
-        this.issuedAt = issuedAt;
-    }
+	public boolean isValid() {
+		return !revoked && (expiresAt == 0 || Instant.ofEpochSecond(expiresAt).isAfter(Instant.now()));
+	}
 
-    public long getExpiresAt() {
-        return expiresAt;
-    }
+	public void setRevoked(boolean revoked) {
+		this.revoked = revoked;
+	}
 
-    public void setExpiresAt(long expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public void setRevokedAt(long revokedAt) {
+		this.revokedAt = revokedAt;
+	}
 
-    public String getDeviceId() {
-        return deviceId;
-    }
+	public void setRevocationReason(String revocationReason) {
+		this.revocationReason = revocationReason;
+	}
 
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public String getIssuedFrom() {
-        return issuedFrom;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setIssuedFrom(String issuedFrom) {
-        this.issuedFrom = issuedFrom;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public boolean isRevoked() {
-        return revoked;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public long getRevokedAt() {
-        return revokedAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public String getRevocationReason() {
-        return revocationReason;
-    }
+	public String getTokenType() {
+		return tokenType;
+	}
 
-    public Map<String, Object> getClaims() {
-        return claims;
-    }
+	public void setTokenType(String tokenType) {
+		this.tokenType = tokenType;
+	}
 
-    public void setClaims(Map<String, Object> claims) {
-        this.claims = claims;
-    }
+	public String getTokenValue() {
+		return tokenValue;
+	}
+
+	public void setTokenValue(String tokenValue) {
+		this.tokenValue = tokenValue;
+	}
+
+	public long getIssuedAt() {
+		return issuedAt;
+	}
+
+	public void setIssuedAt(long issuedAt) {
+		this.issuedAt = issuedAt;
+	}
+
+	public long getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(long expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public String getDeviceId() {
+		return deviceId;
+	}
+
+	public void setDeviceId(String deviceId) {
+		this.deviceId = deviceId;
+	}
+
+	public String getIssuedFrom() {
+		return issuedFrom;
+	}
+
+	public void setIssuedFrom(String issuedFrom) {
+		this.issuedFrom = issuedFrom;
+	}
+
+	public boolean isRevoked() {
+		return revoked;
+	}
+
+	public long getRevokedAt() {
+		return revokedAt;
+	}
+
+	public String getRevocationReason() {
+		return revocationReason;
+	}
+
+	public Map<String, Object> getClaims() {
+		return claims;
+	}
+
+	public void setClaims(Map<String, Object> claims) {
+		this.claims = claims;
+	}
+
 }

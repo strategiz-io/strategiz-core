@@ -5,59 +5,64 @@ package io.strategiz.business.strategy.execution.model;
  */
 public class SignalData {
 
-    private String timestamp;
-    private String type; // BUY, SELL, HOLD
-    private double price;
-    private double quantity;
-    private String reason;
+	private String timestamp;
 
-    public SignalData() {
-    }
+	private String type; // BUY, SELL, HOLD
 
-    public SignalData(String timestamp, String type, double price) {
-        this.timestamp = timestamp;
-        this.type = type;
-        this.price = price;
-    }
+	private double price;
 
-    // Getters and Setters
-    public String getTimestamp() {
-        return timestamp;
-    }
+	private double quantity;
 
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
-    }
+	private String reason;
 
-    public String getType() {
-        return type;
-    }
+	public SignalData() {
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public SignalData(String timestamp, String type, double price) {
+		this.timestamp = timestamp;
+		this.type = type;
+		this.price = price;
+	}
 
-    public double getPrice() {
-        return price;
-    }
+	// Getters and Setters
+	public String getTimestamp() {
+		return timestamp;
+	}
 
-    public void setPrice(double price) {
-        this.price = price;
-    }
+	public void setTimestamp(String timestamp) {
+		this.timestamp = timestamp;
+	}
 
-    public double getQuantity() {
-        return quantity;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setQuantity(double quantity) {
-        this.quantity = quantity;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public String getReason() {
-        return reason;
-    }
+	public double getPrice() {
+		return price;
+	}
 
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
+	public void setPrice(double price) {
+		this.price = price;
+	}
+
+	public double getQuantity() {
+		return quantity;
+	}
+
+	public void setQuantity(double quantity) {
+		this.quantity = quantity;
+	}
+
+	public String getReason() {
+		return reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
+	}
+
 }

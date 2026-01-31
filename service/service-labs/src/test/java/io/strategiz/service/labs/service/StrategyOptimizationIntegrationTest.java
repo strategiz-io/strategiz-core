@@ -27,10 +27,9 @@ import static org.mockito.Mockito.*;
 /**
  * Integration tests for Strategy Optimization Engine.
  *
- * These tests verify that the optimization engine:
- * 1. Finds strategies that beat buy-and-hold returns
- * 2. Ranks strategies correctly by total return
- * 3. Works across different market conditions (trending, sideways, volatile)
+ * These tests verify that the optimization engine: 1. Finds strategies that beat
+ * buy-and-hold returns 2. Ranks strategies correctly by total return 3. Works across
+ * different market conditions (trending, sideways, volatile)
  *
  * Uses simulated market data that mimics real market behavior.
  */
@@ -48,9 +47,12 @@ class StrategyOptimizationIntegrationTest {
 	private StrategyOptimizationEngine optimizationEngine;
 
 	// Simulated market scenarios
-	private static final double TRENDING_UP_BUY_HOLD = 85.0;    // Strong uptrend
-	private static final double SIDEWAYS_BUY_HOLD = 5.0;        // Choppy sideways
-	private static final double VOLATILE_BUY_HOLD = -15.0;      // Volatile with drawdowns
+	private static final double TRENDING_UP_BUY_HOLD = 85.0; // Strong uptrend
+
+	private static final double SIDEWAYS_BUY_HOLD = 5.0; // Choppy sideways
+
+	private static final double VOLATILE_BUY_HOLD = -15.0; // Volatile with drawdowns
+
 	private static final double TRENDING_DOWN_BUY_HOLD = -25.0; // Downtrend
 
 	@BeforeEach
@@ -77,12 +79,13 @@ class StrategyOptimizationIntegrationTest {
 			double bestReturn = result.getBestStrategy().getTotalReturn();
 			double buyHoldReturn = result.getBuyAndHoldReturn();
 
-			System.out.printf("AAPL Trending Up: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
-					result.getBestStrategy().getStrategyType().getDisplayName(),
-					bestReturn, buyHoldReturn, result.getOutperformance());
+			System.out.printf(
+					"AAPL Trending Up: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
+					result.getBestStrategy().getStrategyType().getDisplayName(), bestReturn, buyHoldReturn,
+					result.getOutperformance());
 
-			assertTrue(bestReturn > buyHoldReturn,
-					String.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
+			assertTrue(bestReturn > buyHoldReturn, String
+				.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
 			assertTrue(result.getOutperformance() > 0, "Outperformance should be positive");
 
 			// In trending market, expect trend-following strategies to do well
@@ -106,6 +109,7 @@ class StrategyOptimizationIntegrationTest {
 			assertTrue(outperformance >= 15.0,
 					String.format("Should outperform by at least 15%%, actual: %.2f%%", outperformance));
 		}
+
 	}
 
 	@Nested
@@ -126,12 +130,13 @@ class StrategyOptimizationIntegrationTest {
 			double bestReturn = result.getBestStrategy().getTotalReturn();
 			double buyHoldReturn = result.getBuyAndHoldReturn();
 
-			System.out.printf("SPY Sideways: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
-					result.getBestStrategy().getStrategyType().getDisplayName(),
-					bestReturn, buyHoldReturn, result.getOutperformance());
+			System.out.printf(
+					"SPY Sideways: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
+					result.getBestStrategy().getStrategyType().getDisplayName(), bestReturn, buyHoldReturn,
+					result.getOutperformance());
 
-			assertTrue(bestReturn > buyHoldReturn,
-					String.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
+			assertTrue(bestReturn > buyHoldReturn, String
+				.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
 
 			// In sideways market, mean reversion strategies should dominate
 			assertEquals("SIDEWAYS", result.getMarketRegime(), "Should detect sideways market");
@@ -145,18 +150,20 @@ class StrategyOptimizationIntegrationTest {
 			OptimizationResult result = optimizationEngine.optimize("SPY", "1D", "3y", "test-user");
 
 			// Check top 3 strategies - expect mean reversion types
-			List<StrategyTestResult> top3 = result.getTopStrategies().subList(0, Math.min(3, result.getTopStrategies().size()));
+			List<StrategyTestResult> top3 = result.getTopStrategies()
+				.subList(0, Math.min(3, result.getTopStrategies().size()));
 
 			long meanReversionCount = top3.stream()
-					.filter(s -> s.getStrategyType() == StrategyType.RSI_MEAN_REVERSION ||
-							s.getStrategyType() == StrategyType.BOLLINGER_MEAN_REVERSION ||
-							s.getStrategyType() == StrategyType.STOCHASTIC)
-					.count();
+				.filter(s -> s.getStrategyType() == StrategyType.RSI_MEAN_REVERSION
+						|| s.getStrategyType() == StrategyType.BOLLINGER_MEAN_REVERSION
+						|| s.getStrategyType() == StrategyType.STOCHASTIC)
+				.count();
 
 			System.out.printf("SPY Sideways: Top 3 strategies have %d mean reversion types%n", meanReversionCount);
 
 			assertTrue(meanReversionCount >= 1, "At least 1 of top 3 should be mean reversion in sideways market");
 		}
+
 	}
 
 	@Nested
@@ -177,12 +184,13 @@ class StrategyOptimizationIntegrationTest {
 			double bestReturn = result.getBestStrategy().getTotalReturn();
 			double buyHoldReturn = result.getBuyAndHoldReturn();
 
-			System.out.printf("TSLA Volatile: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
-					result.getBestStrategy().getStrategyType().getDisplayName(),
-					bestReturn, buyHoldReturn, result.getOutperformance());
+			System.out.printf(
+					"TSLA Volatile: Best Strategy = %s, Return = %.2f%%, Buy&Hold = %.2f%%, Outperformance = %.2f%%%n",
+					result.getBestStrategy().getStrategyType().getDisplayName(), bestReturn, buyHoldReturn,
+					result.getOutperformance());
 
-			assertTrue(bestReturn > buyHoldReturn,
-					String.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
+			assertTrue(bestReturn > buyHoldReturn, String
+				.format("Best strategy (%.2f%%) should beat buy-and-hold (%.2f%%)", bestReturn, buyHoldReturn));
 
 			// Even in down market, strategy should be positive or at least less negative
 			assertTrue(bestReturn > VOLATILE_BUY_HOLD,
@@ -206,6 +214,7 @@ class StrategyOptimizationIntegrationTest {
 			assertTrue(best.getSharpeRatio() > 0.5, "Sharpe ratio should be > 0.5");
 			assertTrue(best.getMaxDrawdown() < 40.0, "Max drawdown should be < 40%");
 		}
+
 	}
 
 	@Nested
@@ -226,12 +235,13 @@ class StrategyOptimizationIntegrationTest {
 			double bestReturn = result.getBestStrategy().getTotalReturn();
 
 			System.out.printf("BTC Crypto: Best Strategy = %s, Return = %.2f%%, Trades = %d%n",
-					result.getBestStrategy().getStrategyType().getDisplayName(),
-					bestReturn, result.getBestStrategy().getTotalTrades());
+					result.getBestStrategy().getStrategyType().getDisplayName(), bestReturn,
+					result.getBestStrategy().getTotalTrades());
 
 			// Strategy should generate meaningful trades
 			assertTrue(result.getBestStrategy().getTotalTrades() >= 5, "Should have at least 5 trades");
 		}
+
 	}
 
 	@Nested
@@ -241,8 +251,8 @@ class StrategyOptimizationIntegrationTest {
 		@Test
 		@DisplayName("Should beat buy-and-hold across multiple symbols")
 		void shouldBeatBuyAndHoldAcrossSymbols() {
-			String[] symbols = {"AAPL", "MSFT", "GOOGL", "AMZN"};
-			double[] buyHoldReturns = {85.0, 60.0, 45.0, 30.0};
+			String[] symbols = { "AAPL", "MSFT", "GOOGL", "AMZN" };
+			double[] buyHoldReturns = { 85.0, 60.0, 45.0, 30.0 };
 
 			int beatenCount = 0;
 
@@ -253,10 +263,10 @@ class StrategyOptimizationIntegrationTest {
 
 				if (result.getBestStrategy() != null && result.getOutperformance() > 0) {
 					beatenCount++;
-					System.out.printf("%s: BEAT buy-and-hold by %.2f%% (%s)%n",
-							symbols[i], result.getOutperformance(),
+					System.out.printf("%s: BEAT buy-and-hold by %.2f%% (%s)%n", symbols[i], result.getOutperformance(),
 							result.getBestStrategy().getStrategyType().getDisplayName());
-				} else {
+				}
+				else {
 					System.out.printf("%s: DID NOT beat buy-and-hold%n", symbols[i]);
 				}
 			}
@@ -265,9 +275,10 @@ class StrategyOptimizationIntegrationTest {
 			double beatRate = (double) beatenCount / symbols.length;
 			System.out.printf("Beat rate: %d/%d (%.0f%%)%n", beatenCount, symbols.length, beatRate * 100);
 
-			assertTrue(beatRate >= 0.75,
-					String.format("Should beat buy-and-hold for at least 75%% of symbols, actual: %.0f%%", beatRate * 100));
+			assertTrue(beatRate >= 0.75, String
+				.format("Should beat buy-and-hold for at least 75%% of symbols, actual: %.0f%%", beatRate * 100));
 		}
+
 	}
 
 	@Nested
@@ -280,20 +291,18 @@ class StrategyOptimizationIntegrationTest {
 			setupTrendingMarketMock("AAPL", TRENDING_UP_BUY_HOLD);
 
 			// Mock the deployment insights calculator
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
-								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-						insights.setRecommendedPortfolioAllocation(8.5);
-						insights.setKellyPercentage(25.0);
-						insights.setConservativeKelly(12.5);
-						insights.setDrawdownRiskLevel(
-								io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.MEDIUM);
-						insights.setRecommendedDeploymentMode(
-								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
-						insights.setEstimatedTradesPerYear(45);
-						return insights;
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				io.strategiz.business.historicalinsights.model.DeploymentInsights insights = new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+				insights.setRecommendedPortfolioAllocation(8.5);
+				insights.setKellyPercentage(25.0);
+				insights.setConservativeKelly(12.5);
+				insights.setDrawdownRiskLevel(
+						io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.MEDIUM);
+				insights.setRecommendedDeploymentMode(
+						io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
+				insights.setEstimatedTradesPerYear(45);
+				return insights;
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("AAPL", "1D", "3y", "test-user");
 
@@ -308,7 +317,8 @@ class StrategyOptimizationIntegrationTest {
 			assertEquals(8.5, result.getDeploymentInsights().getRecommendedPortfolioAllocation(), 0.1);
 
 			System.out.println("Deployment Insights included in result:");
-			System.out.printf("  Allocation: %.1f%%%n", result.getDeploymentInsights().getRecommendedPortfolioAllocation());
+			System.out.printf("  Allocation: %.1f%%%n",
+					result.getDeploymentInsights().getRecommendedPortfolioAllocation());
 			System.out.printf("  Mode: %s%n", result.getDeploymentInsights().getRecommendedDeploymentMode());
 		}
 
@@ -319,11 +329,10 @@ class StrategyOptimizationIntegrationTest {
 
 			// Capture the strategy result passed to calculator
 			final StrategyTestResult[] capturedResult = new StrategyTestResult[1];
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						capturedResult[0] = invocation.getArgument(0);
-						return new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				capturedResult[0] = invocation.getArgument(0);
+				return new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("MSFT", "1D", "3y", "test-user");
 
@@ -340,30 +349,29 @@ class StrategyOptimizationIntegrationTest {
 		@DisplayName("Should handle deployment insights for high frequency strategy")
 		void shouldHandleHighFrequencyStrategy() {
 			// Mock high frequency trading scenario
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("SPY"), anyString(), anyString(), anyString(), any()))
-					.thenAnswer(invocation -> {
-						ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-						ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
-						perf.setTotalReturn(35.0);
-						perf.setWinRate(52.0);
-						perf.setMaxDrawdown(18.0);
-						perf.setSharpeRatio(1.2);
-						perf.setProfitFactor(1.4);
-						perf.setTotalTrades(1500); // High frequency
-						response.setPerformance(perf);
-						return response;
-					});
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("SPY"), anyString(), anyString(),
+					anyString(), any()))
+				.thenAnswer(invocation -> {
+					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+					perf.setTotalReturn(35.0);
+					perf.setWinRate(52.0);
+					perf.setMaxDrawdown(18.0);
+					perf.setSharpeRatio(1.2);
+					perf.setProfitFactor(1.4);
+					perf.setTotalTrades(1500); // High frequency
+					response.setPerformance(perf);
+					return response;
+				});
 
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
-								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-						insights.setRecommendedDeploymentMode(
-								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.BOT);
-						insights.setEstimatedTradesPerYear(500);
-						insights.setTradingFrequencyClassification("High Frequency");
-						return insights;
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				io.strategiz.business.historicalinsights.model.DeploymentInsights insights = new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+				insights.setRecommendedDeploymentMode(
+						io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.BOT);
+				insights.setEstimatedTradesPerYear(500);
+				insights.setTradingFrequencyClassification("High Frequency");
+				return insights;
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("SPY", "1D", "3y", "test-user");
 
@@ -378,30 +386,29 @@ class StrategyOptimizationIntegrationTest {
 		@DisplayName("Should handle deployment insights for low frequency strategy")
 		void shouldHandleLowFrequencyStrategy() {
 			// Mock low frequency trading scenario (position trading)
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("BRK.A"), anyString(), anyString(), anyString(), any()))
-					.thenAnswer(invocation -> {
-						ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-						ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
-						perf.setTotalReturn(45.0);
-						perf.setWinRate(65.0);
-						perf.setMaxDrawdown(10.0);
-						perf.setSharpeRatio(1.8);
-						perf.setProfitFactor(2.5);
-						perf.setTotalTrades(30); // Low frequency
-						response.setPerformance(perf);
-						return response;
-					});
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("BRK.A"), anyString(), anyString(),
+					anyString(), any()))
+				.thenAnswer(invocation -> {
+					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+					perf.setTotalReturn(45.0);
+					perf.setWinRate(65.0);
+					perf.setMaxDrawdown(10.0);
+					perf.setSharpeRatio(1.8);
+					perf.setProfitFactor(2.5);
+					perf.setTotalTrades(30); // Low frequency
+					response.setPerformance(perf);
+					return response;
+				});
 
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
-								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-						insights.setRecommendedDeploymentMode(
-								io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
-						insights.setEstimatedTradesPerYear(10);
-						insights.setTradingFrequencyClassification("Position Trading");
-						return insights;
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				io.strategiz.business.historicalinsights.model.DeploymentInsights insights = new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+				insights.setRecommendedDeploymentMode(
+						io.strategiz.business.historicalinsights.model.DeploymentInsights.DeploymentMode.ALERT);
+				insights.setEstimatedTradesPerYear(10);
+				insights.setTradingFrequencyClassification("Position Trading");
+				return insights;
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("BRK.A", "1D", "3y", "test-user");
 
@@ -417,16 +424,14 @@ class StrategyOptimizationIntegrationTest {
 		void shouldIncludePositionSizingRecommendations() {
 			setupTrendingMarketMock("NVDA", 120.0);
 
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
-								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-						insights.setRecommendedPortfolioAllocation(12.5);
-						insights.setKellyPercentage(35.0);
-						insights.setConservativeKelly(17.5);
-						insights.setAllocationRationale("Moderate allocation suitable for validated strategies.");
-						return insights;
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				io.strategiz.business.historicalinsights.model.DeploymentInsights insights = new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+				insights.setRecommendedPortfolioAllocation(12.5);
+				insights.setKellyPercentage(35.0);
+				insights.setConservativeKelly(17.5);
+				insights.setAllocationRationale("Moderate allocation suitable for validated strategies.");
+				return insights;
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("NVDA", "1D", "3y", "test-user");
 
@@ -437,7 +442,8 @@ class StrategyOptimizationIntegrationTest {
 			assertNotNull(result.getDeploymentInsights().getAllocationRationale());
 
 			System.out.println("Position Sizing for NVDA:");
-			System.out.printf("  Recommended: %.1f%%%n", result.getDeploymentInsights().getRecommendedPortfolioAllocation());
+			System.out.printf("  Recommended: %.1f%%%n",
+					result.getDeploymentInsights().getRecommendedPortfolioAllocation());
 			System.out.printf("  Kelly: %.1f%%%n", result.getDeploymentInsights().getKellyPercentage());
 			System.out.printf("  Rationale: %s%n", result.getDeploymentInsights().getAllocationRationale());
 		}
@@ -447,18 +453,16 @@ class StrategyOptimizationIntegrationTest {
 		void shouldIncludeRiskAnalysis() {
 			setupVolatileMarketMock("TSLA", VOLATILE_BUY_HOLD);
 
-			when(deploymentInsightsCalculator.calculate(any(), anyInt()))
-					.thenAnswer(invocation -> {
-						StrategyTestResult strategy = invocation.getArgument(0);
-						io.strategiz.business.historicalinsights.model.DeploymentInsights insights =
-								new io.strategiz.business.historicalinsights.model.DeploymentInsights();
-						insights.setMaxDrawdown(strategy.getMaxDrawdown());
-						insights.setDrawdownRiskLevel(
-								io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.HIGH);
-						insights.setRecoveryRequired(35.0);
-						insights.setDrawdownExplanation("High drawdown requires significant recovery.");
-						return insights;
-					});
+			when(deploymentInsightsCalculator.calculate(any(), anyInt())).thenAnswer(invocation -> {
+				StrategyTestResult strategy = invocation.getArgument(0);
+				io.strategiz.business.historicalinsights.model.DeploymentInsights insights = new io.strategiz.business.historicalinsights.model.DeploymentInsights();
+				insights.setMaxDrawdown(strategy.getMaxDrawdown());
+				insights.setDrawdownRiskLevel(
+						io.strategiz.business.historicalinsights.model.DeploymentInsights.DrawdownRiskLevel.HIGH);
+				insights.setRecoveryRequired(35.0);
+				insights.setDrawdownExplanation("High drawdown requires significant recovery.");
+				return insights;
+			});
 
 			OptimizationResult result = optimizationEngine.optimize("TSLA", "1D", "3y", "test-user");
 
@@ -469,6 +473,7 @@ class StrategyOptimizationIntegrationTest {
 			assertTrue(result.getDeploymentInsights().getRecoveryRequired() > 0);
 			assertNotNull(result.getDeploymentInsights().getDrawdownExplanation());
 		}
+
 	}
 
 	@Nested
@@ -513,9 +518,7 @@ class StrategyOptimizationIntegrationTest {
 			List<StrategyTestResult> top5 = result.getTopStrategies();
 			assertFalse(top5.isEmpty(), "Should have top strategies");
 
-			long profitableCount = top5.stream()
-					.filter(s -> s.getTotalReturn() > 0)
-					.count();
+			long profitableCount = top5.stream().filter(s -> s.getTotalReturn() > 0).count();
 
 			System.out.printf("Profitable strategies in top 5: %d%n", profitableCount);
 
@@ -523,178 +526,183 @@ class StrategyOptimizationIntegrationTest {
 			assertTrue(profitableCount >= 3,
 					String.format("At least 3 of top 5 should be profitable, actual: %d", profitableCount));
 		}
+
 	}
 
 	// ========== Mock Setup Methods ==========
 
 	/**
-	 * Setup mock for trending up market.
-	 * Trend following strategies (MACD, MA crossover) should perform best.
+	 * Setup mock for trending up market. Trend following strategies (MACD, MA crossover)
+	 * should perform best.
 	 */
 	private void setupTrendingMarketMock(String symbol, double buyHoldReturn) {
 		AtomicInteger callCount = new AtomicInteger(0);
 		Random random = new Random(42); // Deterministic for reproducibility
 
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					int call = callCount.incrementAndGet();
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				int call = callCount.incrementAndGet();
 
-					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+				ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+				ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
 
-					// Buy-and-hold baseline
-					if (code.contains("Buy and Hold Strategy")) {
-						perf.setTotalReturn(buyHoldReturn);
-						perf.setWinRate(100.0);
-						perf.setMaxDrawdown(20.0);
-						perf.setSharpeRatio(1.0);
-						perf.setProfitFactor(2.0);
-						perf.setTotalTrades(1);
-					}
-					// Trend following strategies perform best in uptrend
-					else if (code.contains("MACD") || code.contains("EMA") || code.contains("SMA")) {
-						double bonus = 20 + random.nextDouble() * 30; // 20-50% bonus
-						perf.setTotalReturn(buyHoldReturn + bonus);
-						perf.setWinRate(55.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(15.0 + random.nextDouble() * 10);
-						perf.setSharpeRatio(1.2 + random.nextDouble() * 0.8);
-						perf.setProfitFactor(1.5 + random.nextDouble() * 1.0);
-						perf.setTotalTrades(20 + random.nextInt(30));
-					}
-					// Mean reversion does okay in uptrend
-					else if (code.contains("RSI") || code.contains("Bollinger") || code.contains("Stochastic")) {
-						double bonus = 5 + random.nextDouble() * 20; // 5-25% bonus
-						perf.setTotalReturn(buyHoldReturn + bonus);
-						perf.setWinRate(50.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(12.0 + random.nextDouble() * 10);
-						perf.setSharpeRatio(1.0 + random.nextDouble() * 0.6);
-						perf.setProfitFactor(1.3 + random.nextDouble() * 0.7);
-						perf.setTotalTrades(30 + random.nextInt(40));
-					}
-					// Other strategies
-					else {
-						double bonus = random.nextDouble() * 25; // 0-25% bonus
-						perf.setTotalReturn(buyHoldReturn + bonus);
-						perf.setWinRate(45.0 + random.nextDouble() * 20);
-						perf.setMaxDrawdown(15.0 + random.nextDouble() * 15);
-						perf.setSharpeRatio(0.8 + random.nextDouble() * 0.8);
-						perf.setProfitFactor(1.2 + random.nextDouble() * 0.8);
-						perf.setTotalTrades(15 + random.nextInt(35));
-					}
+				// Buy-and-hold baseline
+				if (code.contains("Buy and Hold Strategy")) {
+					perf.setTotalReturn(buyHoldReturn);
+					perf.setWinRate(100.0);
+					perf.setMaxDrawdown(20.0);
+					perf.setSharpeRatio(1.0);
+					perf.setProfitFactor(2.0);
+					perf.setTotalTrades(1);
+				}
+				// Trend following strategies perform best in uptrend
+				else if (code.contains("MACD") || code.contains("EMA") || code.contains("SMA")) {
+					double bonus = 20 + random.nextDouble() * 30; // 20-50% bonus
+					perf.setTotalReturn(buyHoldReturn + bonus);
+					perf.setWinRate(55.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(15.0 + random.nextDouble() * 10);
+					perf.setSharpeRatio(1.2 + random.nextDouble() * 0.8);
+					perf.setProfitFactor(1.5 + random.nextDouble() * 1.0);
+					perf.setTotalTrades(20 + random.nextInt(30));
+				}
+				// Mean reversion does okay in uptrend
+				else if (code.contains("RSI") || code.contains("Bollinger") || code.contains("Stochastic")) {
+					double bonus = 5 + random.nextDouble() * 20; // 5-25% bonus
+					perf.setTotalReturn(buyHoldReturn + bonus);
+					perf.setWinRate(50.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(12.0 + random.nextDouble() * 10);
+					perf.setSharpeRatio(1.0 + random.nextDouble() * 0.6);
+					perf.setProfitFactor(1.3 + random.nextDouble() * 0.7);
+					perf.setTotalTrades(30 + random.nextInt(40));
+				}
+				// Other strategies
+				else {
+					double bonus = random.nextDouble() * 25; // 0-25% bonus
+					perf.setTotalReturn(buyHoldReturn + bonus);
+					perf.setWinRate(45.0 + random.nextDouble() * 20);
+					perf.setMaxDrawdown(15.0 + random.nextDouble() * 15);
+					perf.setSharpeRatio(0.8 + random.nextDouble() * 0.8);
+					perf.setProfitFactor(1.2 + random.nextDouble() * 0.8);
+					perf.setTotalTrades(15 + random.nextInt(35));
+				}
 
-					response.setPerformance(perf);
-					return response;
-				});
+				response.setPerformance(perf);
+				return response;
+			});
 	}
 
 	/**
-	 * Setup mock for sideways/choppy market.
-	 * Mean reversion strategies (RSI, Bollinger, Stochastic) should perform best.
+	 * Setup mock for sideways/choppy market. Mean reversion strategies (RSI, Bollinger,
+	 * Stochastic) should perform best.
 	 */
 	private void setupSidewaysMarketMock(String symbol, double buyHoldReturn) {
 		AtomicInteger callCount = new AtomicInteger(0);
 		Random random = new Random(42);
 
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
 
-					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+				ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+				ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
 
-					// Buy-and-hold baseline (poor in sideways)
-					if (code.contains("Buy and Hold Strategy")) {
-						perf.setTotalReturn(buyHoldReturn);
-						perf.setWinRate(100.0);
-						perf.setMaxDrawdown(15.0);
-						perf.setSharpeRatio(0.3);
-						perf.setProfitFactor(1.1);
-						perf.setTotalTrades(1);
-					}
-					// Mean reversion strategies excel in sideways market
-					else if (code.contains("RSI") || code.contains("Bollinger Mean") || code.contains("Stochastic")) {
-						double bonus = 25 + random.nextDouble() * 35; // 25-60% above buy-hold
-						perf.setTotalReturn(buyHoldReturn + bonus);
-						perf.setWinRate(60.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(8.0 + random.nextDouble() * 8);
-						perf.setSharpeRatio(1.5 + random.nextDouble() * 1.0);
-						perf.setProfitFactor(1.8 + random.nextDouble() * 1.2);
-						perf.setTotalTrades(40 + random.nextInt(40));
-					}
-					// Trend following struggles in sideways
-					else if (code.contains("MACD") || code.contains("EMA") || code.contains("SMA")) {
-						double change = -5 + random.nextDouble() * 15; // -5 to +10%
-						perf.setTotalReturn(buyHoldReturn + change);
-						perf.setWinRate(40.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(15.0 + random.nextDouble() * 10);
-						perf.setSharpeRatio(0.5 + random.nextDouble() * 0.5);
-						perf.setProfitFactor(0.9 + random.nextDouble() * 0.4);
-						perf.setTotalTrades(15 + random.nextInt(20));
-					}
-					// Other strategies
-					else {
-						double bonus = 10 + random.nextDouble() * 20;
-						perf.setTotalReturn(buyHoldReturn + bonus);
-						perf.setWinRate(50.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(10.0 + random.nextDouble() * 10);
-						perf.setSharpeRatio(1.0 + random.nextDouble() * 0.6);
-						perf.setProfitFactor(1.3 + random.nextDouble() * 0.6);
-						perf.setTotalTrades(25 + random.nextInt(30));
-					}
+				// Buy-and-hold baseline (poor in sideways)
+				if (code.contains("Buy and Hold Strategy")) {
+					perf.setTotalReturn(buyHoldReturn);
+					perf.setWinRate(100.0);
+					perf.setMaxDrawdown(15.0);
+					perf.setSharpeRatio(0.3);
+					perf.setProfitFactor(1.1);
+					perf.setTotalTrades(1);
+				}
+				// Mean reversion strategies excel in sideways market
+				else if (code.contains("RSI") || code.contains("Bollinger Mean") || code.contains("Stochastic")) {
+					double bonus = 25 + random.nextDouble() * 35; // 25-60% above buy-hold
+					perf.setTotalReturn(buyHoldReturn + bonus);
+					perf.setWinRate(60.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(8.0 + random.nextDouble() * 8);
+					perf.setSharpeRatio(1.5 + random.nextDouble() * 1.0);
+					perf.setProfitFactor(1.8 + random.nextDouble() * 1.2);
+					perf.setTotalTrades(40 + random.nextInt(40));
+				}
+				// Trend following struggles in sideways
+				else if (code.contains("MACD") || code.contains("EMA") || code.contains("SMA")) {
+					double change = -5 + random.nextDouble() * 15; // -5 to +10%
+					perf.setTotalReturn(buyHoldReturn + change);
+					perf.setWinRate(40.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(15.0 + random.nextDouble() * 10);
+					perf.setSharpeRatio(0.5 + random.nextDouble() * 0.5);
+					perf.setProfitFactor(0.9 + random.nextDouble() * 0.4);
+					perf.setTotalTrades(15 + random.nextInt(20));
+				}
+				// Other strategies
+				else {
+					double bonus = 10 + random.nextDouble() * 20;
+					perf.setTotalReturn(buyHoldReturn + bonus);
+					perf.setWinRate(50.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(10.0 + random.nextDouble() * 10);
+					perf.setSharpeRatio(1.0 + random.nextDouble() * 0.6);
+					perf.setProfitFactor(1.3 + random.nextDouble() * 0.6);
+					perf.setTotalTrades(25 + random.nextInt(30));
+				}
 
-					response.setPerformance(perf);
-					return response;
-				});
+				response.setPerformance(perf);
+				return response;
+			});
 	}
 
 	/**
-	 * Setup mock for volatile market with big swings.
-	 * Swing trading and breakout strategies should perform best.
+	 * Setup mock for volatile market with big swings. Swing trading and breakout
+	 * strategies should perform best.
 	 */
 	private void setupVolatileMarketMock(String symbol, double buyHoldReturn) {
 		Random random = new Random(42);
 
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
 
-					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+				ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+				ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
 
-					// Buy-and-hold baseline (negative in volatile down market)
-					if (code.contains("Buy and Hold Strategy")) {
-						perf.setTotalReturn(buyHoldReturn);
-						perf.setWinRate(100.0);
-						perf.setMaxDrawdown(40.0);
-						perf.setSharpeRatio(-0.5);
-						perf.setProfitFactor(0.7);
-						perf.setTotalTrades(1);
-					}
-					// Swing trading and breakout do well in volatile markets
-					else if (code.contains("Swing") || code.contains("Breakout") || code.contains("ADX")) {
-						double improvement = 30 + random.nextDouble() * 40; // Much better than buy-hold
-						perf.setTotalReturn(buyHoldReturn + improvement);
-						perf.setWinRate(50.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(20.0 + random.nextDouble() * 15);
-						perf.setSharpeRatio(0.8 + random.nextDouble() * 0.8);
-						perf.setProfitFactor(1.4 + random.nextDouble() * 0.8);
-						perf.setTotalTrades(25 + random.nextInt(35));
-					}
-					// Other strategies - mixed results
-					else {
-						double change = 15 + random.nextDouble() * 30;
-						perf.setTotalReturn(buyHoldReturn + change);
-						perf.setWinRate(45.0 + random.nextDouble() * 15);
-						perf.setMaxDrawdown(25.0 + random.nextDouble() * 15);
-						perf.setSharpeRatio(0.6 + random.nextDouble() * 0.6);
-						perf.setProfitFactor(1.1 + random.nextDouble() * 0.6);
-						perf.setTotalTrades(20 + random.nextInt(30));
-					}
+				// Buy-and-hold baseline (negative in volatile down market)
+				if (code.contains("Buy and Hold Strategy")) {
+					perf.setTotalReturn(buyHoldReturn);
+					perf.setWinRate(100.0);
+					perf.setMaxDrawdown(40.0);
+					perf.setSharpeRatio(-0.5);
+					perf.setProfitFactor(0.7);
+					perf.setTotalTrades(1);
+				}
+				// Swing trading and breakout do well in volatile markets
+				else if (code.contains("Swing") || code.contains("Breakout") || code.contains("ADX")) {
+					double improvement = 30 + random.nextDouble() * 40; // Much better
+																		// than buy-hold
+					perf.setTotalReturn(buyHoldReturn + improvement);
+					perf.setWinRate(50.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(20.0 + random.nextDouble() * 15);
+					perf.setSharpeRatio(0.8 + random.nextDouble() * 0.8);
+					perf.setProfitFactor(1.4 + random.nextDouble() * 0.8);
+					perf.setTotalTrades(25 + random.nextInt(35));
+				}
+				// Other strategies - mixed results
+				else {
+					double change = 15 + random.nextDouble() * 30;
+					perf.setTotalReturn(buyHoldReturn + change);
+					perf.setWinRate(45.0 + random.nextDouble() * 15);
+					perf.setMaxDrawdown(25.0 + random.nextDouble() * 15);
+					perf.setSharpeRatio(0.6 + random.nextDouble() * 0.6);
+					perf.setProfitFactor(1.1 + random.nextDouble() * 0.6);
+					perf.setTotalTrades(20 + random.nextInt(30));
+				}
 
-					response.setPerformance(perf);
-					return response;
-				});
+				response.setPerformance(perf);
+				return response;
+			});
 	}
 
 	/**
@@ -703,34 +711,36 @@ class StrategyOptimizationIntegrationTest {
 	private void setupCryptoMarketMock(String symbol, double buyHoldReturn) {
 		Random random = new Random(42);
 
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
 
-					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
-					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
+				ExecuteStrategyResponse response = new ExecuteStrategyResponse();
+				ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
 
-					if (code.contains("Buy and Hold Strategy")) {
-						perf.setTotalReturn(buyHoldReturn);
-						perf.setWinRate(100.0);
-						perf.setMaxDrawdown(60.0); // Crypto has huge drawdowns
-						perf.setSharpeRatio(0.5);
-						perf.setProfitFactor(1.5);
-						perf.setTotalTrades(1);
-					}
-					// All strategies can potentially do well in crypto due to volatility
-					else {
-						double change = -10 + random.nextDouble() * 60; // -10% to +50%
-						perf.setTotalReturn(buyHoldReturn + change);
-						perf.setWinRate(45.0 + random.nextDouble() * 20);
-						perf.setMaxDrawdown(30.0 + random.nextDouble() * 30);
-						perf.setSharpeRatio(0.5 + random.nextDouble() * 1.0);
-						perf.setProfitFactor(1.0 + random.nextDouble() * 1.0);
-						perf.setTotalTrades(10 + random.nextInt(50));
-					}
+				if (code.contains("Buy and Hold Strategy")) {
+					perf.setTotalReturn(buyHoldReturn);
+					perf.setWinRate(100.0);
+					perf.setMaxDrawdown(60.0); // Crypto has huge drawdowns
+					perf.setSharpeRatio(0.5);
+					perf.setProfitFactor(1.5);
+					perf.setTotalTrades(1);
+				}
+				// All strategies can potentially do well in crypto due to volatility
+				else {
+					double change = -10 + random.nextDouble() * 60; // -10% to +50%
+					perf.setTotalReturn(buyHoldReturn + change);
+					perf.setWinRate(45.0 + random.nextDouble() * 20);
+					perf.setMaxDrawdown(30.0 + random.nextDouble() * 30);
+					perf.setSharpeRatio(0.5 + random.nextDouble() * 1.0);
+					perf.setProfitFactor(1.0 + random.nextDouble() * 1.0);
+					perf.setTotalTrades(10 + random.nextInt(50));
+				}
 
-					response.setPerformance(perf);
-					return response;
-				});
+				response.setPerformance(perf);
+				return response;
+			});
 	}
+
 }

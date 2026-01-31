@@ -8,49 +8,52 @@ import java.time.Instant;
  * Result object for Coinbase token refresh operation
  */
 public class CoinbaseTokenRefreshResult {
-    
-    private String accessToken;
-    private String refreshToken;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant expiresAt;
-    
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private Instant refreshedAt;
 
-    // Constructors
-    public CoinbaseTokenRefreshResult() {}
+	private String accessToken;
 
-    // Getters and Setters
-    public String getAccessToken() {
-        return accessToken;
-    }
+	private String refreshToken;
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant expiresAt;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+	private Instant refreshedAt;
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
+	// Constructors
+	public CoinbaseTokenRefreshResult() {
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	// Getters and Setters
+	public String getAccessToken() {
+		return accessToken;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
+	}
 
-    public Instant getRefreshedAt() {
-        return refreshedAt;
-    }
+	public String getRefreshToken() {
+		return refreshToken;
+	}
 
-    public void setRefreshedAt(Instant refreshedAt) {
-        this.refreshedAt = refreshedAt;
-    }
-} 
+	public void setRefreshToken(String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Instant getRefreshedAt() {
+		return refreshedAt;
+	}
+
+	public void setRefreshedAt(Instant refreshedAt) {
+		this.refreshedAt = refreshedAt;
+	}
+
+}

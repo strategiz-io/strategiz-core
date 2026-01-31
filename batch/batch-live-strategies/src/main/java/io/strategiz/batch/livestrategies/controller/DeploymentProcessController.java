@@ -24,9 +24,8 @@ import java.util.Map;
 /**
  * Controller for live strategy deployment processing.
  *
- * Endpoints:
- * - POST /internal/dispatch/{tier} - Trigger dispatch for a tier (called by scheduler)
- * - POST /internal/process - Process Pub/Sub push message
+ * Endpoints: - POST /internal/dispatch/{tier} - Trigger dispatch for a tier (called by
+ * scheduler) - POST /internal/process - Process Pub/Sub push message
  */
 @RestController
 @RequestMapping("/internal")
@@ -51,9 +50,8 @@ public class DeploymentProcessController {
 	}
 
 	/**
-	 * Trigger dispatch for a specific tier.
-	 * Called by Spring Batch scheduler or manually from admin console.
-	 *
+	 * Trigger dispatch for a specific tier. Called by Spring Batch scheduler or manually
+	 * from admin console.
 	 * @param tier The tier to dispatch: TIER1, TIER2, or TIER3
 	 */
 	@PostMapping("/dispatch/{tier}")
@@ -78,18 +76,11 @@ public class DeploymentProcessController {
 	}
 
 	/**
-	 * Process a Pub/Sub push message.
-	 * Called by Pub/Sub subscription with push delivery.
+	 * Process a Pub/Sub push message. Called by Pub/Sub subscription with push delivery.
 	 *
-	 * The Pub/Sub message format:
-	 * {
-	 * "message": {
-	 * "data": "base64-encoded-json",
-	 * "attributes": {...},
-	 * "messageId": "..."
-	 * },
-	 * "subscription": "projects/.../subscriptions/..."
-	 * }
+	 * The Pub/Sub message format: { "message": { "data": "base64-encoded-json",
+	 * "attributes": {...}, "messageId": "..." }, "subscription":
+	 * "projects/.../subscriptions/..." }
 	 */
 	@PostMapping("/process")
 	public ResponseEntity<ProcessResponse> processMessage(@RequestBody Map<String, Object> payload) {
@@ -131,8 +122,8 @@ public class DeploymentProcessController {
 			}
 			else {
 				// Return 200 to acknowledge but indicate processing had errors
-				return ResponseEntity.ok(
-						new ProcessResponse(false, pubsubMessageId, "Processing completed with errors", result.durationMs()));
+				return ResponseEntity.ok(new ProcessResponse(false, pubsubMessageId, "Processing completed with errors",
+						result.durationMs()));
 			}
 
 		}

@@ -5,8 +5,10 @@ import org.springframework.context.ApplicationEvent;
 /**
  * Spring Event published when a STRAT pack purchase checkout is completed.
  *
- * <p>This event is published by the webhook controller and can be listened to
- * by any module that needs to process STRAT pack purchases (e.g., service-crypto-token).</p>
+ * <p>
+ * This event is published by the webhook controller and can be listened to by any module
+ * that needs to process STRAT pack purchases (e.g., service-crypto-token).
+ * </p>
  */
 public class StratPackPurchaseEvent extends ApplicationEvent {
 

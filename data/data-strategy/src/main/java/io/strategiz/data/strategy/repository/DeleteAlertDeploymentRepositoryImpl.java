@@ -12,45 +12,46 @@ import java.util.Optional;
 @Repository
 public class DeleteAlertDeploymentRepositoryImpl implements DeleteAlertDeploymentRepository {
 
-    private final AlertDeploymentBaseRepository baseRepository;
+	private final AlertDeploymentBaseRepository baseRepository;
 
-    @Autowired
-    public DeleteAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
+	@Autowired
+	public DeleteAlertDeploymentRepositoryImpl(AlertDeploymentBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-    @Override
-    public boolean delete(String id, String userId) {
-        // Verify ownership before deleting
-        Optional<AlertDeployment> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId())) {
-            return false;
-        }
+	@Override
+	public boolean delete(String id, String userId) {
+		// Verify ownership before deleting
+		Optional<AlertDeployment> existing = baseRepository.findById(id);
+		if (existing.isEmpty() || !userId.equals(existing.get().getUserId())) {
+			return false;
+		}
 
-        return baseRepository.delete(id, userId);
-    }
+		return baseRepository.delete(id, userId);
+	}
 
-    @Override
-    public boolean stopAndDelete(String id, String userId) {
-        // Verify ownership
-        Optional<AlertDeployment> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !userId.equals(existing.get().getUserId())) {
-            return false;
-        }
+	@Override
+	public boolean stopAndDelete(String id, String userId) {
+		// Verify ownership
+		Optional<AlertDeployment> existing = baseRepository.findById(id);
+		if (existing.isEmpty() || !userId.equals(existing.get().getUserId())) {
+			return false;
+		}
 
-        // Set status to STOPPED before deleting
-        AlertDeployment alert = existing.get();
-        alert.setStatus("STOPPED");
-        baseRepository.save(alert, userId);
+		// Set status to STOPPED before deleting
+		AlertDeployment alert = existing.get();
+		alert.setStatus("STOPPED");
+		baseRepository.save(alert, userId);
 
-        // Then soft delete
-        return baseRepository.delete(id, userId);
-    }
+		// Then soft delete
+		return baseRepository.delete(id, userId);
+	}
 
-    @Override
-    public boolean restore(String id, String userId) {
-        // Use BaseRepository's restore method
-        Optional<AlertDeployment> restored = baseRepository.restore(id, userId);
-        return restored.isPresent();
-    }
+	@Override
+	public boolean restore(String id, String userId) {
+		// Use BaseRepository's restore method
+		Optional<AlertDeployment> restored = baseRepository.restore(id, userId);
+		return restored.isPresent();
+	}
+
 }

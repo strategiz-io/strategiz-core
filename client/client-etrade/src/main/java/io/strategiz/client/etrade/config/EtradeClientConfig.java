@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Configuration for E*TRADE API client.
- * Provides RestTemplate bean for HTTP communications.
+ * Configuration for E*TRADE API client. Provides RestTemplate bean for HTTP
+ * communications.
  */
 @Configuration
 public class EtradeClientConfig {

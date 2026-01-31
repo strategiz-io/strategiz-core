@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 /**
  * Client for Google reCAPTCHA Enterprise.
  *
- * Verifies reCAPTCHA tokens and returns risk scores for fraud detection. Uses the official
- * Google Cloud reCAPTCHA Enterprise SDK.
+ * Verifies reCAPTCHA tokens and returns risk scores for fraud detection. Uses the
+ * official Google Cloud reCAPTCHA Enterprise SDK.
  */
 @Component
 @ConditionalOnProperty(name = "recaptcha.enabled", havingValue = "true", matchIfMissing = false)

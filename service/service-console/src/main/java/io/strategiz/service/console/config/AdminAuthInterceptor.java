@@ -99,7 +99,8 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 	}
 
 	/**
-	 * Handle authentication for PASETO tokens (both service accounts and user access tokens).
+	 * Handle authentication for PASETO tokens (both service accounts and user access
+	 * tokens).
 	 */
 	private boolean handlePasetoAuth(HttpServletRequest request, HttpServletResponse response, String token,
 			String requestPath) throws Exception {
@@ -159,7 +160,8 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
 	private boolean handleUserSessionAuth(HttpServletRequest request, HttpServletResponse response, String token,
 			String requestPath) throws Exception {
 		logger.info("Admin auth: validating user session for path: {}", requestPath);
-		logger.info("Admin auth: token prefix: {}...", token != null ? token.substring(0, Math.min(20, token.length())) : "null");
+		logger.info("Admin auth: token prefix: {}...",
+				token != null ? token.substring(0, Math.min(20, token.length())) : "null");
 
 		// Validate session and get user ID
 		Optional<String> userIdOpt;

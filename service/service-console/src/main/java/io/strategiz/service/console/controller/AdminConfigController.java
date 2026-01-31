@@ -23,15 +23,19 @@ import java.util.Map;
 /**
  * Admin controller for managing platform configuration.
  *
- * <p>This controller provides admin APIs for configuring:</p>
+ * <p>
+ * This controller provides admin APIs for configuring:
+ * </p>
  * <ul>
- *   <li>Platform Config - Global platform settings (fees, rates)</li>
- *   <li>Tier Config - Subscription tier limits and pricing</li>
- *   <li>STRAT Pack Config - STRAT token pack definitions</li>
- *   <li>AI Model Config - AI model costs and tier requirements</li>
+ * <li>Platform Config - Global platform settings (fees, rates)</li>
+ * <li>Tier Config - Subscription tier limits and pricing</li>
+ * <li>STRAT Pack Config - STRAT token pack definitions</li>
+ * <li>AI Model Config - AI model costs and tier requirements</li>
  * </ul>
  *
- * <p>All changes take effect immediately (with caching).</p>
+ * <p>
+ * All changes take effect immediately (with caching).
+ * </p>
  */
 @RestController
 @RequestMapping("/v1/console/config")

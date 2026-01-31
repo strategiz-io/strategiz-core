@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Admin controller for LLM billing and cost tracking. Provides endpoints for aggregated LLM costs
- * across all providers (OpenAI, Anthropic, GCP Vertex AI, xAI).
+ * Admin controller for LLM billing and cost tracking. Provides endpoints for aggregated
+ * LLM costs across all providers (OpenAI, Anthropic, GCP Vertex AI, xAI).
  *
  * This controller uses the new direct billing API integrations: - OpenAI: Usage API
  * (/v1/organization/usage/completions, /v1/organization/costs) - Anthropic: Admin API
- * (/v1/organizations/usage_report/messages, /v1/organizations/cost_report) - GCP: BigQuery
- * billing export for Vertex AI
+ * (/v1/organizations/usage_report/messages, /v1/organizations/cost_report) - GCP:
+ * BigQuery billing export for Vertex AI
  *
  * Enable with: llm.billing.enabled=true
  */
@@ -223,9 +223,9 @@ public class AdminLLMCostsController extends BaseController {
 		}
 
 		LLMCostAlertService.BudgetInfo budget = alertService.getBudgetInfo();
-		return ResponseEntity.ok(Map.of("configured", true, "monthlyBudget", budget.getMonthlyBudget(), "dailyThreshold",
-				budget.getDailyThreshold(), "warningPercent", budget.getWarningPercent(), "criticalPercent",
-				budget.getCriticalPercent(), "alertsEnabled", budget.isAlertsEnabled()));
+		return ResponseEntity.ok(Map.of("configured", true, "monthlyBudget", budget.getMonthlyBudget(),
+				"dailyThreshold", budget.getDailyThreshold(), "warningPercent", budget.getWarningPercent(),
+				"criticalPercent", budget.getCriticalPercent(), "alertsEnabled", budget.isAlertsEnabled()));
 	}
 
 	/**

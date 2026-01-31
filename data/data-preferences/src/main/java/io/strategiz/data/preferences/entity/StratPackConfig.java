@@ -12,20 +12,28 @@ import java.util.List;
 /**
  * Configurable STRAT pack settings stored at config/strat-packs/{packId}.
  *
- * <p>This entity allows admin configuration of STRAT token packs
- * without code deploys. Changes take effect immediately.</p>
+ * <p>
+ * This entity allows admin configuration of STRAT token packs without code deploys.
+ * Changes take effect immediately.
+ * </p>
  *
- * <p>Firestore path: config/strat-packs/{packId}</p>
+ * <p>
+ * Firestore path: config/strat-packs/{packId}
+ * </p>
  *
- * <p>STRAT Pack Model:</p>
+ * <p>
+ * STRAT Pack Model:
+ * </p>
  * <ul>
- *   <li>Available to ALL tiers, including Explorer (FREE)</li>
- *   <li>One-time purchases (not subscriptions)</li>
- *   <li>Purchased STRAT adds to wallet balance (persistent, doesn't expire)</li>
- *   <li>Same rate as tier STRAT (no premium for packs)</li>
+ * <li>Available to ALL tiers, including Explorer (FREE)</li>
+ * <li>One-time purchases (not subscriptions)</li>
+ * <li>Purchased STRAT adds to wallet balance (persistent, doesn't expire)</li>
+ * <li>Same rate as tier STRAT (no premium for packs)</li>
  * </ul>
  *
- * <p>Example structure:</p>
+ * <p>
+ * Example structure:
+ * </p>
  * <pre>
  * {
  *   packId: "starter",
@@ -44,9 +52,13 @@ public class StratPackConfig extends BaseEntity {
 
 	// Pack IDs (standard packs)
 	public static final String PACK_STARTER = "starter";
+
 	public static final String PACK_BASIC = "basic";
+
 	public static final String PACK_STANDARD = "standard";
+
 	public static final String PACK_PRO = "pro";
+
 	public static final String PACK_POWER = "power";
 
 	@DocumentId
@@ -63,8 +75,7 @@ public class StratPackConfig extends BaseEntity {
 	private String description;
 
 	/**
-	 * Price in USD cents.
-	 * Example: 500 = $5.00
+	 * Price in USD cents. Example: 500 = $5.00
 	 */
 	@PropertyName("priceCents")
 	@JsonProperty("priceCents")

@@ -5,140 +5,152 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Base authentication method domain model
- * This is a business domain object for all authentication methods
+ * Base authentication method domain model This is a business domain object for all
+ * authentication methods
  */
 public abstract class AuthenticationMethod {
-    
-    private String id;
-    private String userId;
-    private String type;
-    private String name;
-    private boolean enabled = true;
-    private Instant createdAt;
-    private Instant updatedAt;
-    private Instant lastUsedAt;
-    private Instant lastVerifiedAt;
-    private Map<String, Object> metadata;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public AuthenticationMethod() {
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.metadata = new HashMap<>();
-    }
+	private String userId;
 
-    public AuthenticationMethod(String type, String name) {
-        this();
-        this.type = type;
-        this.name = name;
-    }
+	private String type;
 
-    // === ABSTRACT METHODS ===
+	private String name;
 
-    public abstract String getAuthenticationMethodType();
-    public abstract boolean isConfigured();
-    public abstract Map<String, Object> getTypeSpecificData();
+	private boolean enabled = true;
 
-    // === CONVENIENCE METHODS ===
+	private Instant createdAt;
 
-    public void markAsVerified() {
-        this.lastVerifiedAt = Instant.now();
-        this.updatedAt = Instant.now();
-    }
+	private Instant updatedAt;
 
-    public void markAsUsed() {
-        this.lastUsedAt = Instant.now();
-    }
+	private Instant lastUsedAt;
 
-    public void setMethodName(String methodName) {
-        this.name = methodName;
-        this.updatedAt = Instant.now();
-    }
+	private Instant lastVerifiedAt;
 
-    // === GETTERS AND SETTERS ===
+	private Map<String, Object> metadata;
 
-    public String getId() {
-        return id;
-    }
+	// === CONSTRUCTORS ===
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public AuthenticationMethod() {
+		this.createdAt = Instant.now();
+		this.updatedAt = Instant.now();
+		this.metadata = new HashMap<>();
+	}
 
-    public String getUserId() {
-        return userId;
-    }
+	public AuthenticationMethod(String type, String name) {
+		this();
+		this.type = type;
+		this.name = name;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	// === ABSTRACT METHODS ===
 
-    public String getType() {
-        return type;
-    }
+	public abstract String getAuthenticationMethodType();
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public abstract boolean isConfigured();
 
-    public String getName() {
-        return name;
-    }
+	public abstract Map<String, Object> getTypeSpecificData();
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+	public void markAsVerified() {
+		this.lastVerifiedAt = Instant.now();
+		this.updatedAt = Instant.now();
+	}
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+	public void markAsUsed() {
+		this.lastUsedAt = Instant.now();
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public void setMethodName(String methodName) {
+		this.name = methodName;
+		this.updatedAt = Instant.now();
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public Instant getLastUsedAt() {
-        return lastUsedAt;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setLastUsedAt(Instant lastUsedAt) {
-        this.lastUsedAt = lastUsedAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Instant getLastVerifiedAt() {
-        return lastVerifiedAt;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setLastVerifiedAt(Instant lastVerifiedAt) {
-        this.lastVerifiedAt = lastVerifiedAt;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public Map<String, Object> getMetadata() {
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
-        return metadata;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(Instant updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	public Instant getLastUsedAt() {
+		return lastUsedAt;
+	}
+
+	public void setLastUsedAt(Instant lastUsedAt) {
+		this.lastUsedAt = lastUsedAt;
+	}
+
+	public Instant getLastVerifiedAt() {
+		return lastVerifiedAt;
+	}
+
+	public void setLastVerifiedAt(Instant lastVerifiedAt) {
+		this.lastVerifiedAt = lastVerifiedAt;
+	}
+
+	public Map<String, Object> getMetadata() {
+		if (metadata == null) {
+			metadata = new HashMap<>();
+		}
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
 }

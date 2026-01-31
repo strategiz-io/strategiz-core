@@ -22,40 +22,41 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Strategy Deletion", description = "Delete trading strategies")
 public class DeleteStrategyController extends BaseController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeleteStrategyController.class);
+	private static final Logger logger = LoggerFactory.getLogger(DeleteStrategyController.class);
 
-    private final DeleteStrategyService deleteStrategyService;
+	private final DeleteStrategyService deleteStrategyService;
 
-    @Autowired
-    public DeleteStrategyController(DeleteStrategyService deleteStrategyService) {
-        this.deleteStrategyService = deleteStrategyService;
-    }
+	@Autowired
+	public DeleteStrategyController(DeleteStrategyService deleteStrategyService) {
+		this.deleteStrategyService = deleteStrategyService;
+	}
 
-    @DeleteMapping("/{strategyId}")
-    @Operation(summary = "Delete a strategy", description = "Deletes a trading strategy")
-    public ResponseEntity<Void> deleteStrategy(
-            @PathVariable String strategyId,
-            @AuthUser AuthenticatedUser user) {
+	@DeleteMapping("/{strategyId}")
+	@Operation(summary = "Delete a strategy", description = "Deletes a trading strategy")
+	public ResponseEntity<Void> deleteStrategy(@PathVariable String strategyId, @AuthUser AuthenticatedUser user) {
 
-        String userId = user.getUserId();
-        logger.info("Deleting strategy: {} for user: {}", strategyId, userId);
+		String userId = user.getUserId();
+		logger.info("Deleting strategy: {} for user: {}", strategyId, userId);
 
-        try {
-            boolean deleted = deleteStrategyService.deleteStrategy(strategyId, userId);
+		try {
+			boolean deleted = deleteStrategyService.deleteStrategy(strategyId, userId);
 
-            if (!deleted) {
-                throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs", strategyId);
-            }
+			if (!deleted) {
+				throw new StrategizException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "service-labs",
+						strategyId);
+			}
 
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            logger.error("Failed to delete strategy", e);
-            throw handleException(e, StrategyConstants.ERROR_STRATEGY_DELETION_FAILED);
-        }
-    }
-    
-    @Override
-    protected String getModuleName() {
-        return "strategy";
-    }
+			return ResponseEntity.noContent().build();
+		}
+		catch (Exception e) {
+			logger.error("Failed to delete strategy", e);
+			throw handleException(e, StrategyConstants.ERROR_STRATEGY_DELETION_FAILED);
+		}
+	}
+
+	@Override
+	protected String getModuleName() {
+		return "strategy";
+	}
+
 }

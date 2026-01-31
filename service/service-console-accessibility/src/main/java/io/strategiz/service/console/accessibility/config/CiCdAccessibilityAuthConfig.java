@@ -11,8 +11,7 @@ import jakarta.annotation.PostConstruct;
 /**
  * Configuration for CI/CD authentication tokens loaded from Vault.
  *
- * Vault path: secret/strategiz/ci-cd
- * Required key: accessibility-api-token
+ * Vault path: secret/strategiz/ci-cd Required key: accessibility-api-token
  */
 @Configuration
 public class CiCdAccessibilityAuthConfig {

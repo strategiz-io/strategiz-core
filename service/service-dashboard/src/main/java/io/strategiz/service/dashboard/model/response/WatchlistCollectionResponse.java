@@ -11,129 +11,129 @@ import java.util.Objects;
  */
 public class WatchlistCollectionResponse {
 
-    private String userId;
-    private List<WatchlistItem> items;
-    private Integer totalCount;
-    private Integer activeCount;
-    private Boolean isEmpty;
-    private Boolean demoMode;
-    private LocalDateTime lastUpdated;
+	private String userId;
 
-    // Constructors
-    public WatchlistCollectionResponse() {
-        this.isEmpty = true;
-        this.totalCount = 0;
-        this.activeCount = 0;
-        this.lastUpdated = LocalDateTime.now();
-    }
+	private List<WatchlistItem> items;
 
-    public WatchlistCollectionResponse(String userId, List<WatchlistItem> items) {
-        this.userId = userId;
-        this.items = items;
-        this.totalCount = items != null ? items.size() : 0;
-        this.activeCount = this.totalCount; // Assume all items are active for now
-        this.isEmpty = items == null || items.isEmpty();
-        this.lastUpdated = LocalDateTime.now();
-    }
+	private Integer totalCount;
 
-    // Getters and Setters
-    public String getUserId() {
-        return userId;
-    }
+	private Integer activeCount;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private Boolean isEmpty;
 
-    public List<WatchlistItem> getItems() {
-        return items;
-    }
+	private Boolean demoMode;
 
-    public void setItems(List<WatchlistItem> items) {
-        this.items = items;
-        this.totalCount = items != null ? items.size() : 0;
-        this.activeCount = this.totalCount; // Assume all items are active for now
-        this.isEmpty = items == null || items.isEmpty();
-    }
+	private LocalDateTime lastUpdated;
 
-    public Integer getTotalCount() {
-        return totalCount;
-    }
+	// Constructors
+	public WatchlistCollectionResponse() {
+		this.isEmpty = true;
+		this.totalCount = 0;
+		this.activeCount = 0;
+		this.lastUpdated = LocalDateTime.now();
+	}
 
-    public void setTotalCount(Integer totalCount) {
-        this.totalCount = totalCount;
-    }
+	public WatchlistCollectionResponse(String userId, List<WatchlistItem> items) {
+		this.userId = userId;
+		this.items = items;
+		this.totalCount = items != null ? items.size() : 0;
+		this.activeCount = this.totalCount; // Assume all items are active for now
+		this.isEmpty = items == null || items.isEmpty();
+		this.lastUpdated = LocalDateTime.now();
+	}
 
-    public Integer getActiveCount() {
-        return activeCount;
-    }
+	// Getters and Setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setActiveCount(Integer activeCount) {
-        this.activeCount = activeCount;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Boolean getIsEmpty() {
-        return isEmpty;
-    }
+	public List<WatchlistItem> getItems() {
+		return items;
+	}
 
-    public void setIsEmpty(Boolean isEmpty) {
-        this.isEmpty = isEmpty;
-    }
+	public void setItems(List<WatchlistItem> items) {
+		this.items = items;
+		this.totalCount = items != null ? items.size() : 0;
+		this.activeCount = this.totalCount; // Assume all items are active for now
+		this.isEmpty = items == null || items.isEmpty();
+	}
 
-    public Boolean getDemoMode() {
-        return demoMode;
-    }
+	public Integer getTotalCount() {
+		return totalCount;
+	}
 
-    public void setDemoMode(Boolean demoMode) {
-        this.demoMode = demoMode;
-    }
+	public void setTotalCount(Integer totalCount) {
+		this.totalCount = totalCount;
+	}
 
-    public LocalDateTime getLastUpdated() {
-        return lastUpdated;
-    }
+	public Integer getActiveCount() {
+		return activeCount;
+	}
 
-    public void setLastUpdated(LocalDateTime lastUpdated) {
-        this.lastUpdated = lastUpdated;
-    }
+	public void setActiveCount(Integer activeCount) {
+		this.activeCount = activeCount;
+	}
 
-    // Convenience methods
-    public boolean hasItems() {
-        return items != null && !items.isEmpty();
-    }
+	public Boolean getIsEmpty() {
+		return isEmpty;
+	}
 
-    public int getItemCount() {
-        return items != null ? items.size() : 0;
-    }
+	public void setIsEmpty(Boolean isEmpty) {
+		this.isEmpty = isEmpty;
+	}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WatchlistCollectionResponse that = (WatchlistCollectionResponse) o;
-        return Objects.equals(userId, that.userId) &&
-                Objects.equals(items, that.items) &&
-                Objects.equals(totalCount, that.totalCount) &&
-                Objects.equals(activeCount, that.activeCount) &&
-                Objects.equals(isEmpty, that.isEmpty) &&
-                Objects.equals(demoMode, that.demoMode) &&
-                Objects.equals(lastUpdated, that.lastUpdated);
-    }
+	public Boolean getDemoMode() {
+		return demoMode;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(userId, items, totalCount, activeCount, isEmpty, demoMode, lastUpdated);
-    }
+	public void setDemoMode(Boolean demoMode) {
+		this.demoMode = demoMode;
+	}
 
-    @Override
-    public String toString() {
-        return "WatchlistCollectionResponse{" +
-                "userId='" + userId + '\'' +
-                ", itemCount=" + getItemCount() +
-                ", totalCount=" + totalCount +
-                ", activeCount=" + activeCount +
-                ", isEmpty=" + isEmpty +
-                ", demoMode=" + demoMode +
-                ", lastUpdated=" + lastUpdated +
-                '}';
-    }
-} 
+	public LocalDateTime getLastUpdated() {
+		return lastUpdated;
+	}
+
+	public void setLastUpdated(LocalDateTime lastUpdated) {
+		this.lastUpdated = lastUpdated;
+	}
+
+	// Convenience methods
+	public boolean hasItems() {
+		return items != null && !items.isEmpty();
+	}
+
+	public int getItemCount() {
+		return items != null ? items.size() : 0;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		WatchlistCollectionResponse that = (WatchlistCollectionResponse) o;
+		return Objects.equals(userId, that.userId) && Objects.equals(items, that.items)
+				&& Objects.equals(totalCount, that.totalCount) && Objects.equals(activeCount, that.activeCount)
+				&& Objects.equals(isEmpty, that.isEmpty) && Objects.equals(demoMode, that.demoMode)
+				&& Objects.equals(lastUpdated, that.lastUpdated);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(userId, items, totalCount, activeCount, isEmpty, demoMode, lastUpdated);
+	}
+
+	@Override
+	public String toString() {
+		return "WatchlistCollectionResponse{" + "userId='" + userId + '\'' + ", itemCount=" + getItemCount()
+				+ ", totalCount=" + totalCount + ", activeCount=" + activeCount + ", isEmpty=" + isEmpty + ", demoMode="
+				+ demoMode + ", lastUpdated=" + lastUpdated + '}';
+	}
+
+}

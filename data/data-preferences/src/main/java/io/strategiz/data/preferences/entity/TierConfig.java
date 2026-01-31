@@ -14,14 +14,22 @@ import java.util.Map;
 /**
  * Configurable tier settings stored at config/tiers/{tierId}.
  *
- * <p>This entity allows admin configuration of tier limits, pricing, and features
- * without code deploys. Changes take effect immediately.</p>
+ * <p>
+ * This entity allows admin configuration of tier limits, pricing, and features without
+ * code deploys. Changes take effect immediately.
+ * </p>
  *
- * <p>Firestore path: config/tiers/{tierId}</p>
+ * <p>
+ * Firestore path: config/tiers/{tierId}
+ * </p>
  *
- * <p>Tier IDs: explorer, strategist, quant</p>
+ * <p>
+ * Tier IDs: explorer, strategist, quant
+ * </p>
  *
- * <p>Example structure:</p>
+ * <p>
+ * Example structure:
+ * </p>
  * <pre>
  * {
  *   tierId: "strategist",
@@ -52,7 +60,9 @@ public class TierConfig extends BaseEntity {
 
 	// Tier IDs (must match SubscriptionTier enum values)
 	public static final String TIER_EXPLORER = "explorer";
+
 	public static final String TIER_STRATEGIST = "strategist";
+
 	public static final String TIER_QUANT = "quant";
 
 	// Limits constants for unlimited values
@@ -72,24 +82,22 @@ public class TierConfig extends BaseEntity {
 	private String description;
 
 	/**
-	 * Monthly subscription price in USD cents.
-	 * 0 = free tier (Explorer)
+	 * Monthly subscription price in USD cents. 0 = free tier (Explorer)
 	 */
 	@PropertyName("monthlyPriceCents")
 	@JsonProperty("monthlyPriceCents")
 	private Integer monthlyPriceCents;
 
 	/**
-	 * Monthly STRAT allotment included with subscription.
-	 * Added to user's wallet each billing cycle.
+	 * Monthly STRAT allotment included with subscription. Added to user's wallet each
+	 * billing cycle.
 	 */
 	@PropertyName("monthlyStratAllotment")
 	@JsonProperty("monthlyStratAllotment")
 	private Long monthlyStratAllotment;
 
 	/**
-	 * Tier-specific limits.
-	 * Use -1 for unlimited.
+	 * Tier-specific limits. Use -1 for unlimited.
 	 */
 	@PropertyName("limits")
 	@JsonProperty("limits")
@@ -158,10 +166,8 @@ public class TierConfig extends BaseEntity {
 		limits.setBots(0);
 		config.setLimits(limits);
 
-		config.setAiModelAccess(List.of(
-				"gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini",
-				"claude-haiku-4-5", "llama-3.1-8b-instruct-maas", "mistral-nemo"
-		));
+		config.setAiModelAccess(List.of("gemini-2.5-flash", "gemini-1.5-flash", "gpt-4o-mini", "claude-haiku-4-5",
+				"llama-3.1-8b-instruct-maas", "mistral-nemo"));
 
 		Map<String, Boolean> features = new HashMap<>();
 		features.put("backtesting", false);
@@ -192,12 +198,9 @@ public class TierConfig extends BaseEntity {
 		limits.setBots(1);
 		config.setLimits(limits);
 
-		config.setAiModelAccess(List.of(
-				"gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
-				"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5",
-				"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
-				"mistral-nemo", "mistral-small", "mistral-large-2", "command-r"
-		));
+		config.setAiModelAccess(List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
+				"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5", "llama-3.1-8b-instruct-maas",
+				"llama-3.1-70b-instruct-maas", "mistral-nemo", "mistral-small", "mistral-large-2", "command-r"));
 
 		Map<String, Boolean> features = new HashMap<>();
 		features.put("backtesting", true);
@@ -228,13 +231,10 @@ public class TierConfig extends BaseEntity {
 		limits.setBots(UNLIMITED);
 		config.setLimits(limits);
 
-		config.setAiModelAccess(List.of(
-				"gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
-				"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5",
-				"o1", "o1-mini", "llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas",
-				"llama-3.1-405b-instruct-maas", "mistral-nemo", "mistral-small", "mistral-large-2",
-				"command-r", "command-r-plus"
-		));
+		config.setAiModelAccess(List.of("gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro",
+				"gpt-4o-mini", "gpt-4o", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5", "o1", "o1-mini",
+				"llama-3.1-8b-instruct-maas", "llama-3.1-70b-instruct-maas", "llama-3.1-405b-instruct-maas",
+				"mistral-nemo", "mistral-small", "mistral-large-2", "command-r", "command-r-plus"));
 
 		Map<String, Boolean> features = new HashMap<>();
 		features.put("backtesting", true);

@@ -9,16 +9,17 @@ import jakarta.validation.constraints.Pattern;
  */
 public class UpdateBotStatusRequest {
 
-    @NotBlank(message = "Status is required")
-    @Pattern(regexp = "^(ACTIVE|PAUSED|STOPPED)$", message = "Status must be ACTIVE, PAUSED, or STOPPED")
-    @JsonProperty("status")
-    private String status;
+	@NotBlank(message = "Status is required")
+	@Pattern(regexp = "^(ACTIVE|PAUSED|STOPPED)$", message = "Status must be ACTIVE, PAUSED, or STOPPED")
+	@JsonProperty("status")
+	private String status;
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
 }

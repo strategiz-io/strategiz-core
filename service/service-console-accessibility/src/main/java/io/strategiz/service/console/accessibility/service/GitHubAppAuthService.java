@@ -23,8 +23,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.strategiz.client.github.GitHubAppConfig;
 
 /**
- * Service for GitHub App authentication. Generates installation access tokens
- * for the Strategiz Accessibility Scanner GitHub App.
+ * Service for GitHub App authentication. Generates installation access tokens for the
+ * Strategiz Accessibility Scanner GitHub App.
  */
 @Service
 public class GitHubAppAuthService {
@@ -47,8 +47,8 @@ public class GitHubAppAuthService {
 	}
 
 	/**
-	 * Get a valid installation access token. Uses cached token if still valid,
-	 * otherwise generates a new one.
+	 * Get a valid installation access token. Uses cached token if still valid, otherwise
+	 * generates a new one.
 	 * @return GitHub installation access token
 	 */
 	public String getInstallationToken() {

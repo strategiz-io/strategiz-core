@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Service for processing OAuth callbacks from provider integrations.
- * Handles OAuth code exchange and provider connection completion.
+ * Service for processing OAuth callbacks from provider integrations. Handles OAuth code
+ * exchange and provider connection completion.
  *
  * @author Strategiz Team
  * @version 1.0
@@ -31,513 +31,534 @@ import java.util.Map;
 @Service
 public class ProviderCallbackService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-provider";
-    }
-    
-    private final CoinbaseProviderBusiness coinbaseProviderBusiness;
-    private final AlpacaProviderBusiness alpacaProviderBusiness;
-    private final SchwabProviderBusiness schwabProviderBusiness;
-    private final KrakenProviderBusiness krakenProviderBusiness;
-    private final EtradeProviderBusiness etradeProviderBusiness;
-    private final PortfolioSummaryManager portfolioSummaryManager;
-    private final SessionAuthBusiness sessionAuthBusiness;
-    private final ProfileService profileService;
+	@Override
+	protected String getModuleName() {
+		return "service-provider";
+	}
 
-    @Value("${frontend.url:http://localhost:3000}")
-    private String frontendUrl;
+	private final CoinbaseProviderBusiness coinbaseProviderBusiness;
 
-    @Autowired
-    public ProviderCallbackService(CoinbaseProviderBusiness coinbaseProviderBusiness,
-                                   AlpacaProviderBusiness alpacaProviderBusiness,
-                                   SchwabProviderBusiness schwabProviderBusiness,
-                                   KrakenProviderBusiness krakenProviderBusiness,
-                                   EtradeProviderBusiness etradeProviderBusiness,
-                                   PortfolioSummaryManager portfolioSummaryManager,
-                                   SessionAuthBusiness sessionAuthBusiness,
-                                   ProfileService profileService) {
-        this.coinbaseProviderBusiness = coinbaseProviderBusiness;
-        this.alpacaProviderBusiness = alpacaProviderBusiness;
-        this.schwabProviderBusiness = schwabProviderBusiness;
-        this.krakenProviderBusiness = krakenProviderBusiness;
-        this.etradeProviderBusiness = etradeProviderBusiness;
-        this.portfolioSummaryManager = portfolioSummaryManager;
-        this.sessionAuthBusiness = sessionAuthBusiness;
-        this.profileService = profileService;
-    }
-    
-    /**
-     * Process OAuth callback from a provider.
-     *
-     * @param provider The provider name
-     * @param code The authorization code
-     * @param state The state parameter
-     * @param clientIp The client IP address for audit trail
-     * @param userAgent The client user agent for audit trail
-     * @return ProviderCallbackResponse with connection status
-     */
-    public ProviderCallbackResponse processOAuthCallback(String provider, String code, String state,
-                                                         String clientIp, String userAgent) {
-        log.info("Processing OAuth callback for provider: {}, state: {}, clientIp: {}", provider, state, clientIp);
-        
-        // Validate provider
-        if (!isValidProvider(provider)) {
-            throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
-        }
-        
-        // Extract user ID from state parameter
-        String userId = extractUserIdFromState(state);
-        if (userId == null || userId.isEmpty()) {
-            throw new StrategizException(ServiceProviderErrorDetails.INVALID_OAUTH_STATE, "service-provider", state);
-        }
-        
-        try {
-            ProviderCallbackResponse response = new ProviderCallbackResponse();
-            response.setProviderId(provider);
-            response.setProviderName(getProviderDisplayName(provider));
-            
-            // Process based on provider
-            switch (provider.toLowerCase()) {
-                case "coinbase":
-                    processCoinbaseCallback(userId, code, state, response);
-                    break;
-                    
-                case "alpaca":
-                    processAlpacaCallback(userId, code, state, response);
-                    break;
-                    
-                case "schwab":
-                    processSchwabCallback(userId, code, state, response);
-                    break;
-                    
-                case "kraken":
-                    processKrakenCallback(userId, code, state, response);
-                    break;
+	private final AlpacaProviderBusiness alpacaProviderBusiness;
 
-                case "etrade":
-                    processEtradeCallback(userId, code, state, response);
-                    break;
+	private final SchwabProviderBusiness schwabProviderBusiness;
 
-                case "binance":
-                    // TODO: Implement Binance OAuth callback processing
-                    throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider", provider);
+	private final KrakenProviderBusiness krakenProviderBusiness;
 
-                default:
-                    throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider", provider);
-            }
-            
-            // Real provider connected - disable demo mode
-            // User is now connected to real data, so they're no longer in demo mode
-            profileService.setDemoMode(userId, false);
-            log.info("Demo mode disabled for user {} after connecting provider: {}", userId, provider);
+	private final EtradeProviderBusiness etradeProviderBusiness;
 
-            // Set success redirect URL with auth token for cross-origin session handling
-            // Also sets the token on the response for HTTP-only cookie creation by the controller
-            // Pass client IP and User-Agent for enterprise-grade audit trail
-            setSuccessRedirectWithToken(response, provider, userId, clientIp, userAgent);
-            response.setOperationSuccess(true);
+	private final PortfolioSummaryManager portfolioSummaryManager;
 
-            // Refresh portfolio summary now that new provider is connected
-            portfolioSummaryManager.refreshPortfolioSummary(userId);
+	private final SessionAuthBusiness sessionAuthBusiness;
 
-            log.info("Successfully processed OAuth callback for provider: {}, user: {}", provider, userId);
-            return response;
-            
-        } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
-        } catch (Exception e) {
-            log.error("Error processing OAuth callback for provider: {}, user: {}", provider, userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
-                userId, provider, e.getMessage());
-        }
-    }
-    
-    /**
-     * Process Coinbase OAuth callback.
-     * 
-     * @param userId The user ID
-     * @param code The authorization code
-     * @param state The state parameter
-     * @param response The response to populate
-     */
-    private void processCoinbaseCallback(String userId, String code, String state, ProviderCallbackResponse response) {
-        log.info("Processing Coinbase OAuth callback for user: {}", userId);
-        
-        try {
-            // Complete OAuth flow using Coinbase business module
-            coinbaseProviderBusiness.completeOAuthFlow(userId, code, state);
-            
-            response.setStatus("connected");
-            response.setMessage("Successfully connected Coinbase account");
-            response.setConnectedAt(Instant.now());
-            
-            // Add connection metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", "coinbase");
-            metadata.put("connectionType", "oauth");
-            metadata.put("userId", userId);
-            response.setConnectionData(metadata);
-            
-        } catch (Exception e) {
-            log.error("Failed to complete Coinbase OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
-                userId, "coinbase", e.getMessage());
-        }
-    }
-    
-    /**
-     * Process Alpaca OAuth callback.
-     * 
-     * @param userId The user ID
-     * @param code The authorization code
-     * @param state The state parameter
-     * @param response The response to populate
-     */
-    private void processAlpacaCallback(String userId, String code, String state, ProviderCallbackResponse response) {
-        log.info("Processing Alpaca OAuth callback for user: {}", userId);
-        
-        try {
-            // Complete OAuth flow using Alpaca business module
-            alpacaProviderBusiness.completeOAuthFlow(userId, code, state);
-            
-            response.setStatus("connected");
-            response.setMessage("Successfully connected Alpaca account");
-            response.setConnectedAt(Instant.now());
-            
-            // Add connection metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", "alpaca");
-            metadata.put("connectionType", "oauth");
-            metadata.put("userId", userId);
-            response.setConnectionData(metadata);
-            
-        } catch (Exception e) {
-            log.error("Failed to complete Alpaca OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
-                userId, "alpaca", e.getMessage());
-        }
-    }
-    
-    /**
-     * Process Charles Schwab OAuth callback.
-     * 
-     * @param userId The user ID
-     * @param code The authorization code
-     * @param state The state parameter
-     * @param response The response to populate
-     */
-    private void processSchwabCallback(String userId, String code, String state, ProviderCallbackResponse response) {
-        log.info("Processing Charles Schwab OAuth callback for user: {}", userId);
-        
-        try {
-            // Complete OAuth flow using Schwab business module
-            schwabProviderBusiness.completeOAuthFlow(userId, code, state);
-            
-            response.setStatus("connected");
-            response.setMessage("Successfully connected Charles Schwab account");
-            response.setConnectedAt(Instant.now());
-            
-            // Add connection metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", "schwab");
-            metadata.put("connectionType", "oauth");
-            metadata.put("userId", userId);
-            response.setConnectionData(metadata);
-            
-        } catch (Exception e) {
-            log.error("Failed to complete Charles Schwab OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider", 
-                userId, "schwab", e.getMessage());
-        }
-    }
+	private final ProfileService profileService;
 
-    /**
-     * Process Kraken OAuth callback.
-     * Since Kraken doesn't currently support OAuth, this is a simplified implementation
-     * that marks the connection as successful.
-     *
-     * @param userId The user ID
-     * @param code The authorization code (not used for Kraken currently)
-     * @param state The state parameter
-     * @param response The response to populate
-     */
-    private void processKrakenCallback(String userId, String code, String state, ProviderCallbackResponse response) {
-        log.info("Processing Kraken OAuth callback for user: {}", userId);
+	@Value("${frontend.url:http://localhost:3000}")
+	private String frontendUrl;
 
-        try {
-            // For now, simply mark as connected since Kraken doesn't have full OAuth support
-            // In a real implementation, this would exchange the code for tokens and store them
+	@Autowired
+	public ProviderCallbackService(CoinbaseProviderBusiness coinbaseProviderBusiness,
+			AlpacaProviderBusiness alpacaProviderBusiness, SchwabProviderBusiness schwabProviderBusiness,
+			KrakenProviderBusiness krakenProviderBusiness, EtradeProviderBusiness etradeProviderBusiness,
+			PortfolioSummaryManager portfolioSummaryManager, SessionAuthBusiness sessionAuthBusiness,
+			ProfileService profileService) {
+		this.coinbaseProviderBusiness = coinbaseProviderBusiness;
+		this.alpacaProviderBusiness = alpacaProviderBusiness;
+		this.schwabProviderBusiness = schwabProviderBusiness;
+		this.krakenProviderBusiness = krakenProviderBusiness;
+		this.etradeProviderBusiness = etradeProviderBusiness;
+		this.portfolioSummaryManager = portfolioSummaryManager;
+		this.sessionAuthBusiness = sessionAuthBusiness;
+		this.profileService = profileService;
+	}
 
-            response.setStatus("connected");
-            response.setMessage("Successfully connected Kraken account");
-            response.setConnectedAt(Instant.now());
+	/**
+	 * Process OAuth callback from a provider.
+	 * @param provider The provider name
+	 * @param code The authorization code
+	 * @param state The state parameter
+	 * @param clientIp The client IP address for audit trail
+	 * @param userAgent The client user agent for audit trail
+	 * @return ProviderCallbackResponse with connection status
+	 */
+	public ProviderCallbackResponse processOAuthCallback(String provider, String code, String state, String clientIp,
+			String userAgent) {
+		log.info("Processing OAuth callback for provider: {}, state: {}, clientIp: {}", provider, state, clientIp);
 
-            // Add connection metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", "kraken");
-            metadata.put("connectionType", "oauth");
-            metadata.put("userId", userId);
-            metadata.put("note", "Kraken OAuth integration simplified - full OAuth flow to be implemented");
-            response.setConnectionData(metadata);
+		// Validate provider
+		if (!isValidProvider(provider)) {
+			throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider",
+					provider);
+		}
 
-            log.info("Successfully processed Kraken OAuth callback for user: {}", userId);
+		// Extract user ID from state parameter
+		String userId = extractUserIdFromState(state);
+		if (userId == null || userId.isEmpty()) {
+			throw new StrategizException(ServiceProviderErrorDetails.INVALID_OAUTH_STATE, "service-provider", state);
+		}
 
-        } catch (Exception e) {
-            log.error("Failed to complete Kraken OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
-                userId, "kraken", e.getMessage());
-        }
-    }
+		try {
+			ProviderCallbackResponse response = new ProviderCallbackResponse();
+			response.setProviderId(provider);
+			response.setProviderName(getProviderDisplayName(provider));
 
-    /**
-     * Get success redirect URL for frontend with authentication token.
-     *
-     * @param provider The provider name
-     * @param userId The user ID to generate token for
-     * @return The redirect URL with token
-     */
-    public String getSuccessRedirectUrl(String provider, String userId) {
-        try {
-            // Generate auth token for the user so frontend can re-authenticate after redirect
-            SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(
-                userId,
-                java.util.List.of("provider_oauth"),
-                "1",
-                "oauth-callback",
-                "0.0.0.0"
-            );
-            String token = tokenPair.accessToken();
-            return String.format("%s/providers/callback/%s/success?token=%s&userId=%s",
-                frontendUrl, provider, java.net.URLEncoder.encode(token, "UTF-8"), userId);
-        } catch (Exception e) {
-            log.warn("Failed to generate token for redirect, falling back to basic redirect: {}", e.getMessage());
-            return String.format("%s/providers/callback/%s/success?userId=%s", frontendUrl, provider, userId);
-        }
-    }
+			// Process based on provider
+			switch (provider.toLowerCase()) {
+				case "coinbase":
+					processCoinbaseCallback(userId, code, state, response);
+					break;
 
-    /**
-     * Set success redirect URL and access token on the response.
-     *
-     * INDUSTRY STANDARD APPROACH:
-     * 1. First, try to find and refresh the user's existing active session
-     * 2. Only create a new session if no valid session exists (fallback)
-     *
-     * This prevents duplicate sessions and follows OAuth best practices for
-     * account linking flows where the user is already authenticated.
-     *
-     * @param response The response to populate
-     * @param provider The provider name
-     * @param userId The user ID to generate token for
-     * @param clientIp The client IP address for audit trail
-     * @param userAgent The client user agent for audit trail
-     */
-    public void setSuccessRedirectWithToken(ProviderCallbackResponse response, String provider, String userId,
-                                            String clientIp, String userAgent) {
-        try {
-            String accessToken;
-            String sessionId;
+				case "alpaca":
+					processAlpacaCallback(userId, code, state, response);
+					break;
 
-            // STEP 1: Try to find and refresh existing session (industry standard)
-            java.util.Optional<SessionAuthBusiness.RefreshedSession> refreshedSession =
-                sessionAuthBusiness.findAndRefreshActiveSession(userId, clientIp, userAgent);
+				case "schwab":
+					processSchwabCallback(userId, code, state, response);
+					break;
 
-            if (refreshedSession.isPresent()) {
-                // User has an existing valid session - refresh it instead of creating new
-                SessionAuthBusiness.RefreshedSession session = refreshedSession.get();
-                accessToken = session.accessToken();
-                sessionId = session.sessionId();
+				case "kraken":
+					processKrakenCallback(userId, code, state, response);
+					break;
 
-                log.info("Refreshed existing session {} for user {} after {} OAuth callback (industry standard approach)",
-                    sessionId, userId, provider);
-            } else {
-                // STEP 2: No valid session found - create new one as fallback
-                // This handles edge cases like expired sessions or first-time connections
-                log.info("No existing valid session found for user {} - creating new session as fallback", userId);
+				case "etrade":
+					processEtradeCallback(userId, code, state, response);
+					break;
 
-                SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
-                    userId,
-                    null, // email not needed for provider OAuth
-                    java.util.List.of("provider_oauth", provider), // Include provider as an auth method for tracking
-                    false, // Not partial auth - this is a full provider connection
-                    "oauth-callback-" + provider, // Device ID for tracking
-                    null, // No device fingerprint
-                    clientIp != null ? clientIp : "0.0.0.0", // Client IP for audit trail
-                    userAgent != null ? userAgent : "Provider OAuth Callback", // User agent for audit trail
-                    false // demoMode - real provider connection means live mode
-                );
+				case "binance":
+					// TODO: Implement Binance OAuth callback processing
+					throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_NOT_SUPPORTED, "service-provider",
+							provider);
 
-                SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
-                accessToken = authResult.accessToken();
-                sessionId = authResult.getSessionId();
+				default:
+					throw new StrategizException(ServiceProviderErrorDetails.INVALID_PROVIDER_TYPE, "service-provider",
+							provider);
+			}
 
-                log.info("Created new fallback session {} for user {} via provider {}", sessionId, userId, provider);
-            }
+			// Real provider connected - disable demo mode
+			// User is now connected to real data, so they're no longer in demo mode
+			profileService.setDemoMode(userId, false);
+			log.info("Demo mode disabled for user {} after connecting provider: {}", userId, provider);
 
-            // Set the access token on the response for HTTP-only cookie creation by the controller
-            response.setAccessToken(accessToken);
+			// Set success redirect URL with auth token for cross-origin session handling
+			// Also sets the token on the response for HTTP-only cookie creation by the
+			// controller
+			// Pass client IP and User-Agent for enterprise-grade audit trail
+			setSuccessRedirectWithToken(response, provider, userId, clientIp, userAgent);
+			response.setOperationSuccess(true);
 
-            // Store session info in connection data for frontend use
-            if (response.getConnectionData() == null) {
-                response.setConnectionData(new HashMap<>());
-            }
-            response.getConnectionData().put("sessionId", sessionId);
-            response.getConnectionData().put("sessionRefreshed", refreshedSession.isPresent());
+			// Refresh portfolio summary now that new provider is connected
+			portfolioSummaryManager.refreshPortfolioSummary(userId);
 
-            // Build redirect URL with token as fallback for cross-origin scenarios
-            String redirectUrl = String.format("%s/providers/callback/%s/success?token=%s&userId=%s&sessionId=%s",
-                frontendUrl, provider,
-                java.net.URLEncoder.encode(accessToken, "UTF-8"),
-                userId,
-                sessionId != null ? sessionId : "");
-            response.setRedirectUrl(redirectUrl);
+			log.info("Successfully processed OAuth callback for provider: {}, user: {}", provider, userId);
+			return response;
 
-            log.info("OAuth callback complete for user: {} (session: {}, refreshed: {})",
-                userId, sessionId, refreshedSession.isPresent());
+		}
+		catch (StrategizException e) {
+			// Re-throw business exceptions
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Error processing OAuth callback for provider: {}, user: {}", provider, userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, provider, e.getMessage());
+		}
+	}
 
-        } catch (Exception e) {
-            log.error("Failed to handle session for user {} after provider {} OAuth: {}",
-                userId, provider, e.getMessage(), e);
-            // Fallback to basic redirect without session
-            response.setRedirectUrl(String.format("%s/providers/callback/%s/success?userId=%s&error=session_handling_failed",
-                frontendUrl, provider, userId));
-        }
-    }
-    
-    /**
-     * Get error redirect URL for frontend.
-     * 
-     * @param provider The provider name
-     * @param error The error code
-     * @param errorDescription The error description
-     * @return The redirect URL
-     */
-    public String getErrorRedirectUrl(String provider, String error, String errorDescription) {
-        return String.format("%s/providers/callback/%s/error?error=%s&description=%s", 
-            frontendUrl, provider, error, errorDescription != null ? errorDescription : "");
-    }
-    
-    /**
-     * Extract user ID from state parameter.
-     * Supports multiple formats:
-     * 1. userId-sessionUUID (generated by backend) - e.g. "65370699-cc00-4bb2-88bd-ae005b80c9d8-08665d89-c9b6-419a-9ac9-090a85b8a518"
-     * 2. coinbase_userId_timestamp (manual script format)
-     *
-     * @param state The state parameter
-     * @return The user ID or null if invalid
-     */
-    private String extractUserIdFromState(String state) {
-        if (state == null || state.isEmpty()) {
-            return null;
-        }
+	/**
+	 * Process Coinbase OAuth callback.
+	 * @param userId The user ID
+	 * @param code The authorization code
+	 * @param state The state parameter
+	 * @param response The response to populate
+	 */
+	private void processCoinbaseCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+		log.info("Processing Coinbase OAuth callback for user: {}", userId);
 
-        // Handle format: coinbase_userId_timestamp
-        if (state.contains("_")) {
-            String[] parts = state.split("_");
-            if (parts.length >= 3) {
-                // Return the middle part which is the user ID
-                return parts[1];
-            }
-        }
+		try {
+			// Complete OAuth flow using Coinbase business module
+			coinbaseProviderBusiness.completeOAuthFlow(userId, code, state);
 
-        // Handle format: userId-sessionUUID (standard backend format)
-        // State format: "userId-sessionUUID" where userId is a full UUID (5 parts) and sessionUUID is also a UUID (5 parts)
-        // Example: "65370699-cc00-4bb2-88bd-ae005b80c9d8-08665d89-c9b6-419a-9ac9-090a85b8a518"
-        if (state.contains("-")) {
-            String[] parts = state.split("-");
-            // A UUID has 5 parts separated by dashes, so if we have 10+ parts, it's userId-sessionUUID
-            if (parts.length >= 10) {
-                // Extract first 5 parts (the user UUID)
-                return String.join("-", parts[0], parts[1], parts[2], parts[3], parts[4]);
-            } else if (parts.length >= 2) {
-                // Fallback: take first part for backward compatibility
-                return parts[0];
-            }
-        }
+			response.setStatus("connected");
+			response.setMessage("Successfully connected Coinbase account");
+			response.setConnectedAt(Instant.now());
 
-        // If no delimiter found, assume the entire string is the user ID
-        return state;
-    }
-    
-    /**
-     * Check if provider is valid.
-     * 
-     * @param provider The provider name
-     * @return true if valid, false otherwise
-     */
-    private boolean isValidProvider(String provider) {
-        if (provider == null || provider.isEmpty()) {
-            return false;
-        }
-        
-        String p = provider.toLowerCase();
-        return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p) || "schwab".equals(p) || "robinhood".equals(p) || "etrade".equals(p);
-    }
-    
-    /**
-     * Get provider display name.
-     * 
-     * @param provider The provider ID
-     * @return The display name
-     */
-    private String getProviderDisplayName(String provider) {
-        if (provider == null) {
-            return "Unknown";
-        }
-        
-        switch (provider.toLowerCase()) {
-            case "coinbase":
-                return "Coinbase";
-            case "kraken":
-                return "Kraken";
-            case "binance":
-                return "Binance";
-            case "alpaca":
-                return "Alpaca";
-            case "schwab":
-                return "Charles Schwab";
-            case "robinhood":
-                return "Robinhood";
-            case "etrade":
-                return "E*TRADE";
-            default:
-                return provider;
-        }
-    }
+			// Add connection metadata
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("provider", "coinbase");
+			metadata.put("connectionType", "oauth");
+			metadata.put("userId", userId);
+			response.setConnectionData(metadata);
 
-    /**
-     * Process E*TRADE OAuth 1.0a callback.
-     * E*TRADE uses OAuth 1.0a, so the callback contains oauth_verifier instead of code.
-     *
-     * @param userId The user ID (extracted from state)
-     * @param code The oauth_verifier from callback (E*TRADE calls it this way)
-     * @param state The state parameter
-     * @param response The response to populate
-     */
-    private void processEtradeCallback(String userId, String code, String state, ProviderCallbackResponse response) {
-        log.info("Processing E*TRADE OAuth 1.0a callback for user: {}", userId);
+		}
+		catch (Exception e) {
+			log.error("Failed to complete Coinbase OAuth flow for user: {}", userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, "coinbase", e.getMessage());
+		}
+	}
 
-        try {
-            // For E*TRADE OAuth 1.0a, the 'code' parameter is actually the oauth_verifier
-            // The state contains userId-uuid format, and we need the full state for token lookup
-            etradeProviderBusiness.completeOAuthFlow(state, code);
+	/**
+	 * Process Alpaca OAuth callback.
+	 * @param userId The user ID
+	 * @param code The authorization code
+	 * @param state The state parameter
+	 * @param response The response to populate
+	 */
+	private void processAlpacaCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+		log.info("Processing Alpaca OAuth callback for user: {}", userId);
 
-            response.setStatus("connected");
-            response.setMessage("Successfully connected E*TRADE account");
-            response.setConnectedAt(Instant.now());
+		try {
+			// Complete OAuth flow using Alpaca business module
+			alpacaProviderBusiness.completeOAuthFlow(userId, code, state);
 
-            // Add connection metadata
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("provider", "etrade");
-            metadata.put("connectionType", "oauth1a");
-            metadata.put("userId", userId);
-            response.setConnectionData(metadata);
+			response.setStatus("connected");
+			response.setMessage("Successfully connected Alpaca account");
+			response.setConnectedAt(Instant.now());
 
-        } catch (Exception e) {
-            log.error("Failed to complete E*TRADE OAuth flow for user: {}", userId, e);
-            throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
-                userId, "etrade", e.getMessage());
-        }
-    }
+			// Add connection metadata
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("provider", "alpaca");
+			metadata.put("connectionType", "oauth");
+			metadata.put("userId", userId);
+			response.setConnectionData(metadata);
+
+		}
+		catch (Exception e) {
+			log.error("Failed to complete Alpaca OAuth flow for user: {}", userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, "alpaca", e.getMessage());
+		}
+	}
+
+	/**
+	 * Process Charles Schwab OAuth callback.
+	 * @param userId The user ID
+	 * @param code The authorization code
+	 * @param state The state parameter
+	 * @param response The response to populate
+	 */
+	private void processSchwabCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+		log.info("Processing Charles Schwab OAuth callback for user: {}", userId);
+
+		try {
+			// Complete OAuth flow using Schwab business module
+			schwabProviderBusiness.completeOAuthFlow(userId, code, state);
+
+			response.setStatus("connected");
+			response.setMessage("Successfully connected Charles Schwab account");
+			response.setConnectedAt(Instant.now());
+
+			// Add connection metadata
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("provider", "schwab");
+			metadata.put("connectionType", "oauth");
+			metadata.put("userId", userId);
+			response.setConnectionData(metadata);
+
+		}
+		catch (Exception e) {
+			log.error("Failed to complete Charles Schwab OAuth flow for user: {}", userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, "schwab", e.getMessage());
+		}
+	}
+
+	/**
+	 * Process Kraken OAuth callback. Since Kraken doesn't currently support OAuth, this
+	 * is a simplified implementation that marks the connection as successful.
+	 * @param userId The user ID
+	 * @param code The authorization code (not used for Kraken currently)
+	 * @param state The state parameter
+	 * @param response The response to populate
+	 */
+	private void processKrakenCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+		log.info("Processing Kraken OAuth callback for user: {}", userId);
+
+		try {
+			// For now, simply mark as connected since Kraken doesn't have full OAuth
+			// support
+			// In a real implementation, this would exchange the code for tokens and store
+			// them
+
+			response.setStatus("connected");
+			response.setMessage("Successfully connected Kraken account");
+			response.setConnectedAt(Instant.now());
+
+			// Add connection metadata
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("provider", "kraken");
+			metadata.put("connectionType", "oauth");
+			metadata.put("userId", userId);
+			metadata.put("note", "Kraken OAuth integration simplified - full OAuth flow to be implemented");
+			response.setConnectionData(metadata);
+
+			log.info("Successfully processed Kraken OAuth callback for user: {}", userId);
+
+		}
+		catch (Exception e) {
+			log.error("Failed to complete Kraken OAuth flow for user: {}", userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, "kraken", e.getMessage());
+		}
+	}
+
+	/**
+	 * Get success redirect URL for frontend with authentication token.
+	 * @param provider The provider name
+	 * @param userId The user ID to generate token for
+	 * @return The redirect URL with token
+	 */
+	public String getSuccessRedirectUrl(String provider, String userId) {
+		try {
+			// Generate auth token for the user so frontend can re-authenticate after
+			// redirect
+			SessionAuthBusiness.TokenPair tokenPair = sessionAuthBusiness.createAuthenticationTokenPair(userId,
+					java.util.List.of("provider_oauth"), "1", "oauth-callback", "0.0.0.0");
+			String token = tokenPair.accessToken();
+			return String.format("%s/providers/callback/%s/success?token=%s&userId=%s", frontendUrl, provider,
+					java.net.URLEncoder.encode(token, "UTF-8"), userId);
+		}
+		catch (Exception e) {
+			log.warn("Failed to generate token for redirect, falling back to basic redirect: {}", e.getMessage());
+			return String.format("%s/providers/callback/%s/success?userId=%s", frontendUrl, provider, userId);
+		}
+	}
+
+	/**
+	 * Set success redirect URL and access token on the response.
+	 *
+	 * INDUSTRY STANDARD APPROACH: 1. First, try to find and refresh the user's existing
+	 * active session 2. Only create a new session if no valid session exists (fallback)
+	 *
+	 * This prevents duplicate sessions and follows OAuth best practices for account
+	 * linking flows where the user is already authenticated.
+	 * @param response The response to populate
+	 * @param provider The provider name
+	 * @param userId The user ID to generate token for
+	 * @param clientIp The client IP address for audit trail
+	 * @param userAgent The client user agent for audit trail
+	 */
+	public void setSuccessRedirectWithToken(ProviderCallbackResponse response, String provider, String userId,
+			String clientIp, String userAgent) {
+		try {
+			String accessToken;
+			String sessionId;
+
+			// STEP 1: Try to find and refresh existing session (industry standard)
+			java.util.Optional<SessionAuthBusiness.RefreshedSession> refreshedSession = sessionAuthBusiness
+				.findAndRefreshActiveSession(userId, clientIp, userAgent);
+
+			if (refreshedSession.isPresent()) {
+				// User has an existing valid session - refresh it instead of creating new
+				SessionAuthBusiness.RefreshedSession session = refreshedSession.get();
+				accessToken = session.accessToken();
+				sessionId = session.sessionId();
+
+				log.info(
+						"Refreshed existing session {} for user {} after {} OAuth callback (industry standard approach)",
+						sessionId, userId, provider);
+			}
+			else {
+				// STEP 2: No valid session found - create new one as fallback
+				// This handles edge cases like expired sessions or first-time connections
+				log.info("No existing valid session found for user {} - creating new session as fallback", userId);
+
+				SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(userId, null, // email
+																												// not
+																												// needed
+																												// for
+																												// provider
+																												// OAuth
+						java.util.List.of("provider_oauth", provider), // Include provider
+																		// as an auth
+																		// method for
+																		// tracking
+						false, // Not partial auth - this is a full provider connection
+						"oauth-callback-" + provider, // Device ID for tracking
+						null, // No device fingerprint
+						clientIp != null ? clientIp : "0.0.0.0", // Client IP for audit
+																	// trail
+						userAgent != null ? userAgent : "Provider OAuth Callback", // User
+																					// agent
+																					// for
+																					// audit
+																					// trail
+						false // demoMode - real provider connection means live mode
+				);
+
+				SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+				accessToken = authResult.accessToken();
+				sessionId = authResult.getSessionId();
+
+				log.info("Created new fallback session {} for user {} via provider {}", sessionId, userId, provider);
+			}
+
+			// Set the access token on the response for HTTP-only cookie creation by the
+			// controller
+			response.setAccessToken(accessToken);
+
+			// Store session info in connection data for frontend use
+			if (response.getConnectionData() == null) {
+				response.setConnectionData(new HashMap<>());
+			}
+			response.getConnectionData().put("sessionId", sessionId);
+			response.getConnectionData().put("sessionRefreshed", refreshedSession.isPresent());
+
+			// Build redirect URL with token as fallback for cross-origin scenarios
+			String redirectUrl = String.format("%s/providers/callback/%s/success?token=%s&userId=%s&sessionId=%s",
+					frontendUrl, provider, java.net.URLEncoder.encode(accessToken, "UTF-8"), userId,
+					sessionId != null ? sessionId : "");
+			response.setRedirectUrl(redirectUrl);
+
+			log.info("OAuth callback complete for user: {} (session: {}, refreshed: {})", userId, sessionId,
+					refreshedSession.isPresent());
+
+		}
+		catch (Exception e) {
+			log.error("Failed to handle session for user {} after provider {} OAuth: {}", userId, provider,
+					e.getMessage(), e);
+			// Fallback to basic redirect without session
+			response.setRedirectUrl(
+					String.format("%s/providers/callback/%s/success?userId=%s&error=session_handling_failed",
+							frontendUrl, provider, userId));
+		}
+	}
+
+	/**
+	 * Get error redirect URL for frontend.
+	 * @param provider The provider name
+	 * @param error The error code
+	 * @param errorDescription The error description
+	 * @return The redirect URL
+	 */
+	public String getErrorRedirectUrl(String provider, String error, String errorDescription) {
+		return String.format("%s/providers/callback/%s/error?error=%s&description=%s", frontendUrl, provider, error,
+				errorDescription != null ? errorDescription : "");
+	}
+
+	/**
+	 * Extract user ID from state parameter. Supports multiple formats: 1.
+	 * userId-sessionUUID (generated by backend) - e.g.
+	 * "65370699-cc00-4bb2-88bd-ae005b80c9d8-08665d89-c9b6-419a-9ac9-090a85b8a518" 2.
+	 * coinbase_userId_timestamp (manual script format)
+	 * @param state The state parameter
+	 * @return The user ID or null if invalid
+	 */
+	private String extractUserIdFromState(String state) {
+		if (state == null || state.isEmpty()) {
+			return null;
+		}
+
+		// Handle format: coinbase_userId_timestamp
+		if (state.contains("_")) {
+			String[] parts = state.split("_");
+			if (parts.length >= 3) {
+				// Return the middle part which is the user ID
+				return parts[1];
+			}
+		}
+
+		// Handle format: userId-sessionUUID (standard backend format)
+		// State format: "userId-sessionUUID" where userId is a full UUID (5 parts) and
+		// sessionUUID is also a UUID (5 parts)
+		// Example:
+		// "65370699-cc00-4bb2-88bd-ae005b80c9d8-08665d89-c9b6-419a-9ac9-090a85b8a518"
+		if (state.contains("-")) {
+			String[] parts = state.split("-");
+			// A UUID has 5 parts separated by dashes, so if we have 10+ parts, it's
+			// userId-sessionUUID
+			if (parts.length >= 10) {
+				// Extract first 5 parts (the user UUID)
+				return String.join("-", parts[0], parts[1], parts[2], parts[3], parts[4]);
+			}
+			else if (parts.length >= 2) {
+				// Fallback: take first part for backward compatibility
+				return parts[0];
+			}
+		}
+
+		// If no delimiter found, assume the entire string is the user ID
+		return state;
+	}
+
+	/**
+	 * Check if provider is valid.
+	 * @param provider The provider name
+	 * @return true if valid, false otherwise
+	 */
+	private boolean isValidProvider(String provider) {
+		if (provider == null || provider.isEmpty()) {
+			return false;
+		}
+
+		String p = provider.toLowerCase();
+		return "coinbase".equals(p) || "kraken".equals(p) || "binance".equals(p) || "alpaca".equals(p)
+				|| "schwab".equals(p) || "robinhood".equals(p) || "etrade".equals(p);
+	}
+
+	/**
+	 * Get provider display name.
+	 * @param provider The provider ID
+	 * @return The display name
+	 */
+	private String getProviderDisplayName(String provider) {
+		if (provider == null) {
+			return "Unknown";
+		}
+
+		switch (provider.toLowerCase()) {
+			case "coinbase":
+				return "Coinbase";
+			case "kraken":
+				return "Kraken";
+			case "binance":
+				return "Binance";
+			case "alpaca":
+				return "Alpaca";
+			case "schwab":
+				return "Charles Schwab";
+			case "robinhood":
+				return "Robinhood";
+			case "etrade":
+				return "E*TRADE";
+			default:
+				return provider;
+		}
+	}
+
+	/**
+	 * Process E*TRADE OAuth 1.0a callback. E*TRADE uses OAuth 1.0a, so the callback
+	 * contains oauth_verifier instead of code.
+	 * @param userId The user ID (extracted from state)
+	 * @param code The oauth_verifier from callback (E*TRADE calls it this way)
+	 * @param state The state parameter
+	 * @param response The response to populate
+	 */
+	private void processEtradeCallback(String userId, String code, String state, ProviderCallbackResponse response) {
+		log.info("Processing E*TRADE OAuth 1.0a callback for user: {}", userId);
+
+		try {
+			// For E*TRADE OAuth 1.0a, the 'code' parameter is actually the oauth_verifier
+			// The state contains userId-uuid format, and we need the full state for token
+			// lookup
+			etradeProviderBusiness.completeOAuthFlow(state, code);
+
+			response.setStatus("connected");
+			response.setMessage("Successfully connected E*TRADE account");
+			response.setConnectedAt(Instant.now());
+
+			// Add connection metadata
+			Map<String, Object> metadata = new HashMap<>();
+			metadata.put("provider", "etrade");
+			metadata.put("connectionType", "oauth1a");
+			metadata.put("userId", userId);
+			response.setConnectionData(metadata);
+
+		}
+		catch (Exception e) {
+			log.error("Failed to complete E*TRADE OAuth flow for user: {}", userId, e);
+			throw new StrategizException(ServiceProviderErrorDetails.OAUTH_TOKEN_EXCHANGE_FAILED, "service-provider",
+					userId, "etrade", e.getMessage());
+		}
+	}
+
 }

@@ -9,14 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Calculates the theoretical maximum return achievable with perfect knowledge
- * of all price peaks and troughs. This serves as an upper bound benchmark for
- * evaluating strategy efficiency.
+ * Calculates the theoretical maximum return achievable with perfect knowledge of all
+ * price peaks and troughs. This serves as an upper bound benchmark for evaluating
+ * strategy efficiency.
  *
- * Key metrics:
- * - Perfect hindsight return: Maximum possible return if you bought every trough and sold every peak
- * - Strategy efficiency: (Actual return / Perfect return) - how close a strategy comes to perfection
- * - Missed opportunities: Analysis of what percentage of swings were captured
+ * Key metrics: - Perfect hindsight return: Maximum possible return if you bought every
+ * trough and sold every peak - Strategy efficiency: (Actual return / Perfect return) -
+ * how close a strategy comes to perfection - Missed opportunities: Analysis of what
+ * percentage of swings were captured
  */
 @Component
 public class PerfectHindsightAnalyzer {
@@ -174,7 +174,6 @@ public class PerfectHindsightAnalyzer {
 
 	/**
 	 * Analyze turning points to calculate perfect hindsight return.
-	 *
 	 * @param turningPoints List of price turning points (peaks and troughs)
 	 * @return PerfectHindsightResult with analysis
 	 */
@@ -231,10 +230,7 @@ public class PerfectHindsightAnalyzer {
 			result.setAvgSwingCapture(totalSimpleReturn / swings.size());
 
 			// Median swing
-			List<Double> sortedReturns = swings.stream()
-				.map(SwingOpportunity::getReturnPct)
-				.sorted()
-				.toList();
+			List<Double> sortedReturns = swings.stream().map(SwingOpportunity::getReturnPct).sorted().toList();
 			int mid = sortedReturns.size() / 2;
 			if (sortedReturns.size() % 2 == 0) {
 				result.setMedianSwingCapture((sortedReturns.get(mid - 1) + sortedReturns.get(mid)) / 2);
@@ -255,9 +251,8 @@ public class PerfectHindsightAnalyzer {
 	}
 
 	/**
-	 * Calculate missed opportunities analysis by comparing actual trades
-	 * to perfect hindsight swings.
-	 *
+	 * Calculate missed opportunities analysis by comparing actual trades to perfect
+	 * hindsight swings.
 	 * @param perfectResult The perfect hindsight result
 	 * @param actualReturn The actual return achieved
 	 * @param actualTrades The number of trades made
@@ -316,8 +311,8 @@ public class PerfectHindsightAnalyzer {
 
 		if (efficiency < 0.20) {
 			recommendations.add("Strategy is capturing < 20% of available swings. Consider loosening entry criteria.");
-			recommendations.add(
-					"Review if entry thresholds are too strict - lower the buy dip % or adjust RSI oversold level.");
+			recommendations
+				.add("Review if entry thresholds are too strict - lower the buy dip % or adjust RSI oversold level.");
 		}
 		else if (efficiency < 0.40) {
 			recommendations.add("Moderate capture rate. Consider adding momentum confirmation to improve timing.");
@@ -327,8 +322,8 @@ public class PerfectHindsightAnalyzer {
 			recommendations.add("Good capture rate. Focus on reducing false signals and improving entry precision.");
 		}
 		else {
-			recommendations.add(
-					"Excellent capture rate. Strategy is approaching optimal. Focus on risk management improvements.");
+			recommendations
+				.add("Excellent capture rate. Strategy is approaching optimal. Focus on risk management improvements.");
 		}
 
 		// Check if avg swing is being captured
@@ -337,16 +332,15 @@ public class PerfectHindsightAnalyzer {
 			double captureEfficiency = avgPerTrade / perfectResult.getAvgSwingCapture();
 
 			if (captureEfficiency < 0.5) {
-				recommendations.add(String.format(
-						"Capturing only %.0f%% of average swing magnitude. "
-								+ "Consider tightening stops and extending profit targets.",
-						captureEfficiency * 100));
+				recommendations.add(String.format("Capturing only %.0f%% of average swing magnitude. "
+						+ "Consider tightening stops and extending profit targets.", captureEfficiency * 100));
 			}
 		}
 
 		// Check for too many or too few trades
 		if (analysis.getEstimatedSwingsCaptured() > perfectResult.getTotalSwings() * 1.5) {
-			recommendations.add("Generating more trades than available swings - likely over-trading with false signals.");
+			recommendations
+				.add("Generating more trades than available swings - likely over-trading with false signals.");
 		}
 
 		return recommendations;
@@ -451,9 +445,11 @@ public class PerfectHindsightAnalyzer {
 		 * Format as summary string.
 		 */
 		public String toSummary() {
-			return String.format("Efficiency: %.1f%% (captured ~%d/%d swings), Opportunity cost: %.2f%%, "
-					+ "Improvement potential: %.1f%%", efficiencyRatio * 100, estimatedSwingsCaptured,
-					totalPossibleSwings, opportunityCost, improvementPotential);
+			return String.format(
+					"Efficiency: %.1f%% (captured ~%d/%d swings), Opportunity cost: %.2f%%, "
+							+ "Improvement potential: %.1f%%",
+					efficiencyRatio * 100, estimatedSwingsCaptured, totalPossibleSwings, opportunityCost,
+					improvementPotential);
 		}
 
 	}

@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes for Firebase SMS client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes for Firebase SMS client operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(FirebaseSmsErrors.SMS_SEND_FAILED, MODULE_NAME);
  */

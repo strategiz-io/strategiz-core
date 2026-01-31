@@ -7,8 +7,8 @@ import io.strategiz.data.base.entity.BaseEntity;
 import io.strategiz.data.base.annotation.Collection;
 
 /**
- * AI preferences for users/{userId}/preferences/ai
- * Contains user's AI model preferences and settings.
+ * AI preferences for users/{userId}/preferences/ai Contains user's AI model preferences
+ * and settings.
  */
 @Collection("preferences")
 public class AIPreferences extends BaseEntity {

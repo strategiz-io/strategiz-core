@@ -11,15 +11,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Security preferences for users/{userId}/preferences/security
- * Contains user's MFA enforcement settings and security configurations.
+ * Security preferences for users/{userId}/preferences/security Contains user's MFA
+ * enforcement settings and security configurations.
  *
- * <p>MFA Enforcement Levels:</p>
+ * <p>
+ * MFA Enforcement Levels:
+ * </p>
  * <ul>
- *   <li>ACR 0: Partial/Signup (no enforcement possible)</li>
- *   <li>ACR 1: Single-Factor (password only)</li>
- *   <li>ACR 2: MFA (2+ methods OR passkey alone)</li>
- *   <li>ACR 3: Strong MFA (passkey + another factor)</li>
+ * <li>ACR 0: Partial/Signup (no enforcement possible)</li>
+ * <li>ACR 1: Single-Factor (password only)</li>
+ * <li>ACR 2: MFA (2+ methods OR passkey alone)</li>
+ * <li>ACR 3: Strong MFA (passkey + another factor)</li>
  * </ul>
  */
 @Collection("preferences")

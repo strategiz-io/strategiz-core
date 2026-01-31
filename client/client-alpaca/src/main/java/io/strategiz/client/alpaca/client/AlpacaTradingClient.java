@@ -24,8 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Client for executing trades via Alpaca API.
- * Supports both live and paper trading.
+ * Client for executing trades via Alpaca API. Supports both live and paper trading.
  */
 @Component
 public class AlpacaTradingClient {
@@ -71,7 +70,8 @@ public class AlpacaTradingClient {
 			orderRequest.put("qty", String.valueOf((int) qty));
 		}
 		else {
-			orderRequest.put("notional", String.format("%.2f", qty)); // For fractional, use notional
+			orderRequest.put("notional", String.format("%.2f", qty)); // For fractional,
+																		// use notional
 		}
 
 		return submitOrder(accessToken, orderRequest, isPaper);

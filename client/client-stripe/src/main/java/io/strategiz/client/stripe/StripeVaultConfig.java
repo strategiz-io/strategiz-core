@@ -12,14 +12,12 @@ import org.springframework.context.annotation.Configuration;
  * Configuration class that loads Stripe credentials from Vault and injects them into
  * StripeConfig. This ensures all Stripe secrets are loaded from Vault at startup.
  *
- * Vault path: secret/strategiz/stripe
- * Required fields:
- * - api-secret-key: Stripe secret key (sk_live_xxx or sk_test_xxx)
- * - api-publishable-key: Stripe publishable key (pk_live_xxx or pk_test_xxx)
- * - webhook-secret: Stripe webhook signing secret (whsec_xxx)
- * - price-explorer: Stripe Price ID for Explorer tier ($149/mo)
- * - price-strategist: Stripe Price ID for Strategist tier ($199/mo)
- * - price-quant: Stripe Price ID for Quant tier ($229/mo)
+ * Vault path: secret/strategiz/stripe Required fields: - api-secret-key: Stripe secret
+ * key (sk_live_xxx or sk_test_xxx) - api-publishable-key: Stripe publishable key
+ * (pk_live_xxx or pk_test_xxx) - webhook-secret: Stripe webhook signing secret
+ * (whsec_xxx) - price-explorer: Stripe Price ID for Explorer tier ($149/mo) -
+ * price-strategist: Stripe Price ID for Strategist tier ($199/mo) - price-quant: Stripe
+ * Price ID for Quant tier ($229/mo)
  */
 @Configuration
 public class StripeVaultConfig {

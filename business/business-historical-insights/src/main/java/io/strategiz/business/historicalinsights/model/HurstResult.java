@@ -1,13 +1,13 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Result of Hurst Exponent calculation using Rescaled Range (R/S) analysis.
- * The Hurst exponent indicates the tendency of a time series to either regress
- * to the mean, cluster in a direction, or move randomly.
+ * Result of Hurst Exponent calculation using Rescaled Range (R/S) analysis. The Hurst
+ * exponent indicates the tendency of a time series to either regress to the mean, cluster
+ * in a direction, or move randomly.
  *
  * H < 0.5: Mean-reverting (anti-persistent) - use oscillator strategies (RSI, Stochastic)
- * H = 0.5: Random walk - difficult to predict, market efficiency
- * H > 0.5: Trending (persistent) - use trend-following strategies (MACD, MA crossovers)
+ * H = 0.5: Random walk - difficult to predict, market efficiency H > 0.5: Trending
+ * (persistent) - use trend-following strategies (MACD, MA crossovers)
  */
 public class HurstResult {
 
@@ -122,8 +122,8 @@ public class HurstResult {
 
 	@Override
 	public String toString() {
-		return String.format("HurstResult[H=%.3f, %s, recommend=%s, confidence=%.2f]",
-				hurstExponent, interpretation, recommendedStrategyType, confidence);
+		return String.format("HurstResult[H=%.3f, %s, recommend=%s, confidence=%.2f]", hurstExponent, interpretation,
+				recommendedStrategyType, confidence);
 	}
 
 }

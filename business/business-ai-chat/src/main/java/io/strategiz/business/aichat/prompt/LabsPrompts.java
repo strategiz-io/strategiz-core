@@ -86,8 +86,7 @@ public class LabsPrompts {
 			if (userMessage.toLowerCase().contains("error") || userMessage.toLowerCase().contains("debug")) {
 				prompt.append("\n").append(DEBUG_PROMPT);
 			}
-			else if (userMessage.toLowerCase().contains("optimize")
-					|| userMessage.toLowerCase().contains("faster")) {
+			else if (userMessage.toLowerCase().contains("optimize") || userMessage.toLowerCase().contains("faster")) {
 				prompt.append("\n").append(OPTIMIZATION_PROMPT);
 			}
 			else if (userMessage.toLowerCase().contains("generat") || userMessage.toLowerCase().contains("creat")) {

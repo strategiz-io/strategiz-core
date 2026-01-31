@@ -1,7 +1,8 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Represents the volatility characteristics of a symbol based on historical data analysis.
+ * Represents the volatility characteristics of a symbol based on historical data
+ * analysis.
  */
 public class VolatilityProfile {
 

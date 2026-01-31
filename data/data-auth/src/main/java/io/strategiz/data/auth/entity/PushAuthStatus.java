@@ -5,28 +5,29 @@ package io.strategiz.data.auth.entity;
  */
 public enum PushAuthStatus {
 
-    /**
-     * Push notification sent, waiting for user response.
-     */
-    PENDING,
+	/**
+	 * Push notification sent, waiting for user response.
+	 */
+	PENDING,
 
-    /**
-     * User approved the authentication request.
-     */
-    APPROVED,
+	/**
+	 * User approved the authentication request.
+	 */
+	APPROVED,
 
-    /**
-     * User denied the authentication request.
-     */
-    DENIED,
+	/**
+	 * User denied the authentication request.
+	 */
+	DENIED,
 
-    /**
-     * Request expired without response.
-     */
-    EXPIRED,
+	/**
+	 * Request expired without response.
+	 */
+	EXPIRED,
 
-    /**
-     * Request was cancelled (e.g., user signed in another way).
-     */
-    CANCELLED
+	/**
+	 * Request was cancelled (e.g., user signed in another way).
+	 */
+	CANCELLED
+
 }

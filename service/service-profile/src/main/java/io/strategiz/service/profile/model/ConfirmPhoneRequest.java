@@ -9,24 +9,25 @@ import jakarta.validation.constraints.Pattern;
  */
 public class ConfirmPhoneRequest {
 
-    @JsonProperty("code")
-    @NotBlank(message = "Verification code is required")
-    @Pattern(regexp = "^\\d{6}$", message = "Verification code must be 6 digits")
-    private String code;
+	@JsonProperty("code")
+	@NotBlank(message = "Verification code is required")
+	@Pattern(regexp = "^\\d{6}$", message = "Verification code must be 6 digits")
+	private String code;
 
-    // Default constructor
-    public ConfirmPhoneRequest() {
-    }
+	// Default constructor
+	public ConfirmPhoneRequest() {
+	}
 
-    public ConfirmPhoneRequest(String code) {
-        this.code = code;
-    }
+	public ConfirmPhoneRequest(String code) {
+		this.code = code;
+	}
 
-    public String getCode() {
-        return code;
-    }
+	public String getCode() {
+		return code;
+	}
 
-    public void setCode(String code) {
-        this.code = code;
-    }
+	public void setCode(String code) {
+		this.code = code;
+	}
+
 }

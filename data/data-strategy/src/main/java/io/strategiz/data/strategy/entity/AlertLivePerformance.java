@@ -7,9 +7,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Live performance metrics for alert deployments.
- * Tracks real-time signal activity and statistics for deployed alerts.
- * This data is owner-only (not public).
+ * Live performance metrics for alert deployments. Tracks real-time signal activity and
+ * statistics for deployed alerts. This data is owner-only (not public).
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlertLivePerformance {

@@ -7,97 +7,99 @@ import com.google.cloud.Timestamp;
 import java.util.List;
 
 /**
- * Simplified bot deployment information for nesting within StrategyWithDeploymentsResponse.
- * Contains essential deployment info without full details.
+ * Simplified bot deployment information for nesting within
+ * StrategyWithDeploymentsResponse. Contains essential deployment info without full
+ * details.
  */
 public class BotDeploymentDTO {
 
-    @JsonProperty("id")
-    private String id;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("strategyId")
-    private String strategyId;
+	@JsonProperty("strategyId")
+	private String strategyId;
 
-    @JsonProperty("botName")
-    private String botName;
+	@JsonProperty("botName")
+	private String botName;
 
-    @JsonProperty("symbols")
-    private List<String> symbols;
+	@JsonProperty("symbols")
+	private List<String> symbols;
 
-    @JsonProperty("status")
-    private String status; // ACTIVE, PAUSED, STOPPED, ERROR
+	@JsonProperty("status")
+	private String status; // ACTIVE, PAUSED, STOPPED, ERROR
 
-    @JsonProperty("environment")
-    private String environment; // PAPER, LIVE
+	@JsonProperty("environment")
+	private String environment; // PAPER, LIVE
 
-    @JsonProperty("deployedAt")
-    private Timestamp deployedAt;
+	@JsonProperty("deployedAt")
+	private Timestamp deployedAt;
 
-    @JsonProperty("livePerformance")
-    private BotLivePerformance livePerformance;
+	@JsonProperty("livePerformance")
+	private BotLivePerformance livePerformance;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getStrategyId() {
-        return strategyId;
-    }
+	public String getStrategyId() {
+		return strategyId;
+	}
 
-    public void setStrategyId(String strategyId) {
-        this.strategyId = strategyId;
-    }
+	public void setStrategyId(String strategyId) {
+		this.strategyId = strategyId;
+	}
 
-    public String getBotName() {
-        return botName;
-    }
+	public String getBotName() {
+		return botName;
+	}
 
-    public void setBotName(String botName) {
-        this.botName = botName;
-    }
+	public void setBotName(String botName) {
+		this.botName = botName;
+	}
 
-    public List<String> getSymbols() {
-        return symbols;
-    }
+	public List<String> getSymbols() {
+		return symbols;
+	}
 
-    public void setSymbols(List<String> symbols) {
-        this.symbols = symbols;
-    }
+	public void setSymbols(List<String> symbols) {
+		this.symbols = symbols;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public String getEnvironment() {
-        return environment;
-    }
+	public String getEnvironment() {
+		return environment;
+	}
 
-    public void setEnvironment(String environment) {
-        this.environment = environment;
-    }
+	public void setEnvironment(String environment) {
+		this.environment = environment;
+	}
 
-    public Timestamp getDeployedAt() {
-        return deployedAt;
-    }
+	public Timestamp getDeployedAt() {
+		return deployedAt;
+	}
 
-    public void setDeployedAt(Timestamp deployedAt) {
-        this.deployedAt = deployedAt;
-    }
+	public void setDeployedAt(Timestamp deployedAt) {
+		this.deployedAt = deployedAt;
+	}
 
-    public BotLivePerformance getLivePerformance() {
-        return livePerformance;
-    }
+	public BotLivePerformance getLivePerformance() {
+		return livePerformance;
+	}
 
-    public void setLivePerformance(BotLivePerformance livePerformance) {
-        this.livePerformance = livePerformance;
-    }
+	public void setLivePerformance(BotLivePerformance livePerformance) {
+		this.livePerformance = livePerformance;
+	}
+
 }

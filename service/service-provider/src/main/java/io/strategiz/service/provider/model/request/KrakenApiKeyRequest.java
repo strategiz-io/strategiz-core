@@ -7,48 +7,49 @@ import jakarta.validation.constraints.NotBlank;
  * Request model for Kraken API key configuration
  */
 public class KrakenApiKeyRequest {
-    
-    @NotBlank(message = "API key is required")
-    @JsonProperty("apiKey")
-    private String apiKey;
-    
-    @NotBlank(message = "API secret is required")
-    @JsonProperty("apiSecret")
-    private String apiSecret;
-    
-    @JsonProperty("otp")
-    private String otp;  // Optional - only required if 2FA is enabled on the API key
 
-    public KrakenApiKeyRequest() {
-    }
+	@NotBlank(message = "API key is required")
+	@JsonProperty("apiKey")
+	private String apiKey;
 
-    public KrakenApiKeyRequest(String apiKey, String apiSecret, String otp) {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.otp = otp;
-    }
+	@NotBlank(message = "API secret is required")
+	@JsonProperty("apiSecret")
+	private String apiSecret;
 
-    public String getApiKey() {
-        return apiKey;
-    }
+	@JsonProperty("otp")
+	private String otp; // Optional - only required if 2FA is enabled on the API key
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+	public KrakenApiKeyRequest() {
+	}
 
-    public String getApiSecret() {
-        return apiSecret;
-    }
+	public KrakenApiKeyRequest(String apiKey, String apiSecret, String otp) {
+		this.apiKey = apiKey;
+		this.apiSecret = apiSecret;
+		this.otp = otp;
+	}
 
-    public void setApiSecret(String apiSecret) {
-        this.apiSecret = apiSecret;
-    }
+	public String getApiKey() {
+		return apiKey;
+	}
 
-    public String getOtp() {
-        return otp;
-    }
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
-    public void setOtp(String otp) {
-        this.otp = otp;
-    }
+	public String getApiSecret() {
+		return apiSecret;
+	}
+
+	public void setApiSecret(String apiSecret) {
+		this.apiSecret = apiSecret;
+	}
+
+	public String getOtp() {
+		return otp;
+	}
+
+	public void setOtp(String otp) {
+		this.otp = otp;
+	}
+
 }

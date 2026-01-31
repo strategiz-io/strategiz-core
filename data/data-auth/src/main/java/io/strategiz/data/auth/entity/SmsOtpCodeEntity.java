@@ -17,23 +17,28 @@ import java.time.temporal.ChronoUnit;
 /**
  * Entity for SMS OTP codes stored in Firestore.
  *
- * <p>Industry standard configuration:</p>
+ * <p>
+ * Industry standard configuration:
+ * </p>
  * <ul>
- *   <li>Expiration: 5 minutes (standard for financial services)</li>
- *   <li>Max attempts: 5 verification attempts</li>
- *   <li>Rate limiting: 60 seconds between SMS requests</li>
+ * <li>Expiration: 5 minutes (standard for financial services)</li>
+ * <li>Max attempts: 5 verification attempts</li>
+ * <li>Rate limiting: 60 seconds between SMS requests</li>
  * </ul>
  *
- * <p>OTP flow:</p>
+ * <p>
+ * OTP flow:
+ * </p>
  * <ol>
- *   <li>User requests OTP → code generated and stored with hash</li>
- *   <li>User submits code → verified against stored hash</li>
- *   <li>On success, code marked verified and deleted</li>
- *   <li>On failure, attempts incremented</li>
- *   <li>Expired codes cleaned up by scheduled job</li>
+ * <li>User requests OTP → code generated and stored with hash</li>
+ * <li>User submits code → verified against stored hash</li>
+ * <li>On success, code marked verified and deleted</li>
+ * <li>On failure, attempts incremented</li>
+ * <li>Expired codes cleaned up by scheduled job</li>
  * </ol>
  *
- * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate, modifiedDate, isActive, version)
+ * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate,
+ * modifiedDate, isActive, version)
  */
 @Entity
 @Table(name = "sms_otp_codes")

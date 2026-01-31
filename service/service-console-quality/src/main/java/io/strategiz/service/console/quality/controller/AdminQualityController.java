@@ -18,8 +18,8 @@ import io.strategiz.service.console.quality.model.ViolationList;
 import io.strategiz.service.console.quality.service.QualityMetricsService;
 
 /**
- * REST controller for quality metrics and compliance data. Provides endpoints
- * for admin console quality dashboard at console.strategiz.io/quality.
+ * REST controller for quality metrics and compliance data. Provides endpoints for admin
+ * console quality dashboard at console.strategiz.io/quality.
  *
  * All endpoints require admin authentication.
  */
@@ -47,8 +47,8 @@ public class AdminQualityController extends BaseController {
 
 	/**
 	 * Get compliance breakdown by framework pattern.
-	 * @return compliance metrics for exception handling, service pattern,
-	 * controller pattern
+	 * @return compliance metrics for exception handling, service pattern, controller
+	 * pattern
 	 */
 	@GetMapping("/compliance")
 	public ResponseEntity<ComplianceBreakdown> getCompliance() {
@@ -81,13 +81,11 @@ public class AdminQualityController extends BaseController {
 	}
 
 	/**
-	 * Cache quality analysis results from build pipeline (GitHub Actions, Cloud
-	 * Build, etc.). This endpoint is called by CI/CD workflows after running
-	 * analysis tools.
+	 * Cache quality analysis results from build pipeline (GitHub Actions, Cloud Build,
+	 * etc.). This endpoint is called by CI/CD workflows after running analysis tools.
 	 *
-	 * Authentication: Requires Bearer token from Vault (secret/strategiz/ci-cd)
-	 * Validated by CiCdAuthFilter.
-	 *
+	 * Authentication: Requires Bearer token from Vault (secret/strategiz/ci-cd) Validated
+	 * by CiCdAuthFilter.
 	 * @param metrics the analysis results to cache
 	 * @return 200 OK if cached successfully
 	 */

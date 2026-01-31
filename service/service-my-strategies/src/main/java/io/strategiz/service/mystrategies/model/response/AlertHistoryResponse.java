@@ -7,123 +7,126 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Response model for alert trigger history.
- * Corresponds to the "Alert History Side Panel" in the UX spec.
+ * Response model for alert trigger history. Corresponds to the "Alert History Side Panel"
+ * in the UX spec.
  */
 public class AlertHistoryResponse {
 
-    @JsonProperty("alertId")
-    private String alertId;
+	@JsonProperty("alertId")
+	private String alertId;
 
-    @JsonProperty("total")
-    private Integer total;
+	@JsonProperty("total")
+	private Integer total;
 
-    @JsonProperty("history")
-    private List<HistoryEntry> history;
+	@JsonProperty("history")
+	private List<HistoryEntry> history;
 
-    // Nested class for individual history entry
-    public static class HistoryEntry {
-        @JsonProperty("id")
-        private String id;
+	// Nested class for individual history entry
+	public static class HistoryEntry {
 
-        @JsonProperty("signal")
-        private String signal; // BUY, SELL, HOLD
+		@JsonProperty("id")
+		private String id;
 
-        @JsonProperty("symbol")
-        private String symbol;
+		@JsonProperty("signal")
+		private String signal; // BUY, SELL, HOLD
 
-        @JsonProperty("price")
-        private Double price;
+		@JsonProperty("symbol")
+		private String symbol;
 
-        @JsonProperty("timestamp")
-        private Timestamp timestamp;
+		@JsonProperty("price")
+		private Double price;
 
-        @JsonProperty("notificationSent")
-        private Boolean notificationSent;
+		@JsonProperty("timestamp")
+		private Timestamp timestamp;
 
-        @JsonProperty("metadata")
-        private Map<String, Object> metadata; // RSI, MACD, etc.
+		@JsonProperty("notificationSent")
+		private Boolean notificationSent;
 
-        // Getters and Setters
-        public String getId() {
-            return id;
-        }
+		@JsonProperty("metadata")
+		private Map<String, Object> metadata; // RSI, MACD, etc.
 
-        public void setId(String id) {
-            this.id = id;
-        }
+		// Getters and Setters
+		public String getId() {
+			return id;
+		}
 
-        public String getSignal() {
-            return signal;
-        }
+		public void setId(String id) {
+			this.id = id;
+		}
 
-        public void setSignal(String signal) {
-            this.signal = signal;
-        }
+		public String getSignal() {
+			return signal;
+		}
 
-        public String getSymbol() {
-            return symbol;
-        }
+		public void setSignal(String signal) {
+			this.signal = signal;
+		}
 
-        public void setSymbol(String symbol) {
-            this.symbol = symbol;
-        }
+		public String getSymbol() {
+			return symbol;
+		}
 
-        public Double getPrice() {
-            return price;
-        }
+		public void setSymbol(String symbol) {
+			this.symbol = symbol;
+		}
 
-        public void setPrice(Double price) {
-            this.price = price;
-        }
+		public Double getPrice() {
+			return price;
+		}
 
-        public Timestamp getTimestamp() {
-            return timestamp;
-        }
+		public void setPrice(Double price) {
+			this.price = price;
+		}
 
-        public void setTimestamp(Timestamp timestamp) {
-            this.timestamp = timestamp;
-        }
+		public Timestamp getTimestamp() {
+			return timestamp;
+		}
 
-        public Boolean getNotificationSent() {
-            return notificationSent;
-        }
+		public void setTimestamp(Timestamp timestamp) {
+			this.timestamp = timestamp;
+		}
 
-        public void setNotificationSent(Boolean notificationSent) {
-            this.notificationSent = notificationSent;
-        }
+		public Boolean getNotificationSent() {
+			return notificationSent;
+		}
 
-        public Map<String, Object> getMetadata() {
-            return metadata;
-        }
+		public void setNotificationSent(Boolean notificationSent) {
+			this.notificationSent = notificationSent;
+		}
 
-        public void setMetadata(Map<String, Object> metadata) {
-            this.metadata = metadata;
-        }
-    }
+		public Map<String, Object> getMetadata() {
+			return metadata;
+		}
 
-    // Getters and Setters
-    public String getAlertId() {
-        return alertId;
-    }
+		public void setMetadata(Map<String, Object> metadata) {
+			this.metadata = metadata;
+		}
 
-    public void setAlertId(String alertId) {
-        this.alertId = alertId;
-    }
+	}
 
-    public Integer getTotal() {
-        return total;
-    }
+	// Getters and Setters
+	public String getAlertId() {
+		return alertId;
+	}
 
-    public void setTotal(Integer total) {
-        this.total = total;
-    }
+	public void setAlertId(String alertId) {
+		this.alertId = alertId;
+	}
 
-    public List<HistoryEntry> getHistory() {
-        return history;
-    }
+	public Integer getTotal() {
+		return total;
+	}
 
-    public void setHistory(List<HistoryEntry> history) {
-        this.history = history;
-    }
+	public void setTotal(Integer total) {
+		this.total = total;
+	}
+
+	public List<HistoryEntry> getHistory() {
+		return history;
+	}
+
+	public void setHistory(List<HistoryEntry> history) {
+		this.history = history;
+	}
+
 }

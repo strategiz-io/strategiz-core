@@ -28,11 +28,9 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for DispatchJob.
  *
- * Tests the dispatch logic for live strategy alerts and bots:
- * - Symbol set grouping (multi-symbol strategy support)
- * - Tier-based query routing
- * - Pub/Sub batching
- * - Error handling
+ * Tests the dispatch logic for live strategy alerts and bots: - Symbol set grouping
+ * (multi-symbol strategy support) - Tier-based query routing - Pub/Sub batching - Error
+ * handling
  */
 @ExtendWith(MockitoExtension.class)
 class DispatchJobTest {
@@ -120,7 +118,8 @@ class DispatchJobTest {
 			assertTrue(result.success());
 			assertEquals(2, result.alertsProcessed());
 			assertEquals(0, result.botsProcessed());
-			assertEquals(2, result.symbolSetsCreated()); // AAPL and MSFT are different symbol sets
+			assertEquals(2, result.symbolSetsCreated()); // AAPL and MSFT are different
+															// symbol sets
 			assertTrue(result.messagesPublished() > 0);
 
 			verify(pubSubPublisher, atLeastOnce()).publish(any());
@@ -148,7 +147,8 @@ class DispatchJobTest {
 
 			assertTrue(result.success());
 			assertEquals(2, result.alertsProcessed());
-			assertEquals(1, result.symbolSetsCreated()); // Should be grouped into 1 symbol set
+			assertEquals(1, result.symbolSetsCreated()); // Should be grouped into 1
+															// symbol set
 		}
 
 		@Test
@@ -268,7 +268,8 @@ class DispatchJobTest {
 			alertWithoutSymbols.setId("alert-no-symbols");
 			alertWithoutSymbols.setSymbols(null); // No symbols
 
-			when(alertRepository.findActiveAlertsByTier("PRO")).thenReturn(List.of(alertWithSymbols, alertWithoutSymbols));
+			when(alertRepository.findActiveAlertsByTier("PRO"))
+				.thenReturn(List.of(alertWithSymbols, alertWithoutSymbols));
 			when(botRepository.findActiveBotsByTier("PRO")).thenReturn(List.of());
 			when(jobHistoryBusiness.recordJobStart(anyString(), anyString(), anyString())).thenReturn("exec-123");
 			when(pubSubPublisher.isAvailable()).thenReturn(true);

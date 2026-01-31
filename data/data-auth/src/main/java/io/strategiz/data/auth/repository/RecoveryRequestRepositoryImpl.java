@@ -22,201 +22,204 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Firebase implementation of RecoveryRequestRepository.
- * Manages account recovery requests in the recovery_requests collection.
+ * Firebase implementation of RecoveryRequestRepository. Manages account recovery requests
+ * in the recovery_requests collection.
  */
 @Repository
 public class RecoveryRequestRepositoryImpl extends BaseRepository<RecoveryRequestEntity>
-        implements RecoveryRequestRepository {
+		implements RecoveryRequestRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(RecoveryRequestRepositoryImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(RecoveryRequestRepositoryImpl.class);
 
-    @Autowired
-    public RecoveryRequestRepositoryImpl(Firestore firestore) {
-        super(firestore, RecoveryRequestEntity.class);
-    }
+	@Autowired
+	public RecoveryRequestRepositoryImpl(Firestore firestore) {
+		super(firestore, RecoveryRequestEntity.class);
+	}
 
-    @Override
-    protected String getModuleName() {
-        return "data-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "data-auth";
+	}
 
-    @Override
-    public RecoveryRequestEntity save(RecoveryRequestEntity entity, String userId) {
-        return super.save(entity, userId);
-    }
+	@Override
+	public RecoveryRequestEntity save(RecoveryRequestEntity entity, String userId) {
+		return super.save(entity, userId);
+	}
 
-    @Override
-    public Optional<RecoveryRequestEntity> findById(String id) {
-        return super.findById(id);
-    }
+	@Override
+	public Optional<RecoveryRequestEntity> findById(String id) {
+		return super.findById(id);
+	}
 
-    @Override
-    public List<RecoveryRequestEntity> findActiveByUserId(String userId) {
-        try {
-            Instant now = Instant.now();
-            Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
+	@Override
+	public List<RecoveryRequestEntity> findActiveByUserId(String userId) {
+		try {
+			Instant now = Instant.now();
+			Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
 
-            Query query = getCollection()
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("isActive", true)
-                    .whereIn("status", List.of(
-                            RecoveryStatus.PENDING_EMAIL.name(),
-                            RecoveryStatus.PENDING_SMS.name()));
+			Query query = getCollection().whereEqualTo("userId", userId)
+				.whereEqualTo("isActive", true)
+				.whereIn("status", List.of(RecoveryStatus.PENDING_EMAIL.name(), RecoveryStatus.PENDING_SMS.name()));
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
-            return docs.stream()
-                    .map(doc -> {
-                        RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
-                        entity.setId(doc.getId());
-                        return entity;
-                    })
-                    .filter(entity -> !entity.isExpired())
-                    .collect(Collectors.toList());
+			return docs.stream().map(doc -> {
+				RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
+				entity.setId(doc.getId());
+				return entity;
+			}).filter(entity -> !entity.isExpired()).collect(Collectors.toList());
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "RecoveryRequestEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "RecoveryRequestEntity", userId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"RecoveryRequestEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"RecoveryRequestEntity", userId);
+		}
+	}
 
-    @Override
-    public List<RecoveryRequestEntity> findActiveByEmail(String email) {
-        try {
-            Query query = getCollection()
-                    .whereEqualTo("email", email)
-                    .whereEqualTo("isActive", true)
-                    .whereIn("status", List.of(
-                            RecoveryStatus.PENDING_EMAIL.name(),
-                            RecoveryStatus.PENDING_SMS.name()));
+	@Override
+	public List<RecoveryRequestEntity> findActiveByEmail(String email) {
+		try {
+			Query query = getCollection().whereEqualTo("email", email)
+				.whereEqualTo("isActive", true)
+				.whereIn("status", List.of(RecoveryStatus.PENDING_EMAIL.name(), RecoveryStatus.PENDING_SMS.name()));
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
-            return docs.stream()
-                    .map(doc -> {
-                        RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
-                        entity.setId(doc.getId());
-                        return entity;
-                    })
-                    .filter(entity -> !entity.isExpired())
-                    .collect(Collectors.toList());
+			return docs.stream().map(doc -> {
+				RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
+				entity.setId(doc.getId());
+				return entity;
+			}).filter(entity -> !entity.isExpired()).collect(Collectors.toList());
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "RecoveryRequestEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "RecoveryRequestEntity", email);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"RecoveryRequestEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"RecoveryRequestEntity", email);
+		}
+	}
 
-    @Override
-    public List<RecoveryRequestEntity> findByStatus(RecoveryStatus status) {
-        return findByField("status", status.name());
-    }
+	@Override
+	public List<RecoveryRequestEntity> findByStatus(RecoveryStatus status) {
+		return findByField("status", status.name());
+	}
 
-    @Override
-    public long countByEmailInLastHours(String email, int hours) {
-        try {
-            Instant cutoff = Instant.now().minusSeconds(hours * 3600L);
-            Timestamp cutoffTimestamp = Timestamp.ofTimeSecondsAndNanos(cutoff.getEpochSecond(), cutoff.getNano());
+	@Override
+	public long countByEmailInLastHours(String email, int hours) {
+		try {
+			Instant cutoff = Instant.now().minusSeconds(hours * 3600L);
+			Timestamp cutoffTimestamp = Timestamp.ofTimeSecondsAndNanos(cutoff.getEpochSecond(), cutoff.getNano());
 
-            Query query = getCollection()
-                    .whereEqualTo("email", email)
-                    .whereGreaterThan("createdDate", cutoffTimestamp);
+			Query query = getCollection().whereEqualTo("email", email).whereGreaterThan("createdDate", cutoffTimestamp);
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
-            return docs.size();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			return docs.size();
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "RecoveryRequestEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "RecoveryRequestEntity", email);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"RecoveryRequestEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"RecoveryRequestEntity", email);
+		}
+	}
 
-    @Override
-    public long countByIpInLastHours(String ipAddress, int hours) {
-        try {
-            Instant cutoff = Instant.now().minusSeconds(hours * 3600L);
-            Timestamp cutoffTimestamp = Timestamp.ofTimeSecondsAndNanos(cutoff.getEpochSecond(), cutoff.getNano());
+	@Override
+	public long countByIpInLastHours(String ipAddress, int hours) {
+		try {
+			Instant cutoff = Instant.now().minusSeconds(hours * 3600L);
+			Timestamp cutoffTimestamp = Timestamp.ofTimeSecondsAndNanos(cutoff.getEpochSecond(), cutoff.getNano());
 
-            Query query = getCollection()
-                    .whereEqualTo("ipAddress", ipAddress)
-                    .whereGreaterThan("createdDate", cutoffTimestamp);
+			Query query = getCollection().whereEqualTo("ipAddress", ipAddress)
+				.whereGreaterThan("createdDate", cutoffTimestamp);
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
-            return docs.size();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			return docs.size();
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "RecoveryRequestEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "RecoveryRequestEntity", ipAddress);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"RecoveryRequestEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"RecoveryRequestEntity", ipAddress);
+		}
+	}
 
-    @Override
-    public RecoveryRequestEntity update(RecoveryRequestEntity entity, String userId) {
-        return super.save(entity, userId);
-    }
+	@Override
+	public RecoveryRequestEntity update(RecoveryRequestEntity entity, String userId) {
+		return super.save(entity, userId);
+	}
 
-    @Override
-    public int deleteExpired() {
-        try {
-            Instant now = Instant.now();
-            Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
+	@Override
+	public int deleteExpired() {
+		try {
+			Instant now = Instant.now();
+			Timestamp nowTimestamp = Timestamp.ofTimeSecondsAndNanos(now.getEpochSecond(), now.getNano());
 
-            Query query = getCollection()
-                    .whereEqualTo("isActive", true)
-                    .whereIn("status", List.of(
-                            RecoveryStatus.PENDING_EMAIL.name(),
-                            RecoveryStatus.PENDING_SMS.name()))
-                    .whereLessThan("expiresAt", nowTimestamp);
+			Query query = getCollection().whereEqualTo("isActive", true)
+				.whereIn("status", List.of(RecoveryStatus.PENDING_EMAIL.name(), RecoveryStatus.PENDING_SMS.name()))
+				.whereLessThan("expiresAt", nowTimestamp);
 
-            List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
+			List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
-            int count = 0;
-            for (QueryDocumentSnapshot doc : docs) {
-                RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
-                entity.setId(doc.getId());
-                entity.markExpired();
-                super.save(entity, "system");
-                count++;
-            }
+			int count = 0;
+			for (QueryDocumentSnapshot doc : docs) {
+				RecoveryRequestEntity entity = doc.toObject(RecoveryRequestEntity.class);
+				entity.setId(doc.getId());
+				entity.markExpired();
+				super.save(entity, "system");
+				count++;
+			}
 
-            if (count > 0) {
-                log.info("Marked {} expired recovery requests", count);
-            }
+			if (count > 0) {
+				log.info("Marked {} expired recovery requests", count);
+			}
 
-            return count;
+			return count;
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "RecoveryRequestEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "RecoveryRequestEntity", "expired");
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"RecoveryRequestEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"RecoveryRequestEntity", "expired");
+		}
+	}
 
-    @Override
-    public int cancelAllActiveForUser(String userId, String systemUserId) {
-        List<RecoveryRequestEntity> activeRequests = findActiveByUserId(userId);
+	@Override
+	public int cancelAllActiveForUser(String userId, String systemUserId) {
+		List<RecoveryRequestEntity> activeRequests = findActiveByUserId(userId);
 
-        int count = 0;
-        for (RecoveryRequestEntity entity : activeRequests) {
-            entity.markCancelled();
-            super.save(entity, systemUserId);
-            count++;
-        }
+		int count = 0;
+		for (RecoveryRequestEntity entity : activeRequests) {
+			entity.markCancelled();
+			super.save(entity, systemUserId);
+			count++;
+		}
 
-        if (count > 0) {
-            log.info("Cancelled {} active recovery requests for user {}", count, userId);
-        }
+		if (count > 0) {
+			log.info("Cancelled {} active recovery requests for user {}", count, userId);
+		}
 
-        return count;
-    }
+		return count;
+	}
+
 }

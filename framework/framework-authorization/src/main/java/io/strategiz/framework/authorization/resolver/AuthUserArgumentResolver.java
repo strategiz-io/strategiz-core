@@ -12,10 +12,12 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 /**
  * Resolver for {@link AuthUser} annotated method parameters.
  *
- * <p>Injects the current {@link AuthenticatedUser} from the security context into controller method
- * parameters.
+ * <p>
+ * Injects the current {@link AuthenticatedUser} from the security context into controller
+ * method parameters.
  *
- * <p>Usage:
+ * <p>
+ * Usage:
  *
  * <pre>
  * &#64;GetMapping("/profile")
@@ -32,30 +34,28 @@ import org.springframework.web.method.support.ModelAndViewContainer;
  */
 public class AuthUserArgumentResolver implements HandlerMethodArgumentResolver {
 
-  private static final String MODULE_NAME = "authorization";
+	private static final String MODULE_NAME = "authorization";
 
-  @Override
-  public boolean supportsParameter(MethodParameter parameter) {
-    return parameter.hasParameterAnnotation(AuthUser.class)
-        && AuthenticatedUser.class.isAssignableFrom(parameter.getParameterType());
-  }
+	@Override
+	public boolean supportsParameter(MethodParameter parameter) {
+		return parameter.hasParameterAnnotation(AuthUser.class)
+				&& AuthenticatedUser.class.isAssignableFrom(parameter.getParameterType());
+	}
 
-  @Override
-  public Object resolveArgument(
-      MethodParameter parameter,
-      ModelAndViewContainer mavContainer,
-      NativeWebRequest webRequest,
-      WebDataBinderFactory binderFactory) {
-    AuthUser annotation = parameter.getParameterAnnotation(AuthUser.class);
-    if (annotation == null) {
-      return null;
-    }
+	@Override
+	public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
+			NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+		AuthUser annotation = parameter.getParameterAnnotation(AuthUser.class);
+		if (annotation == null) {
+			return null;
+		}
 
-    if (annotation.required()) {
-      return SecurityContextHolder.requireAuthenticatedUser();
-    } else {
-      return SecurityContextHolder.getAuthenticatedUser().orElse(null);
-    }
-  }
+		if (annotation.required()) {
+			return SecurityContextHolder.requireAuthenticatedUser();
+		}
+		else {
+			return SecurityContextHolder.getAuthenticatedUser().orElse(null);
+		}
+	}
 
 }

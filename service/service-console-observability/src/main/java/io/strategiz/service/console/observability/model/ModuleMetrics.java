@@ -1,71 +1,79 @@
 package io.strategiz.service.console.observability.model;
 
 /**
- * Aggregated metrics for a module (group of endpoints).
- * Modules are grouped by the first path segment (e.g., /v1/auth/* -> "auth" module).
+ * Aggregated metrics for a module (group of endpoints). Modules are grouped by the first
+ * path segment (e.g., /v1/auth/* -> "auth" module).
  */
 public class ModuleMetrics {
-    private String moduleName;
-    private Integer endpointCount = 0;
-    private Long totalRequests = 0L;
-    private Long successRequests = 0L;
-    private Long errorRequests = 0L;
-    private Double availability = 0.0;
-    private Double worstP99LatencyMs = 0.0;
 
-    public String getModuleName() {
-        return moduleName;
-    }
+	private String moduleName;
 
-    public void setModuleName(String moduleName) {
-        this.moduleName = moduleName;
-    }
+	private Integer endpointCount = 0;
 
-    public Integer getEndpointCount() {
-        return endpointCount;
-    }
+	private Long totalRequests = 0L;
 
-    public void setEndpointCount(Integer endpointCount) {
-        this.endpointCount = endpointCount;
-    }
+	private Long successRequests = 0L;
 
-    public Long getTotalRequests() {
-        return totalRequests;
-    }
+	private Long errorRequests = 0L;
 
-    public void setTotalRequests(Long totalRequests) {
-        this.totalRequests = totalRequests;
-    }
+	private Double availability = 0.0;
 
-    public Long getSuccessRequests() {
-        return successRequests;
-    }
+	private Double worstP99LatencyMs = 0.0;
 
-    public void setSuccessRequests(Long successRequests) {
-        this.successRequests = successRequests;
-    }
+	public String getModuleName() {
+		return moduleName;
+	}
 
-    public Long getErrorRequests() {
-        return errorRequests;
-    }
+	public void setModuleName(String moduleName) {
+		this.moduleName = moduleName;
+	}
 
-    public void setErrorRequests(Long errorRequests) {
-        this.errorRequests = errorRequests;
-    }
+	public Integer getEndpointCount() {
+		return endpointCount;
+	}
 
-    public Double getAvailability() {
-        return availability;
-    }
+	public void setEndpointCount(Integer endpointCount) {
+		this.endpointCount = endpointCount;
+	}
 
-    public void setAvailability(Double availability) {
-        this.availability = availability;
-    }
+	public Long getTotalRequests() {
+		return totalRequests;
+	}
 
-    public Double getWorstP99LatencyMs() {
-        return worstP99LatencyMs;
-    }
+	public void setTotalRequests(Long totalRequests) {
+		this.totalRequests = totalRequests;
+	}
 
-    public void setWorstP99LatencyMs(Double worstP99LatencyMs) {
-        this.worstP99LatencyMs = worstP99LatencyMs;
-    }
+	public Long getSuccessRequests() {
+		return successRequests;
+	}
+
+	public void setSuccessRequests(Long successRequests) {
+		this.successRequests = successRequests;
+	}
+
+	public Long getErrorRequests() {
+		return errorRequests;
+	}
+
+	public void setErrorRequests(Long errorRequests) {
+		this.errorRequests = errorRequests;
+	}
+
+	public Double getAvailability() {
+		return availability;
+	}
+
+	public void setAvailability(Double availability) {
+		this.availability = availability;
+	}
+
+	public Double getWorstP99LatencyMs() {
+		return worstP99LatencyMs;
+	}
+
+	public void setWorstP99LatencyMs(Double worstP99LatencyMs) {
+		this.worstP99LatencyMs = worstP99LatencyMs;
+	}
+
 }

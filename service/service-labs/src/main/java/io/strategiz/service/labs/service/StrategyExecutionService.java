@@ -25,10 +25,8 @@ import java.util.stream.Collectors;
  *
  * Architecture: Controller → Service (this) → DAO (ExecutionServiceClient) → gRPC
  *
- * Responsibilities:
- * 1. Fetch market data (one DB call)
- * 2. Call gRPC DAO (one external call)
- * 3. Map POJO to DTO (pure transformation)
+ * Responsibilities: 1. Fetch market data (one DB call) 2. Call gRPC DAO (one external
+ * call) 3. Map POJO to DTO (pure transformation)
  *
  * IMPORTANT: Keep this lightweight - no complex business logic or chatty DB operations.
  * The real business logic is in the Python code. This is just a wrapper.
@@ -36,442 +34,414 @@ import java.util.stream.Collectors;
 @Service
 public class StrategyExecutionService extends BaseService {
 
-    private static final Logger logger = LoggerFactory.getLogger(StrategyExecutionService.class);
+	private static final Logger logger = LoggerFactory.getLogger(StrategyExecutionService.class);
 
-    private final ExecutionServiceClient executionServiceClient;
-    private final MarketDataRepository marketDataRepository;
+	private final ExecutionServiceClient executionServiceClient;
 
-    public StrategyExecutionService(
-            ExecutionServiceClient executionServiceClient,
-            MarketDataRepository marketDataRepository) {
-        this.executionServiceClient = executionServiceClient;
-        this.marketDataRepository = marketDataRepository;
-    }
+	private final MarketDataRepository marketDataRepository;
 
-    @Override
-    protected String getModuleName() {
-        return "service-labs";
-    }
+	public StrategyExecutionService(ExecutionServiceClient executionServiceClient,
+			MarketDataRepository marketDataRepository) {
+		this.executionServiceClient = executionServiceClient;
+		this.marketDataRepository = marketDataRepository;
+	}
 
-    /**
-     * Execute Python strategy code via gRPC microservice.
-     *
-     * @param code Python strategy code
-     * @param language Programming language (always "python" for now)
-     * @param symbol Stock/crypto symbol (e.g., "AAPL", "BTC")
-     * @param timeframe Chart timeframe (e.g., "1D", "1h")
-     * @param period Backtest period (e.g., "6mo", "1y", "2y", "5y", "7y", "max")
-     * @param userId User ID for tracking
-     * @param strategy Optional strategy entity (for seedFundingDate)
-     * @return REST DTO with ALL fields initialized
-     */
-    public ExecuteStrategyResponse executeStrategy(
-            String code,
-            String language,
-            String symbol,
-            String timeframe,
-            String period,
-            String userId,
-            Strategy strategy) {
+	@Override
+	protected String getModuleName() {
+		return "service-labs";
+	}
 
-        logger.info("Executing strategy for user={}, symbol={}, language={}, timeframe={}, period={}", userId, symbol, language, timeframe, period);
+	/**
+	 * Execute Python strategy code via gRPC microservice.
+	 * @param code Python strategy code
+	 * @param language Programming language (always "python" for now)
+	 * @param symbol Stock/crypto symbol (e.g., "AAPL", "BTC")
+	 * @param timeframe Chart timeframe (e.g., "1D", "1h")
+	 * @param period Backtest period (e.g., "6mo", "1y", "2y", "5y", "7y", "max")
+	 * @param userId User ID for tracking
+	 * @param strategy Optional strategy entity (for seedFundingDate)
+	 * @return REST DTO with ALL fields initialized
+	 */
+	public ExecuteStrategyResponse executeStrategy(String code, String language, String symbol, String timeframe,
+			String period, String userId, Strategy strategy) {
 
-        // 1. Fetch market data (one DB call)
-        List<Map<String, Object>> marketDataList = fetchMarketData(symbol, timeframe, period, strategy);
-        logger.info("Fetched {} market data bars for symbol {} with timeframe {}", marketDataList.size(), symbol, timeframe);
+		logger.info("Executing strategy for user={}, symbol={}, language={}, timeframe={}, period={}", userId, symbol,
+				language, timeframe, period);
 
-        // 2. Convert to gRPC format
-        List<MarketDataBar> grpcMarketData = marketDataList.stream()
-            .map(ExecutionServiceClient::createMarketDataBar)
-            .collect(Collectors.toList());
+		// 1. Fetch market data (one DB call)
+		List<Map<String, Object>> marketDataList = fetchMarketData(symbol, timeframe, period, strategy);
+		logger.info("Fetched {} market data bars for symbol {} with timeframe {}", marketDataList.size(), symbol,
+				timeframe);
 
-        // 3. Call DAO layer (gRPC client)
-        logger.info("Calling gRPC execution service...");
-        io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient.executeStrategy(
-            code,
-            language,
-            grpcMarketData,
-            userId,
-            "execution-" + System.currentTimeMillis(),
-            30  // timeout seconds
-        );
+		// 2. Convert to gRPC format
+		List<MarketDataBar> grpcMarketData = marketDataList.stream()
+			.map(ExecutionServiceClient::createMarketDataBar)
+			.collect(Collectors.toList());
 
-        logger.info("gRPC execution complete: success={}, executionTime={}ms",
-            grpcResponse.isSuccess(), grpcResponse.getExecutionTimeMs());
+		// 3. Call DAO layer (gRPC client)
+		logger.info("Calling gRPC execution service...");
+		io.strategiz.client.execution.model.ExecutionResponse grpcResponse = executionServiceClient
+			.executeStrategy(code, language, grpcMarketData, userId, "execution-" + System.currentTimeMillis(), 30 // timeout
+																													// seconds
+			);
 
-        // 4. Map POJO to DTO (pure transformation, no DB calls)
-        return mapToRestDto(grpcResponse, symbol, timeframe);
-    }
+		logger.info("gRPC execution complete: success={}, executionTime={}ms", grpcResponse.isSuccess(),
+				grpcResponse.getExecutionTimeMs());
 
-    /**
-     * Fetch market data from repository.
-     * Lightweight - single DB query.
-     */
-    private List<Map<String, Object>> fetchMarketData(String symbol, String timeframe, String period, Strategy strategy) {
-        logger.info("Fetching market data for symbol: {} with timeframe: {} and period: {}", symbol, timeframe, period);
+		// 4. Map POJO to DTO (pure transformation, no DB calls)
+		return mapToRestDto(grpcResponse, symbol, timeframe);
+	}
 
-        // Calculate date range
-        LocalDate endDate = LocalDate.now().minusDays(1);
-        LocalDate startDate = calculateStartDate(strategy, endDate, timeframe, period);
-        long requestedDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
+	/**
+	 * Fetch market data from repository. Lightweight - single DB query.
+	 */
+	private List<Map<String, Object>> fetchMarketData(String symbol, String timeframe, String period,
+			Strategy strategy) {
+		logger.info("Fetching market data for symbol: {} with timeframe: {} and period: {}", symbol, timeframe, period);
 
-        logger.info("REQUESTED date range: {} to {} ({} days / ~{} years)",
-            startDate, endDate, requestedDays, String.format("%.1f", requestedDays / 365.0));
+		// Calculate date range
+		LocalDate endDate = LocalDate.now().minusDays(1);
+		LocalDate startDate = calculateStartDate(strategy, endDate, timeframe, period);
+		long requestedDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate);
 
-        // Convert timeframe to database format (1H -> 1H, 1D -> 1D, etc.)
-        String dbTimeframe = convertToDbTimeframe(timeframe);
-        logger.info("Converted timeframe {} to database format: {}", timeframe, dbTimeframe);
+		logger.info("REQUESTED date range: {} to {} ({} days / ~{} years)", startDate, endDate, requestedDays,
+				String.format("%.1f", requestedDays / 365.0));
 
-        // Single query to repository with timeframe filter (limit to 3000 bars)
-        List<MarketDataEntity> entities = marketDataRepository.findBySymbolAndDateRange(
-            symbol, startDate, endDate, dbTimeframe, 3000
-        );
+		// Convert timeframe to database format (1H -> 1H, 1D -> 1D, etc.)
+		String dbTimeframe = convertToDbTimeframe(timeframe);
+		logger.info("Converted timeframe {} to database format: {}", timeframe, dbTimeframe);
 
-        // Validate data exists
-        if (entities == null || entities.isEmpty()) {
-            logger.warn("No market data found for symbol: {}", symbol);
-            throwModuleException(
-                ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
-                String.format("No market data found for symbol: %s. Please ensure batch job has run.", symbol)
-            );
-        }
+		// Single query to repository with timeframe filter (limit to 3000 bars)
+		List<MarketDataEntity> entities = marketDataRepository.findBySymbolAndDateRange(symbol, startDate, endDate,
+				dbTimeframe, 3000);
 
-        // Log actual data range vs requested range
-        if (!entities.isEmpty()) {
-            LocalDate actualStartDate = entities.get(0).getTimestampAsLocalDateTime().toLocalDate();
-            LocalDate actualEndDate = entities.get(entities.size() - 1).getTimestampAsLocalDateTime().toLocalDate();
-            long actualDays = java.time.temporal.ChronoUnit.DAYS.between(actualStartDate, actualEndDate);
+		// Validate data exists
+		if (entities == null || entities.isEmpty()) {
+			logger.warn("No market data found for symbol: {}", symbol);
+			throwModuleException(ServiceStrategyErrorDetails.MARKET_DATA_NOT_FOUND,
+					String.format("No market data found for symbol: %s. Please ensure batch job has run.", symbol));
+		}
 
-            logger.info("ACTUAL data range: {} to {} ({} days / ~{} years)",
-                actualStartDate, actualEndDate, actualDays, String.format("%.1f", actualDays / 365.0));
+		// Log actual data range vs requested range
+		if (!entities.isEmpty()) {
+			LocalDate actualStartDate = entities.get(0).getTimestampAsLocalDateTime().toLocalDate();
+			LocalDate actualEndDate = entities.get(entities.size() - 1).getTimestampAsLocalDateTime().toLocalDate();
+			long actualDays = java.time.temporal.ChronoUnit.DAYS.between(actualStartDate, actualEndDate);
 
-            if (actualStartDate.isAfter(startDate)) {
-                long missingDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, actualStartDate);
-                logger.warn("DATA AVAILABILITY WARNING: Requested {} years but data only starts from {} " +
-                    "(missing {} days of historical data for {})",
-                    String.format("%.1f", requestedDays / 365.0), actualStartDate, missingDays, symbol);
-            }
-        }
+			logger.info("ACTUAL data range: {} to {} ({} days / ~{} years)", actualStartDate, actualEndDate, actualDays,
+					String.format("%.1f", actualDays / 365.0));
 
-        // Convert to map format for gRPC
-        return entities.stream()
-            .map(this::convertToMap)
-            .collect(Collectors.toList());
-    }
+			if (actualStartDate.isAfter(startDate)) {
+				long missingDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, actualStartDate);
+				logger.warn(
+						"DATA AVAILABILITY WARNING: Requested {} years but data only starts from {} "
+								+ "(missing {} days of historical data for {})",
+						String.format("%.1f", requestedDays / 365.0), actualStartDate, missingDays, symbol);
+			}
+		}
 
-    /**
-     * Calculate backtest start date based on:
-     * 1. User-selected period (highest priority)
-     * 2. Strategy's seedFundingDate (if set)
-     * 3. Dynamic timeframe-based default
-     *
-     * Period options: 6mo, 1y, 2y, 5y, 7y, max
-     */
-    private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate, String timeframe, String period) {
-        // 1. Use period if explicitly provided by user (highest priority)
-        if (period != null && !period.isEmpty()) {
-            LocalDate periodStart = calculateStartDateFromPeriod(endDate, period);
-            logger.info("Using user-selected period '{}': start={}", period, periodStart);
-            return periodStart;
-        }
+		// Convert to map format for gRPC
+		return entities.stream().map(this::convertToMap).collect(Collectors.toList());
+	}
 
-        // 2. Use seedFundingDate if provided (strategy-level override)
-        if (strategy != null && strategy.getSeedFundingDate() != null) {
-            try {
-                LocalDate seedDate = strategy.getSeedFundingDate()
-                    .toDate()
-                    .toInstant()
-                    .atZone(ZoneOffset.UTC)
-                    .toLocalDate();
+	/**
+	 * Calculate backtest start date based on: 1. User-selected period (highest priority)
+	 * 2. Strategy's seedFundingDate (if set) 3. Dynamic timeframe-based default
+	 *
+	 * Period options: 6mo, 1y, 2y, 5y, 7y, max
+	 */
+	private LocalDate calculateStartDate(Strategy strategy, LocalDate endDate, String timeframe, String period) {
+		// 1. Use period if explicitly provided by user (highest priority)
+		if (period != null && !period.isEmpty()) {
+			LocalDate periodStart = calculateStartDateFromPeriod(endDate, period);
+			logger.info("Using user-selected period '{}': start={}", period, periodStart);
+			return periodStart;
+		}
 
-                // Validate not in future
-                if (seedDate.isAfter(endDate)) {
-                    logger.warn("Seed funding date {} is in future, using dynamic default for timeframe {}",
-                        seedDate, timeframe);
-                    return calculateDynamicStartDate(endDate, timeframe);
-                }
+		// 2. Use seedFundingDate if provided (strategy-level override)
+		if (strategy != null && strategy.getSeedFundingDate() != null) {
+			try {
+				LocalDate seedDate = strategy.getSeedFundingDate()
+					.toDate()
+					.toInstant()
+					.atZone(ZoneOffset.UTC)
+					.toLocalDate();
 
-                logger.info("Using seed funding date: {}", seedDate);
-                return seedDate;
-            } catch (Exception e) {
-                logger.error("Error parsing seed funding date, using dynamic default for timeframe {}", timeframe, e);
-            }
-        }
+				// Validate not in future
+				if (seedDate.isAfter(endDate)) {
+					logger.warn("Seed funding date {} is in future, using dynamic default for timeframe {}", seedDate,
+							timeframe);
+					return calculateDynamicStartDate(endDate, timeframe);
+				}
 
-        // 3. Dynamic defaults based on timeframe
-        return calculateDynamicStartDate(endDate, timeframe);
-    }
+				logger.info("Using seed funding date: {}", seedDate);
+				return seedDate;
+			}
+			catch (Exception e) {
+				logger.error("Error parsing seed funding date, using dynamic default for timeframe {}", timeframe, e);
+			}
+		}
 
-    /**
-     * Calculate start date based on user-selected period.
-     *
-     * @param endDate End date (yesterday)
-     * @param period One of: 6mo, 1y, 2y, 5y, 7y, max
-     * @return Start date for the backtest period
-     */
-    private LocalDate calculateStartDateFromPeriod(LocalDate endDate, String period) {
-        return switch (period.toLowerCase()) {
-            case "6mo", "6m" -> endDate.minusMonths(6);
-            case "1y" -> endDate.minusYears(1);
-            case "2y" -> endDate.minusYears(2);
-            case "3y" -> endDate.minusYears(3);  // Added missing 3-year option
-            case "5y" -> endDate.minusYears(5);
-            case "7y" -> endDate.minusYears(7);
-            case "max" -> LocalDate.of(2018, 1, 1);  // Earliest available data
-            default -> {
-                logger.warn("Unknown period '{}', defaulting to 2 years", period);
-                yield endDate.minusYears(2);
-            }
-        };
-    }
+		// 3. Dynamic defaults based on timeframe
+		return calculateDynamicStartDate(endDate, timeframe);
+	}
 
-    /**
-     * Calculate dynamic start date based on timeframe (fallback).
-     */
-    private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
-        return switch (timeframe) {
-            case "1h", "4h" -> endDate.minusYears(1);    // Hourly: 1 year
-            case "1D" -> endDate.minusYears(3);          // Daily: 3 years
-            case "1W" -> endDate.minusYears(5);          // Weekly: 5 years
-            case "1M" -> endDate.minusYears(7);          // Monthly: 7 years
-            default -> endDate.minusYears(3);            // Default: 3 years
-        };
-    }
+	/**
+	 * Calculate start date based on user-selected period.
+	 * @param endDate End date (yesterday)
+	 * @param period One of: 6mo, 1y, 2y, 5y, 7y, max
+	 * @return Start date for the backtest period
+	 */
+	private LocalDate calculateStartDateFromPeriod(LocalDate endDate, String period) {
+		return switch (period.toLowerCase()) {
+			case "6mo", "6m" -> endDate.minusMonths(6);
+			case "1y" -> endDate.minusYears(1);
+			case "2y" -> endDate.minusYears(2);
+			case "3y" -> endDate.minusYears(3); // Added missing 3-year option
+			case "5y" -> endDate.minusYears(5);
+			case "7y" -> endDate.minusYears(7);
+			case "max" -> LocalDate.of(2018, 1, 1); // Earliest available data
+			default -> {
+				logger.warn("Unknown period '{}', defaulting to 2 years", period);
+				yield endDate.minusYears(2);
+			}
+		};
+	}
 
-    /**
-     * Convert frontend timeframe format to database format.
-     *
-     * Frontend/Python uses: 1h, 4h, 1D, 1W, 1M
-     * Database stores: 1h, 4h, 1D, 1W, 1M
-     * Convention: lowercase for minutes/hours (1m, 30m, 1h, 4h), uppercase for day+ (1D, 1W, 1M)
-     */
-    private String convertToDbTimeframe(String timeframe) {
-        return switch (timeframe) {
-            case "1m" -> "1m";
-            case "30m" -> "30m";
-            case "1h" -> "1h";
-            case "4h" -> "4h";
-            case "1D" -> "1D";
-            case "1W" -> "1W";
-            case "1M" -> "1M";
-            default -> "1D";  // Safe default
-        };
-    }
+	/**
+	 * Calculate dynamic start date based on timeframe (fallback).
+	 */
+	private LocalDate calculateDynamicStartDate(LocalDate endDate, String timeframe) {
+		return switch (timeframe) {
+			case "1h", "4h" -> endDate.minusYears(1); // Hourly: 1 year
+			case "1D" -> endDate.minusYears(3); // Daily: 3 years
+			case "1W" -> endDate.minusYears(5); // Weekly: 5 years
+			case "1M" -> endDate.minusYears(7); // Monthly: 7 years
+			default -> endDate.minusYears(3); // Default: 3 years
+		};
+	}
 
-    /**
-     * Convert MarketDataEntity to map for gRPC.
-     */
-    private Map<String, Object> convertToMap(MarketDataEntity entity) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("timestamp", entity.getTimestampAsLocalDateTime().toString());
-        map.put("open", entity.getOpen().doubleValue());
-        map.put("high", entity.getHigh().doubleValue());
-        map.put("low", entity.getLow().doubleValue());
-        map.put("close", entity.getClose().doubleValue());
-        map.put("volume", entity.getVolume() != null ? entity.getVolume().longValue() : 0L);
-        return map;
-    }
+	/**
+	 * Convert frontend timeframe format to database format.
+	 *
+	 * Frontend/Python uses: 1h, 4h, 1D, 1W, 1M Database stores: 1h, 4h, 1D, 1W, 1M
+	 * Convention: lowercase for minutes/hours (1m, 30m, 1h, 4h), uppercase for day+ (1D,
+	 * 1W, 1M)
+	 */
+	private String convertToDbTimeframe(String timeframe) {
+		return switch (timeframe) {
+			case "1m" -> "1m";
+			case "30m" -> "30m";
+			case "1h" -> "1h";
+			case "4h" -> "4h";
+			case "1D" -> "1D";
+			case "1W" -> "1W";
+			case "1M" -> "1M";
+			default -> "1D"; // Safe default
+		};
+	}
 
-    /**
-     * Map gRPC POJO to REST DTO.
-     *
-     * Leave null/empty fields as-is - Jackson will automatically exclude them from JSON response.
-     */
-    private ExecuteStrategyResponse mapToRestDto(
-            io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
-            String symbol,
-            String timeframe) {
+	/**
+	 * Convert MarketDataEntity to map for gRPC.
+	 */
+	private Map<String, Object> convertToMap(MarketDataEntity entity) {
+		Map<String, Object> map = new HashMap<>();
+		map.put("timestamp", entity.getTimestampAsLocalDateTime().toString());
+		map.put("open", entity.getOpen().doubleValue());
+		map.put("high", entity.getHigh().doubleValue());
+		map.put("low", entity.getLow().doubleValue());
+		map.put("close", entity.getClose().doubleValue());
+		map.put("volume", entity.getVolume() != null ? entity.getVolume().longValue() : 0L);
+		return map;
+	}
 
-        ExecuteStrategyResponse dto = new ExecuteStrategyResponse();
+	/**
+	 * Map gRPC POJO to REST DTO.
+	 *
+	 * Leave null/empty fields as-is - Jackson will automatically exclude them from JSON
+	 * response.
+	 */
+	private ExecuteStrategyResponse mapToRestDto(io.strategiz.client.execution.model.ExecutionResponse grpcResponse,
+			String symbol, String timeframe) {
 
-        // Basic fields - always set
-        dto.setSymbol(symbol);
-        dto.setExecutionTime(grpcResponse.getExecutionTimeMs());
+		ExecuteStrategyResponse dto = new ExecuteStrategyResponse();
 
-        // Optional fields - only set if present (Jackson excludes null/empty)
-        if (grpcResponse.getLogs() != null && !grpcResponse.getLogs().isEmpty()) {
-            dto.setLogs(grpcResponse.getLogs());
-        }
+		// Basic fields - always set
+		dto.setSymbol(symbol);
+		dto.setExecutionTime(grpcResponse.getExecutionTimeMs());
 
-        // Errors - only set if execution failed
-        if (!grpcResponse.isSuccess() && grpcResponse.getError() != null) {
-            dto.setErrors(List.of(grpcResponse.getError()));
-        }
+		// Optional fields - only set if present (Jackson excludes null/empty)
+		if (grpcResponse.getLogs() != null && !grpcResponse.getLogs().isEmpty()) {
+			dto.setLogs(grpcResponse.getLogs());
+		}
 
-        // Signals - only set if present
-        List<ExecuteStrategyResponse.Signal> signals = mapSignals(grpcResponse.getSignals());
-        if (signals != null && !signals.isEmpty()) {
-            dto.setSignals(signals);
-        }
+		// Errors - only set if execution failed
+		if (!grpcResponse.isSuccess() && grpcResponse.getError() != null) {
+			dto.setErrors(List.of(grpcResponse.getError()));
+		}
 
-        // Indicators - only set if present
-        List<ExecuteStrategyResponse.Indicator> indicators = mapIndicators(grpcResponse.getIndicators());
-        if (indicators != null && !indicators.isEmpty()) {
-            dto.setIndicators(indicators);
-        }
+		// Signals - only set if present
+		List<ExecuteStrategyResponse.Signal> signals = mapSignals(grpcResponse.getSignals());
+		if (signals != null && !signals.isEmpty()) {
+			dto.setSignals(signals);
+		}
 
-        // Performance - only set if present
-        ExecuteStrategyResponse.Performance performance = mapPerformance(grpcResponse.getPerformance(), timeframe);
-        if (performance != null) {
-            dto.setPerformance(performance);
-        }
+		// Indicators - only set if present
+		List<ExecuteStrategyResponse.Indicator> indicators = mapIndicators(grpcResponse.getIndicators());
+		if (indicators != null && !indicators.isEmpty()) {
+			dto.setIndicators(indicators);
+		}
 
-        return dto;
-    }
+		// Performance - only set if present
+		ExecuteStrategyResponse.Performance performance = mapPerformance(grpcResponse.getPerformance(), timeframe);
+		if (performance != null) {
+			dto.setPerformance(performance);
+		}
 
-    /**
-     * Map signals from gRPC to REST DTO.
-     * Returns null if input is null/empty (Jackson will exclude from response).
-     */
-    private List<ExecuteStrategyResponse.Signal> mapSignals(
-            List<io.strategiz.client.execution.model.Signal> grpcSignals) {
+		return dto;
+	}
 
-        if (grpcSignals == null || grpcSignals.isEmpty()) {
-            return null;
-        }
+	/**
+	 * Map signals from gRPC to REST DTO. Returns null if input is null/empty (Jackson
+	 * will exclude from response).
+	 */
+	private List<ExecuteStrategyResponse.Signal> mapSignals(
+			List<io.strategiz.client.execution.model.Signal> grpcSignals) {
 
-        return grpcSignals.stream()
-            .map(s -> {
-                ExecuteStrategyResponse.Signal signal = new ExecuteStrategyResponse.Signal();
-                signal.setTimestamp(s.getTimestamp());
-                signal.setType(s.getType());
-                signal.setPrice(s.getPrice());
-                signal.setQuantity(s.getQuantity());
-                signal.setReason(s.getReason());
-                return signal;
-            })
-            .collect(Collectors.toList());
-    }
+		if (grpcSignals == null || grpcSignals.isEmpty()) {
+			return null;
+		}
 
-    /**
-     * Map indicators from gRPC to REST DTO.
-     * Returns null if input is null/empty (Jackson will exclude from response).
-     */
-    private List<ExecuteStrategyResponse.Indicator> mapIndicators(
-            List<io.strategiz.client.execution.model.Indicator> grpcIndicators) {
+		return grpcSignals.stream().map(s -> {
+			ExecuteStrategyResponse.Signal signal = new ExecuteStrategyResponse.Signal();
+			signal.setTimestamp(s.getTimestamp());
+			signal.setType(s.getType());
+			signal.setPrice(s.getPrice());
+			signal.setQuantity(s.getQuantity());
+			signal.setReason(s.getReason());
+			return signal;
+		}).collect(Collectors.toList());
+	}
 
-        if (grpcIndicators == null || grpcIndicators.isEmpty()) {
-            return null;
-        }
+	/**
+	 * Map indicators from gRPC to REST DTO. Returns null if input is null/empty (Jackson
+	 * will exclude from response).
+	 */
+	private List<ExecuteStrategyResponse.Indicator> mapIndicators(
+			List<io.strategiz.client.execution.model.Indicator> grpcIndicators) {
 
-        return grpcIndicators.stream()
-            .map(i -> {
-                ExecuteStrategyResponse.Indicator indicator = new ExecuteStrategyResponse.Indicator();
-                indicator.setName(i.getName());
+		if (grpcIndicators == null || grpcIndicators.isEmpty()) {
+			return null;
+		}
 
-                // Map data points - only set if present
-                if (i.getData() != null && !i.getData().isEmpty()) {
-                    List<ExecuteStrategyResponse.Indicator.DataPoint> dataPoints = i.getData().stream()
-                        .map(dp -> {
-                            ExecuteStrategyResponse.Indicator.DataPoint point =
-                                new ExecuteStrategyResponse.Indicator.DataPoint();
-                            point.setTime(dp.getTimestamp());
-                            point.setValue(dp.getValue());
-                            return point;
-                        })
-                        .collect(Collectors.toList());
-                    indicator.setData(dataPoints);
-                }
+		return grpcIndicators.stream().map(i -> {
+			ExecuteStrategyResponse.Indicator indicator = new ExecuteStrategyResponse.Indicator();
+			indicator.setName(i.getName());
 
-                return indicator;
-            })
-            .collect(Collectors.toList());
-    }
+			// Map data points - only set if present
+			if (i.getData() != null && !i.getData().isEmpty()) {
+				List<ExecuteStrategyResponse.Indicator.DataPoint> dataPoints = i.getData().stream().map(dp -> {
+					ExecuteStrategyResponse.Indicator.DataPoint point = new ExecuteStrategyResponse.Indicator.DataPoint();
+					point.setTime(dp.getTimestamp());
+					point.setValue(dp.getValue());
+					return point;
+				}).collect(Collectors.toList());
+				indicator.setData(dataPoints);
+			}
 
-    /**
-     * Map performance from gRPC to REST DTO.
-     * Returns null if input is null (no performance data).
-     */
-    private ExecuteStrategyResponse.Performance mapPerformance(
-            io.strategiz.client.execution.model.Performance grpcPerf,
-            String timeframe) {
+			return indicator;
+		}).collect(Collectors.toList());
+	}
 
-        if (grpcPerf == null) {
-            return null;
-        }
+	/**
+	 * Map performance from gRPC to REST DTO. Returns null if input is null (no
+	 * performance data).
+	 */
+	private ExecuteStrategyResponse.Performance mapPerformance(io.strategiz.client.execution.model.Performance grpcPerf,
+			String timeframe) {
 
-        ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
-        performance.setTotalReturn(grpcPerf.getTotalReturn());
-        performance.setTotalPnL(grpcPerf.getTotalPnl());
-        performance.setWinRate(grpcPerf.getWinRate());
-        performance.setTotalTrades(grpcPerf.getTotalTrades());
-        performance.setProfitableTrades(grpcPerf.getProfitableTrades());
-        performance.setBuyCount(grpcPerf.getBuyCount());
-        performance.setSellCount(grpcPerf.getSellCount());
-        performance.setAvgWin(grpcPerf.getAvgWin());
-        performance.setAvgLoss(grpcPerf.getAvgLoss());
-        performance.setProfitFactor(grpcPerf.getProfitFactor());
-        performance.setMaxDrawdown(grpcPerf.getMaxDrawdown());
-        performance.setSharpeRatio(grpcPerf.getSharpeRatio());
-        performance.setLastTestedAt(grpcPerf.getLastTestedAt());
+		if (grpcPerf == null) {
+			return null;
+		}
 
-        // New fields: test period info
-        performance.setStartDate(grpcPerf.getStartDate());
-        performance.setEndDate(grpcPerf.getEndDate());
-        performance.setTestPeriod(grpcPerf.getTestPeriod());
-        performance.setTimeframe(timeframe);  // Set the timeframe from request
+		ExecuteStrategyResponse.Performance performance = new ExecuteStrategyResponse.Performance();
+		performance.setTotalReturn(grpcPerf.getTotalReturn());
+		performance.setTotalPnL(grpcPerf.getTotalPnl());
+		performance.setWinRate(grpcPerf.getWinRate());
+		performance.setTotalTrades(grpcPerf.getTotalTrades());
+		performance.setProfitableTrades(grpcPerf.getProfitableTrades());
+		performance.setBuyCount(grpcPerf.getBuyCount());
+		performance.setSellCount(grpcPerf.getSellCount());
+		performance.setAvgWin(grpcPerf.getAvgWin());
+		performance.setAvgLoss(grpcPerf.getAvgLoss());
+		performance.setProfitFactor(grpcPerf.getProfitFactor());
+		performance.setMaxDrawdown(grpcPerf.getMaxDrawdown());
+		performance.setSharpeRatio(grpcPerf.getSharpeRatio());
+		performance.setLastTestedAt(grpcPerf.getLastTestedAt());
 
-        // New fields: buy & hold comparison
-        performance.setBuyAndHoldReturn(grpcPerf.getBuyAndHoldReturn());
-        performance.setBuyAndHoldReturnPercent(grpcPerf.getBuyAndHoldReturnPercent());
-        performance.setOutperformance(grpcPerf.getOutperformance());
+		// New fields: test period info
+		performance.setStartDate(grpcPerf.getStartDate());
+		performance.setEndDate(grpcPerf.getEndDate());
+		performance.setTestPeriod(grpcPerf.getTestPeriod());
+		performance.setTimeframe(timeframe); // Set the timeframe from request
 
-        // Map trades
-        performance.setTrades(mapTrades(grpcPerf.getTrades()));
+		// New fields: buy & hold comparison
+		performance.setBuyAndHoldReturn(grpcPerf.getBuyAndHoldReturn());
+		performance.setBuyAndHoldReturnPercent(grpcPerf.getBuyAndHoldReturnPercent());
+		performance.setOutperformance(grpcPerf.getOutperformance());
 
-        // Map equity curve
-        performance.setEquityCurve(mapEquityCurve(grpcPerf.getEquityCurve()));
+		// Map trades
+		performance.setTrades(mapTrades(grpcPerf.getTrades()));
 
-        return performance;
-    }
+		// Map equity curve
+		performance.setEquityCurve(mapEquityCurve(grpcPerf.getEquityCurve()));
 
-    /**
-     * Map trades from gRPC to REST DTO.
-     * Returns null if input is null/empty (Jackson will exclude from response).
-     */
-    private List<ExecuteStrategyResponse.Trade> mapTrades(
-            List<io.strategiz.client.execution.model.Trade> grpcTrades) {
+		return performance;
+	}
 
-        if (grpcTrades == null || grpcTrades.isEmpty()) {
-            return null;
-        }
+	/**
+	 * Map trades from gRPC to REST DTO. Returns null if input is null/empty (Jackson will
+	 * exclude from response).
+	 */
+	private List<ExecuteStrategyResponse.Trade> mapTrades(List<io.strategiz.client.execution.model.Trade> grpcTrades) {
 
-        return grpcTrades.stream()
-            .map(t -> {
-                ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
-                trade.setBuyTimestamp(t.getBuyTimestamp());
-                trade.setSellTimestamp(t.getSellTimestamp());
-                trade.setBuyPrice(t.getBuyPrice());
-                trade.setSellPrice(t.getSellPrice());
-                trade.setPnl(t.getPnl());
-                trade.setPnlPercent(t.getPnlPercent());
-                trade.setWin(t.isWin());
-                trade.setBuyReason(t.getBuyReason());
-                trade.setSellReason(t.getSellReason());
-                return trade;
-            })
-            .collect(Collectors.toList());
-    }
+		if (grpcTrades == null || grpcTrades.isEmpty()) {
+			return null;
+		}
 
-    /**
-     * Map equity curve from gRPC to REST DTO.
-     * Returns null if input is null/empty (Jackson will exclude from response).
-     */
-    private List<ExecuteStrategyResponse.EquityPoint> mapEquityCurve(
-            List<io.strategiz.client.execution.model.EquityPoint> grpcEquityCurve) {
+		return grpcTrades.stream().map(t -> {
+			ExecuteStrategyResponse.Trade trade = new ExecuteStrategyResponse.Trade();
+			trade.setBuyTimestamp(t.getBuyTimestamp());
+			trade.setSellTimestamp(t.getSellTimestamp());
+			trade.setBuyPrice(t.getBuyPrice());
+			trade.setSellPrice(t.getSellPrice());
+			trade.setPnl(t.getPnl());
+			trade.setPnlPercent(t.getPnlPercent());
+			trade.setWin(t.isWin());
+			trade.setBuyReason(t.getBuyReason());
+			trade.setSellReason(t.getSellReason());
+			return trade;
+		}).collect(Collectors.toList());
+	}
 
-        if (grpcEquityCurve == null || grpcEquityCurve.isEmpty()) {
-            return null;
-        }
+	/**
+	 * Map equity curve from gRPC to REST DTO. Returns null if input is null/empty
+	 * (Jackson will exclude from response).
+	 */
+	private List<ExecuteStrategyResponse.EquityPoint> mapEquityCurve(
+			List<io.strategiz.client.execution.model.EquityPoint> grpcEquityCurve) {
 
-        return grpcEquityCurve.stream()
-            .map(ep -> {
-                ExecuteStrategyResponse.EquityPoint point = new ExecuteStrategyResponse.EquityPoint();
-                point.setTimestamp(ep.getTimestamp());
-                point.setPortfolioValue(ep.getPortfolioValue());
-                point.setType(ep.getType());
-                return point;
-            })
-            .collect(Collectors.toList());
-    }
+		if (grpcEquityCurve == null || grpcEquityCurve.isEmpty()) {
+			return null;
+		}
+
+		return grpcEquityCurve.stream().map(ep -> {
+			ExecuteStrategyResponse.EquityPoint point = new ExecuteStrategyResponse.EquityPoint();
+			point.setTimestamp(ep.getTimestamp());
+			point.setPortfolioValue(ep.getPortfolioValue());
+			point.setType(ep.getType());
+			return point;
+		}).collect(Collectors.toList());
+	}
+
 }

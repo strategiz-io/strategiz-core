@@ -11,11 +11,11 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
 /**
- * Configuration class that loads Firebase service account JSON from Vault.
- * Runs before FirebaseConfig so the credentials are available at initialization time.
+ * Configuration class that loads Firebase service account JSON from Vault. Runs before
+ * FirebaseConfig so the credentials are available at initialization time.
  *
- * Vault path: secret/strategiz/firebase
- * Required field: service-account-json (full JSON content of the service account file)
+ * Vault path: secret/strategiz/firebase Required field: service-account-json (full JSON
+ * content of the service account file)
  */
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE + 1)

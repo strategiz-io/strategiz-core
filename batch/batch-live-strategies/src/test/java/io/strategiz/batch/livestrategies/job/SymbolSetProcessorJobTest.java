@@ -337,8 +337,8 @@ class SymbolSetProcessorJobTest {
 		String userId = "user-456";
 		String strategyId = "pairs-strategy";
 
-		AlertDeployment alert = TestFixtures.createAlertDeployment(alertId, userId, strategyId,
-				List.of("AAPL", "MSFT"), "PRO");
+		AlertDeployment alert = TestFixtures.createAlertDeployment(alertId, userId, strategyId, List.of("AAPL", "MSFT"),
+				"PRO");
 		Strategy strategy = TestFixtures.createStrategy(strategyId, userId, """
 				def strategy(data):
 				    return 'BUY'

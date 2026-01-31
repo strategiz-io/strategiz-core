@@ -18,7 +18,8 @@ public class FmpConfig {
 
 	private long retryDelayMs = 1000;
 
-	private int rateLimitPerMinute = 300; // Free tier: 250, Starter: 300, Premium: 750, Ultimate: 3000
+	private int rateLimitPerMinute = 300; // Free tier: 250, Starter: 300, Premium: 750,
+											// Ultimate: 3000
 
 	public String getApiKey() {
 		return apiKey;

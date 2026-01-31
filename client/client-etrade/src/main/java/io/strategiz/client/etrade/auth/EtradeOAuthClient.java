@@ -16,21 +16,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Client for handling E*TRADE OAuth 1.0a operations.
- * E*TRADE uses OAuth 1.0a with HMAC-SHA1 signing.
+ * Client for handling E*TRADE OAuth 1.0a operations. E*TRADE uses OAuth 1.0a with
+ * HMAC-SHA1 signing.
  *
- * OAuth 1.0a Flow:
- * 1. Get Request Token (POST /oauth/request_token)
- * 2. User authorizes at E*TRADE website
- * 3. Exchange Request Token + Verifier for Access Token (POST /oauth/access_token)
+ * OAuth 1.0a Flow: 1. Get Request Token (POST /oauth/request_token) 2. User authorizes at
+ * E*TRADE website 3. Exchange Request Token + Verifier for Access Token (POST
+ * /oauth/access_token)
  *
- * Note: E*TRADE access tokens expire after 2 hours of inactivity.
- * There are no refresh tokens - users must re-authenticate when tokens expire.
+ * Note: E*TRADE access tokens expire after 2 hours of inactivity. There are no refresh
+ * tokens - users must re-authenticate when tokens expire.
  *
- * API URLs:
- * - Sandbox: https://apisb.etrade.com
- * - Production: https://api.etrade.com
- * - Authorization: https://us.etrade.com/e/t/etws/authorize
+ * API URLs: - Sandbox: https://apisb.etrade.com - Production: https://api.etrade.com -
+ * Authorization: https://us.etrade.com/e/t/etws/authorize
  */
 @Component
 public class EtradeOAuthClient {

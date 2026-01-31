@@ -10,17 +10,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param message user-facing message
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record RecoveryCompletionResponse(
-        boolean success,
-        String recoveryToken,
-        String message
-) {
-    public static RecoveryCompletionResponse from(
-            io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryCompletionResult result) {
-        return new RecoveryCompletionResponse(
-                result.success(),
-                result.recoveryToken(),
-                result.message()
-        );
-    }
+public record RecoveryCompletionResponse(boolean success, String recoveryToken, String message) {
+	public static RecoveryCompletionResponse from(
+			io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryCompletionResult result) {
+		return new RecoveryCompletionResponse(result.success(), result.recoveryToken(), result.message());
+	}
 }

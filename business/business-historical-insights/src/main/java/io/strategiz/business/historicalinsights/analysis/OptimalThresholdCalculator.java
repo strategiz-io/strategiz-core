@@ -13,15 +13,16 @@ import java.util.stream.Collectors;
  * Calculates optimal entry/exit thresholds by analyzing historical turning points.
  *
  * The key insight: by looking at what indicator values were present at actual market
- * peaks and troughs, we can determine thresholds that would have captured most
- * historical opportunities.
+ * peaks and troughs, we can determine thresholds that would have captured most historical
+ * opportunities.
  *
- * For example, if RSI was below 32 at 80% of historical troughs, then RSI < 32 is
- * a better entry threshold than the standard RSI < 30.
+ * For example, if RSI was below 32 at 80% of historical troughs, then RSI < 32 is a
+ * better entry threshold than the standard RSI < 30.
  */
 public class OptimalThresholdCalculator {
 
-	private static final double TARGET_CAPTURE_RATE = 0.80; // Find threshold that captures 80% of points
+	private static final double TARGET_CAPTURE_RATE = 0.80; // Find threshold that
+															// captures 80% of points
 
 	/**
 	 * Calculate optimal thresholds from turning points.

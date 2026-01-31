@@ -7,133 +7,141 @@ import java.util.Objects;
  * Fear and Greed Index data.
  */
 public class FearGreedIndex {
-    private int value;
-    private String classification;
-    private BigDecimal previousClose;
-    private BigDecimal weekAgo;
-    private BigDecimal monthAgo;
 
-    // Constructors
-    public FearGreedIndex() {}
+	private int value;
 
-    public FearGreedIndex(int value, String classification, BigDecimal previousClose, 
-                         BigDecimal weekAgo, BigDecimal monthAgo) {
-        this.value = value;
-        this.classification = classification;
-        this.previousClose = previousClose;
-        this.weekAgo = weekAgo;
-        this.monthAgo = monthAgo;
-    }
+	private String classification;
 
-    // Getters and Setters
-    public int getValue() {
-        return value;
-    }
+	private BigDecimal previousClose;
 
-    public void setValue(int value) {
-        this.value = value;
-    }
+	private BigDecimal weekAgo;
 
-    public String getClassification() {
-        return classification;
-    }
+	private BigDecimal monthAgo;
 
-    public void setClassification(String classification) {
-        this.classification = classification;
-    }
+	// Constructors
+	public FearGreedIndex() {
+	}
 
-    public BigDecimal getPreviousClose() {
-        return previousClose;
-    }
+	public FearGreedIndex(int value, String classification, BigDecimal previousClose, BigDecimal weekAgo,
+			BigDecimal monthAgo) {
+		this.value = value;
+		this.classification = classification;
+		this.previousClose = previousClose;
+		this.weekAgo = weekAgo;
+		this.monthAgo = monthAgo;
+	}
 
-    public void setPreviousClose(BigDecimal previousClose) {
-        this.previousClose = previousClose;
-    }
+	// Getters and Setters
+	public int getValue() {
+		return value;
+	}
 
-    public BigDecimal getWeekAgo() {
-        return weekAgo;
-    }
+	public void setValue(int value) {
+		this.value = value;
+	}
 
-    public void setWeekAgo(BigDecimal weekAgo) {
-        this.weekAgo = weekAgo;
-    }
+	public String getClassification() {
+		return classification;
+	}
 
-    public BigDecimal getMonthAgo() {
-        return monthAgo;
-    }
+	public void setClassification(String classification) {
+		this.classification = classification;
+	}
 
-    public void setMonthAgo(BigDecimal monthAgo) {
-        this.monthAgo = monthAgo;
-    }
+	public BigDecimal getPreviousClose() {
+		return previousClose;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FearGreedIndex that = (FearGreedIndex) o;
-        return value == that.value &&
-               Objects.equals(classification, that.classification) &&
-               Objects.equals(previousClose, that.previousClose) &&
-               Objects.equals(weekAgo, that.weekAgo) &&
-               Objects.equals(monthAgo, that.monthAgo);
-    }
+	public void setPreviousClose(BigDecimal previousClose) {
+		this.previousClose = previousClose;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, classification, previousClose, weekAgo, monthAgo);
-    }
+	public BigDecimal getWeekAgo() {
+		return weekAgo;
+	}
 
-    @Override
-    public String toString() {
-        return "FearGreedIndex{" +
-               "value=" + value +
-               ", classification='" + classification + '\'' +
-               ", previousClose=" + previousClose +
-               ", weekAgo=" + weekAgo +
-               ", monthAgo=" + monthAgo +
-               '}';
-    }
+	public void setWeekAgo(BigDecimal weekAgo) {
+		this.weekAgo = weekAgo;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public BigDecimal getMonthAgo() {
+		return monthAgo;
+	}
 
-    public static class Builder {
-        private int value;
-        private String classification;
-        private BigDecimal previousClose;
-        private BigDecimal weekAgo;
-        private BigDecimal monthAgo;
+	public void setMonthAgo(BigDecimal monthAgo) {
+		this.monthAgo = monthAgo;
+	}
 
-        public Builder withValue(int value) {
-            this.value = value;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		FearGreedIndex that = (FearGreedIndex) o;
+		return value == that.value && Objects.equals(classification, that.classification)
+				&& Objects.equals(previousClose, that.previousClose) && Objects.equals(weekAgo, that.weekAgo)
+				&& Objects.equals(monthAgo, that.monthAgo);
+	}
 
-        public Builder withClassification(String classification) {
-            this.classification = classification;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(value, classification, previousClose, weekAgo, monthAgo);
+	}
 
-        public Builder withPreviousClose(BigDecimal previousClose) {
-            this.previousClose = previousClose;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "FearGreedIndex{" + "value=" + value + ", classification='" + classification + '\'' + ", previousClose="
+				+ previousClose + ", weekAgo=" + weekAgo + ", monthAgo=" + monthAgo + '}';
+	}
 
-        public Builder withWeekAgo(BigDecimal weekAgo) {
-            this.weekAgo = weekAgo;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withMonthAgo(BigDecimal monthAgo) {
-            this.monthAgo = monthAgo;
-            return this;
-        }
+	public static class Builder {
 
-        public FearGreedIndex build() {
-            return new FearGreedIndex(value, classification, previousClose, weekAgo, monthAgo);
-        }
-    }
+		private int value;
+
+		private String classification;
+
+		private BigDecimal previousClose;
+
+		private BigDecimal weekAgo;
+
+		private BigDecimal monthAgo;
+
+		public Builder withValue(int value) {
+			this.value = value;
+			return this;
+		}
+
+		public Builder withClassification(String classification) {
+			this.classification = classification;
+			return this;
+		}
+
+		public Builder withPreviousClose(BigDecimal previousClose) {
+			this.previousClose = previousClose;
+			return this;
+		}
+
+		public Builder withWeekAgo(BigDecimal weekAgo) {
+			this.weekAgo = weekAgo;
+			return this;
+		}
+
+		public Builder withMonthAgo(BigDecimal monthAgo) {
+			this.monthAgo = monthAgo;
+			return this;
+		}
+
+		public FearGreedIndex build() {
+			return new FearGreedIndex(value, classification, previousClose, weekAgo, monthAgo);
+		}
+
+	}
+
 }

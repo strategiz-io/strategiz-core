@@ -10,25 +10,23 @@ import org.springframework.test.context.TestPropertySource;
  * Spring configuration for Cucumber BDD tests.
  *
  * This class enables Spring dependency injection in Cucumber step definitions.
- * The @CucumberContextConfiguration annotation tells Cucumber to use this class
- * for Spring context setup.
+ * The @CucumberContextConfiguration annotation tells Cucumber to use this class for
+ * Spring context setup.
  *
- * Uses BDDTestConfiguration which provides mocked AI services for testing.
- * Uses @MockBean to mock PasetoTokenValidator and avoid Vault dependency.
+ * Uses BDDTestConfiguration which provides mocked AI services for testing. Uses @MockBean
+ * to mock PasetoTokenValidator and avoid Vault dependency.
  */
 @CucumberContextConfiguration
 @SpringBootTest(classes = BDDTestConfiguration.class)
-@TestPropertySource(properties = {
-    "spring.profiles.active=test",
-    "strategiz.vault.enabled=false",
-    "spring.cloud.vault.enabled=false"
-})
+@TestPropertySource(properties = { "spring.profiles.active=test", "strategiz.vault.enabled=false",
+		"spring.cloud.vault.enabled=false" })
 public class CucumberSpringConfiguration {
 
-    /**
-     * Mock PasetoTokenValidator to bypass Vault initialization in tests.
-     * Using @MockBean automatically replaces the real bean with a Mockito mock.
-     */
-    @MockBean
-    private PasetoTokenValidator pasetoTokenValidator;
+	/**
+	 * Mock PasetoTokenValidator to bypass Vault initialization in tests. Using @MockBean
+	 * automatically replaces the real bean with a Mockito mock.
+	 */
+	@MockBean
+	private PasetoTokenValidator pasetoTokenValidator;
+
 }

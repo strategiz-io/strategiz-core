@@ -20,15 +20,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller for user subscription management.
- * Handles subscribing to strategy owners and managing subscriptions.
+ * Controller for user subscription management. Handles subscribing to strategy owners and
+ * managing subscriptions.
  *
- * API Endpoints:
- * - POST /v1/user-subscriptions/subscribe/{ownerId} - Create subscription checkout
- * - POST /v1/user-subscriptions/{id}/cancel - Cancel subscription
- * - GET /v1/user-subscriptions/mine - Get my subscriptions
- * - GET /v1/user-subscriptions/check-access/{ownerId} - Check access to owner's strategies
- * - GET /v1/owner-subscriptions/subscribers - Get my subscribers (owner view)
+ * API Endpoints: - POST /v1/user-subscriptions/subscribe/{ownerId} - Create subscription
+ * checkout - POST /v1/user-subscriptions/{id}/cancel - Cancel subscription - GET
+ * /v1/user-subscriptions/mine - Get my subscriptions - GET
+ * /v1/user-subscriptions/check-access/{ownerId} - Check access to owner's strategies -
+ * GET /v1/owner-subscriptions/subscribers - Get my subscribers (owner view)
  */
 @RestController
 @RequestMapping("/v1")
@@ -173,8 +172,8 @@ public class UserSubscriptionController extends BaseController {
 	}
 
 	/**
-	 * Check if current user has access to deploy a specific strategy. This is a convenience
-	 * endpoint that checks strategy ownership and subscription status.
+	 * Check if current user has access to deploy a specific strategy. This is a
+	 * convenience endpoint that checks strategy ownership and subscription status.
 	 * @param strategyOwnerId The strategy owner's ID
 	 * @param user The authenticated user
 	 * @return Whether user has access

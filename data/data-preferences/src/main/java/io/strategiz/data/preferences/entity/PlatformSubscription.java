@@ -9,17 +9,21 @@ import io.strategiz.data.base.annotation.Collection;
 import java.time.Instant;
 
 /**
- * Platform subscription stored at users/{userId}/subscription/current.
- * Tracks the user's subscription to Strategiz platform (tier, payment info, STRAT-based usage).
+ * Platform subscription stored at users/{userId}/subscription/current. Tracks the user's
+ * subscription to Strategiz platform (tier, payment info, STRAT-based usage).
  *
- * <p>This entity represents the user's subscription to the PLATFORM (Strategiz),
- * NOT to another user/owner. For owner subscriptions, see data-social/OwnerSubscription.</p>
+ * <p>
+ * This entity represents the user's subscription to the PLATFORM (Strategiz), NOT to
+ * another user/owner. For owner subscriptions, see data-social/OwnerSubscription.
+ * </p>
  *
- * <p>Tiers:</p>
+ * <p>
+ * Tiers:
+ * </p>
  * <ul>
- *   <li>EXPLORER: Free freemium tier (5,000 STRAT/month)</li>
- *   <li>STRATEGIST: $89/month (25,000 STRAT/month)</li>
- *   <li>QUANT: $129/month (40,000 STRAT/month)</li>
+ * <li>EXPLORER: Free freemium tier (5,000 STRAT/month)</li>
+ * <li>STRATEGIST: $89/month (25,000 STRAT/month)</li>
+ * <li>QUANT: $129/month (40,000 STRAT/month)</li>
  * </ul>
  *
  * @see SubscriptionTier
@@ -64,8 +68,10 @@ public class PlatformSubscription extends BaseEntity {
 	private Boolean cancelAtPeriodEnd = false;
 
 	// STRAT-based usage tracking
-	// Firestore field names kept as legacy "monthlyCreditsAllowed/Used" for backward compatibility
-	// with existing documents. Use migration endpoint to rename, then switch to new names.
+	// Firestore field names kept as legacy "monthlyCreditsAllowed/Used" for backward
+	// compatibility
+	// with existing documents. Use migration endpoint to rename, then switch to new
+	// names.
 	@PropertyName("monthlyCreditsAllowed")
 	@JsonProperty("monthlyStratAllowed")
 	private Integer monthlyStratAllowed = 0;
@@ -80,7 +86,8 @@ public class PlatformSubscription extends BaseEntity {
 
 	@PropertyName("usageWarningLevel")
 	@JsonProperty("usageWarningLevel")
-	private String usageWarningLevel = "none"; // none, warning (80%), critical (95%), blocked (100%)
+	private String usageWarningLevel = "none"; // none, warning (80%), critical (95%),
+												// blocked (100%)
 
 	// Trial tracking
 	@PropertyName("trialStartDate")

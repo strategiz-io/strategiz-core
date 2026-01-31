@@ -13,19 +13,21 @@ import org.springframework.context.annotation.Configuration;
 /**
  * OpenTelemetry configuration for distributed tracing and observability.
  *
- * <p>This configuration enables:
+ * <p>
+ * This configuration enables:
  * <ul>
- *   <li>Distributed tracing with trace context propagation</li>
- *   <li>Automatic instrumentation via Micrometer Observation API</li>
- *   <li>Integration with OTLP collector for exporting traces</li>
- *   <li>Correlation between traces, metrics, and logs</li>
+ * <li>Distributed tracing with trace context propagation</li>
+ * <li>Automatic instrumentation via Micrometer Observation API</li>
+ * <li>Integration with OTLP collector for exporting traces</li>
+ * <li>Correlation between traces, metrics, and logs</li>
  * </ul>
  *
- * <p>Traces are exported to the OpenTelemetry Collector which forwards them to:
+ * <p>
+ * Traces are exported to the OpenTelemetry Collector which forwards them to:
  * <ul>
- *   <li>Tempo for trace storage and visualization</li>
- *   <li>Mimir for metrics (via span metrics)</li>
- *   <li>Loki for correlated logs</li>
+ * <li>Tempo for trace storage and visualization</li>
+ * <li>Mimir for metrics (via span metrics)</li>
+ * <li>Loki for correlated logs</li>
  * </ul>
  */
 @Configuration
@@ -41,8 +43,8 @@ public class OpenTelemetryConfig {
 	private String otlpEndpoint;
 
 	/**
-	 * Creates an ObservedAspect bean to enable @Observed annotation support.
-	 * This allows methods to be automatically traced by annotating them with @Observed.
+	 * Creates an ObservedAspect bean to enable @Observed annotation support. This allows
+	 * methods to be automatically traced by annotating them with @Observed.
 	 * @param observationRegistry the observation registry
 	 * @return the observed aspect
 	 */

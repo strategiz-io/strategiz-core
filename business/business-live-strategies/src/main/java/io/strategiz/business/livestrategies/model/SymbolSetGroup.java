@@ -6,20 +6,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Groups deployments (alerts and bots) by their symbol set.
- * This enables efficient batch processing - all deployments for
- * the same symbol set can be evaluated with a single market data fetch.
+ * Groups deployments (alerts and bots) by their symbol set. This enables efficient batch
+ * processing - all deployments for the same symbol set can be evaluated with a single
+ * market data fetch.
  *
- * Symbol sets are sorted and joined for consistent grouping:
- * - ["AAPL"] -> key: "AAPL"
- * - ["AAPL", "MSFT"] -> key: "AAPL,MSFT"
- * - ["MSFT", "AAPL"] -> key: "AAPL,MSFT" (sorted)
+ * Symbol sets are sorted and joined for consistent grouping: - ["AAPL"] -> key: "AAPL" -
+ * ["AAPL", "MSFT"] -> key: "AAPL,MSFT" - ["MSFT", "AAPL"] -> key: "AAPL,MSFT" (sorted)
  */
 public class SymbolSetGroup {
 
 	private final List<String> symbols;
+
 	private final String symbolSetKey;
+
 	private final List<String> alertIds;
+
 	private final List<String> botIds;
 
 	public SymbolSetGroup(List<String> symbols) {
@@ -27,9 +28,7 @@ public class SymbolSetGroup {
 			throw new IllegalArgumentException("symbols cannot be null or empty");
 		}
 		// Sort symbols for consistent grouping
-		this.symbols = symbols.stream()
-				.sorted()
-				.collect(Collectors.toList());
+		this.symbols = symbols.stream().sorted().collect(Collectors.toList());
 		this.symbolSetKey = String.join(",", this.symbols);
 		this.alertIds = new ArrayList<>();
 		this.botIds = new ArrayList<>();
@@ -56,9 +55,7 @@ public class SymbolSetGroup {
 		if (symbols == null || symbols.isEmpty()) {
 			return "";
 		}
-		return symbols.stream()
-				.sorted()
-				.collect(Collectors.joining(","));
+		return symbols.stream().sorted().collect(Collectors.joining(","));
 	}
 
 	public void addAlert(String alertId) {
@@ -127,8 +124,7 @@ public class SymbolSetGroup {
 
 	@Override
 	public String toString() {
-		return String.format("SymbolSetGroup[%s: %d alerts, %d bots]",
-				symbolSetKey, alertIds.size(), botIds.size());
+		return String.format("SymbolSetGroup[%s: %d alerts, %d bots]", symbolSetKey, alertIds.size(), botIds.size());
 	}
 
 }

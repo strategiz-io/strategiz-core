@@ -33,8 +33,8 @@ import java.util.OptionalDouble;
 import java.util.stream.Collectors;
 
 /**
- * REST controller for My Strategies dashboard.
- * Provides comprehensive statistics across strategies, alerts, and bots.
+ * REST controller for My Strategies dashboard. Provides comprehensive statistics across
+ * strategies, alerts, and bots.
  */
 @RestController
 @RequestMapping("/v1/my-strategies")
@@ -60,13 +60,10 @@ public class MyStrategiesController {
 	/**
 	 * GET /v1/my-strategies/dashboard-stats - Get comprehensive dashboard statistics
 	 *
-	 * Returns overview metrics for the My Strategies page including:
-	 * - Strategy counts (created, purchased, published)
-	 * - Deployment counts (alerts, bots)
-	 * - Signal activity (monthly, weekly, daily)
-	 * - Average performance (backtest and live)
-	 * - Revenue information
-	 * - Subscription tier details
+	 * Returns overview metrics for the My Strategies page including: - Strategy counts
+	 * (created, purchased, published) - Deployment counts (alerts, bots) - Signal
+	 * activity (monthly, weekly, daily) - Average performance (backtest and live) -
+	 * Revenue information - Subscription tier details
 	 */
 	@RequireAuth
 	@GetMapping("/dashboard-stats")
@@ -103,20 +100,27 @@ public class MyStrategiesController {
 		stats.setActiveBots((int) activeBots);
 
 		// Signal activity (from live performance)
-		int alertSignalsMonth = alerts.stream().map(AlertDeployment::getLivePerformance).filter(Objects::nonNull)
-				.mapToInt(p -> p.getSignalsThisMonth() != null ? p.getSignalsThisMonth() : 0).sum();
+		int alertSignalsMonth = alerts.stream()
+			.map(AlertDeployment::getLivePerformance)
+			.filter(Objects::nonNull)
+			.mapToInt(p -> p.getSignalsThisMonth() != null ? p.getSignalsThisMonth() : 0)
+			.sum();
 
-		int alertSignalsWeek = alerts.stream().map(AlertDeployment::getLivePerformance).filter(Objects::nonNull)
-				.mapToInt(p -> p.getSignalsThisWeek() != null ? p.getSignalsThisWeek() : 0).sum();
+		int alertSignalsWeek = alerts.stream()
+			.map(AlertDeployment::getLivePerformance)
+			.filter(Objects::nonNull)
+			.mapToInt(p -> p.getSignalsThisWeek() != null ? p.getSignalsThisWeek() : 0)
+			.sum();
 
-		int alertSignalsToday = alerts.stream().map(AlertDeployment::getLivePerformance).filter(Objects::nonNull)
-				.mapToInt(p -> p.getSignalsToday() != null ? p.getSignalsToday() : 0).sum();
+		int alertSignalsToday = alerts.stream()
+			.map(AlertDeployment::getLivePerformance)
+			.filter(Objects::nonNull)
+			.mapToInt(p -> p.getSignalsToday() != null ? p.getSignalsToday() : 0)
+			.sum();
 
 		// Bot trades (from existing fields for now, will use livePerformance once
 		// populated)
-		int botTradesTotal = bots.stream()
-				.mapToInt(b -> b.getTotalTrades() != null ? b.getTotalTrades() : 0)
-				.sum();
+		int botTradesTotal = bots.stream().mapToInt(b -> b.getTotalTrades() != null ? b.getTotalTrades() : 0).sum();
 
 		stats.setTotalSignalsThisMonth(alertSignalsMonth);
 		stats.setAlertSignalsThisMonth(alertSignalsMonth);
@@ -125,11 +129,17 @@ public class MyStrategiesController {
 		stats.setSignalsToday(alertSignalsToday);
 
 		// Average backtest performance (from Strategy.performance)
-		OptionalDouble avgReturn = strategies.stream().map(Strategy::getPerformance).filter(Objects::nonNull)
-				.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0).average();
+		OptionalDouble avgReturn = strategies.stream()
+			.map(Strategy::getPerformance)
+			.filter(Objects::nonNull)
+			.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0)
+			.average();
 
-		OptionalDouble avgWinRate = strategies.stream().map(Strategy::getPerformance).filter(Objects::nonNull)
-				.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0).average();
+		OptionalDouble avgWinRate = strategies.stream()
+			.map(Strategy::getPerformance)
+			.filter(Objects::nonNull)
+			.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0)
+			.average();
 
 		if (avgReturn.isPresent()) {
 			stats.setAvgBacktestReturn(avgReturn.getAsDouble());
@@ -139,11 +149,17 @@ public class MyStrategiesController {
 		}
 
 		// Live bot performance (from BotDeployment.livePerformance)
-		OptionalDouble avgLiveReturn = bots.stream().map(BotDeployment::getLivePerformance).filter(Objects::nonNull)
-				.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0).average();
+		OptionalDouble avgLiveReturn = bots.stream()
+			.map(BotDeployment::getLivePerformance)
+			.filter(Objects::nonNull)
+			.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0)
+			.average();
 
-		OptionalDouble avgLiveWinRate = bots.stream().map(BotDeployment::getLivePerformance).filter(Objects::nonNull)
-				.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0).average();
+		OptionalDouble avgLiveWinRate = bots.stream()
+			.map(BotDeployment::getLivePerformance)
+			.filter(Objects::nonNull)
+			.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0)
+			.average();
 
 		if (avgLiveReturn.isPresent()) {
 			stats.setAvgLiveBotReturn(avgLiveReturn.getAsDouble());
@@ -171,13 +187,12 @@ public class MyStrategiesController {
 	}
 
 	/**
-	 * GET /v1/my-strategies/strategies-with-deployments - Get all strategies with their deployments
+	 * GET /v1/my-strategies/strategies-with-deployments - Get all strategies with their
+	 * deployments
 	 *
-	 * Returns a strategy-centric view where each strategy includes:
-	 * - Core strategy information
-	 * - Embedded alerts and bots (only user's own deployments)
-	 * - Aggregated deployment statistics
-	 * - Performance metrics
+	 * Returns a strategy-centric view where each strategy includes: - Core strategy
+	 * information - Embedded alerts and bots (only user's own deployments) - Aggregated
+	 * deployment statistics - Performance metrics
 	 *
 	 * Privacy: Deployments are filtered by userId - users only see their own alerts/bots,
 	 * never those belonging to other users who may have deployed the same strategy.
@@ -207,21 +222,23 @@ public class MyStrategiesController {
 				response.setName(strategy.getName());
 				response.setDescription(strategy.getDescription());
 				response.setCreatedAt(strategy.getCreatedDate() != null ? strategy.getCreatedDate().toString() : null);
-				response.setUpdatedAt(strategy.getModifiedDate() != null ? strategy.getModifiedDate().toString() : null);
+				response
+					.setUpdatedAt(strategy.getModifiedDate() != null ? strategy.getModifiedDate().toString() : null);
 
 				// Ownership info
 				response.setUserId(userId);
 				response.setOwnerId(strategy.getOwnerId());
 				response.setCreatorId(strategy.getCreatorId());
 				response.setIsOwner(userId.equals(strategy.getOwnerId()));
-				response.setIsPurchased(!userId.equals(strategy.getCreatorId()) && !userId.equals(strategy.getOwnerId()));
+				response
+					.setIsPurchased(!userId.equals(strategy.getCreatorId()) && !userId.equals(strategy.getOwnerId()));
 
 				// Publishing info
 				response.setIsPublished(strategy.isPublished());
 				if (strategy.getPricing() != null) {
 					response.setPricingType(strategy.getPricing().getPricingType().name());
-					response.setPrice(strategy.getPricing().getEffectivePrice() != null ?
-							strategy.getPricing().getEffectivePrice().doubleValue() : null);
+					response.setPrice(strategy.getPricing().getEffectivePrice() != null
+							? strategy.getPricing().getEffectivePrice().doubleValue() : null);
 				}
 
 				// Performance
@@ -231,14 +248,15 @@ public class MyStrategiesController {
 				response.setTags(strategy.getTags());
 				response.setLanguage(strategy.getLanguage());
 
-				// Filter alerts and bots for this strategy (privacy: only user's deployments)
+				// Filter alerts and bots for this strategy (privacy: only user's
+				// deployments)
 				List<AlertDeployment> strategyAlerts = allAlerts.stream()
-						.filter(a -> strategy.getId().equals(a.getStrategyId()))
-						.collect(Collectors.toList());
+					.filter(a -> strategy.getId().equals(a.getStrategyId()))
+					.collect(Collectors.toList());
 
 				List<BotDeployment> strategyBots = allBots.stream()
-						.filter(b -> strategy.getId().equals(b.getStrategyId()))
-						.collect(Collectors.toList());
+					.filter(b -> strategy.getId().equals(b.getStrategyId()))
+					.collect(Collectors.toList());
 
 				// Convert to DTOs
 				DeploymentsDTO deployments = new DeploymentsDTO();
@@ -256,7 +274,8 @@ public class MyStrategiesController {
 			logger.info("Retrieved {} strategies with deployments for user: {}", responses.size(), userId);
 			return ResponseEntity.ok(responses);
 
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			logger.error("Failed to fetch strategies with deployments for user: {}", userId, e);
 			// Return empty list on error rather than failing the entire request
 			return ResponseEntity.ok(new ArrayList<>());
@@ -315,16 +334,16 @@ public class MyStrategiesController {
 			AggregatedAlertPerformanceDTO alertPerf = new AggregatedAlertPerformanceDTO();
 
 			int totalSignals = alerts.stream()
-					.map(AlertDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToInt(p -> p.getTotalSignals() != null ? p.getTotalSignals() : 0)
-					.sum();
+				.map(AlertDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToInt(p -> p.getTotalSignals() != null ? p.getTotalSignals() : 0)
+				.sum();
 
 			int signalsThisMonth = alerts.stream()
-					.map(AlertDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToInt(p -> p.getSignalsThisMonth() != null ? p.getSignalsThisMonth() : 0)
-					.sum();
+				.map(AlertDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToInt(p -> p.getSignalsThisMonth() != null ? p.getSignalsThisMonth() : 0)
+				.sum();
 
 			alertPerf.setTotalSignals(totalSignals);
 			alertPerf.setSignalsThisMonth(signalsThisMonth);
@@ -337,31 +356,31 @@ public class MyStrategiesController {
 
 			// Average return
 			OptionalDouble avgReturn = bots.stream()
-					.map(BotDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0)
-					.average();
+				.map(BotDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToDouble(p -> p.getTotalReturn() != null ? p.getTotalReturn() : 0.0)
+				.average();
 
 			// Sum of P&L
 			double totalPnL = bots.stream()
-					.map(BotDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToDouble(p -> p.getTotalPnL() != null ? p.getTotalPnL() : 0.0)
-					.sum();
+				.map(BotDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToDouble(p -> p.getTotalPnL() != null ? p.getTotalPnL() : 0.0)
+				.sum();
 
 			// Average win rate
 			OptionalDouble avgWinRate = bots.stream()
-					.map(BotDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0)
-					.average();
+				.map(BotDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToDouble(p -> p.getWinRate() != null ? p.getWinRate() : 0.0)
+				.average();
 
 			// Sum of total trades
 			int totalTrades = bots.stream()
-					.map(BotDeployment::getLivePerformance)
-					.filter(Objects::nonNull)
-					.mapToInt(p -> p.getTotalTrades() != null ? p.getTotalTrades() : 0)
-					.sum();
+				.map(BotDeployment::getLivePerformance)
+				.filter(Objects::nonNull)
+				.mapToInt(p -> p.getTotalTrades() != null ? p.getTotalTrades() : 0)
+				.sum();
 
 			botPerf.setTotalReturn(avgReturn.isPresent() ? avgReturn.getAsDouble() : null);
 			botPerf.setTotalPnL(totalPnL);

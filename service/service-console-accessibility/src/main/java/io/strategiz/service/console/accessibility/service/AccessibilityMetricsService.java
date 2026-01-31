@@ -32,8 +32,8 @@ import io.strategiz.service.console.accessibility.model.OnDemandScanResponse;
 import io.strategiz.service.console.accessibility.model.ScanTarget;
 
 /**
- * Service for managing accessibility metrics. Retrieves cached metrics from
- * Firestore and provides data for the admin console dashboard.
+ * Service for managing accessibility metrics. Retrieves cached metrics from Firestore and
+ * provides data for the admin console dashboard.
  */
 @Service
 public class AccessibilityMetricsService {
@@ -439,8 +439,8 @@ public class AccessibilityMetricsService {
 	}
 
 	/**
-	 * Get GitHub authentication token. Tries GitHub App first (preferred),
-	 * falls back to simple bearer token.
+	 * Get GitHub authentication token. Tries GitHub App first (preferred), falls back to
+	 * simple bearer token.
 	 * @return GitHub authentication token, or null if not configured
 	 */
 	private String getAuthToken() {

@@ -1,25 +1,14 @@
 package io.strategiz.service.auth.service.signup;
 
-import io.strategiz.business.preferences.service.SubscriptionService;
 import io.strategiz.client.sendgrid.EmailProvider;
 import io.strategiz.client.sendgrid.model.EmailDeliveryResult;
 import io.strategiz.client.sendgrid.model.EmailMessage;
-import io.strategiz.data.auth.entity.AuthenticationMethodEntity;
-import io.strategiz.data.base.constants.SubscriptionTierConstants;
-import io.strategiz.data.auth.entity.AuthenticationMethodMetadata;
-import io.strategiz.data.auth.entity.AuthenticationMethodType;
 import io.strategiz.data.auth.entity.OtpCodeEntity;
-import io.strategiz.data.auth.repository.AuthenticationMethodRepository;
 import io.strategiz.data.auth.repository.OtpCodeRepository;
-import io.strategiz.data.base.transaction.FirestoreTransactionTemplate;
 import io.strategiz.data.featureflags.service.FeatureFlagService;
-import io.strategiz.data.user.entity.UserEntity;
-import io.strategiz.data.user.entity.UserProfileEntity;
-import io.strategiz.data.user.repository.UserRepository;
 import io.strategiz.framework.exception.StrategizException;
 import io.strategiz.service.auth.exception.AuthErrors;
 import io.strategiz.service.auth.model.signup.EmailSignupInitiateRequest;
-import io.strategiz.service.auth.model.signup.OAuthSignupResponse;
 import io.strategiz.service.auth.service.fraud.FraudDetectionService;
 import io.strategiz.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,421 +27,324 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service for handling email-based user signup with OTP verification.
  *
- * Flow:
- * 1. User initiates signup with name and email (passwordless)
- * 2. System sends OTP to verify email ownership
- * 3. User verifies OTP to create account
- * 4. User sets up authentication method (Passkey, TOTP, or SMS) in Step 2
+ * Flow: 1. User initiates signup with name and email (passwordless) 2. System sends OTP
+ * to verify email ownership 3. User verifies OTP → signup token issued (NO account
+ * created) 4. User sets up authentication method (Passkey, TOTP, or SMS) in Step 2 →
+ * account created atomically
  *
  * Admin users can bypass OTP verification when adminBypassEnabled is true.
  */
 @Service
 public class EmailSignupService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    private static final String EMAIL_SIGNUP_PURPOSE = "email_signup";
+	private static final String EMAIL_SIGNUP_PURPOSE = "email_signup";
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    @Value("${email.otp.expiration.minutes:10}")
-    private int expirationMinutes;
+	@Value("${email.otp.expiration.minutes:10}")
+	private int expirationMinutes;
 
-    @Value("${email.otp.code.length:6}")
-    private int codeLength;
+	@Value("${email.otp.code.length:6}")
+	private int codeLength;
 
-    @Value("${email.from:no-reply@strategiz.io}")
-    private String fromEmail;
+	@Value("${email.from:no-reply@strategiz.io}")
+	private String fromEmail;
 
-    @Value("${email.otp.admin.bypass.enabled:true}")
-    private boolean adminBypassEnabled;
+	@Value("${email.otp.admin.bypass.enabled:true}")
+	private boolean adminBypassEnabled;
 
-    @Value("${email.signup.admin.emails:}")
-    private String adminEmails;
+	@Value("${email.signup.admin.emails:}")
+	private String adminEmails;
 
-    @Autowired(required = false)
-    private EmailProvider emailProvider;
+	@Autowired(required = false)
+	private EmailProvider emailProvider;
 
-    @Autowired
-    private UserRepository userRepository;
+	@Autowired
+	private OtpCodeRepository otpCodeRepository;
 
-    @Autowired
-    private AuthenticationMethodRepository authenticationMethodRepository;
+	@Autowired(required = false)
+	private FraudDetectionService fraudDetectionService;
 
-    @Autowired
-    private OtpCodeRepository otpCodeRepository;
+	@Autowired
+	private FeatureFlagService featureFlagService;
 
-    @Autowired
-    private FirestoreTransactionTemplate transactionTemplate;
+	@Autowired
+	private EmailReservationService emailReservationService;
 
-    @Autowired(required = false)
-    private FraudDetectionService fraudDetectionService;
+	/**
+	 * Initiate email signup by sending OTP verification code.
+	 * @param request Signup request with name and email (passwordless)
+	 * @return Session ID to use for verification
+	 */
+	public String initiateSignup(EmailSignupInitiateRequest request) {
+		String email = request.email().toLowerCase();
+		log.info("Initiating email signup for: {}", email);
 
-    @Autowired(required = false)
-    private SubscriptionService subscriptionService;
+		// Check if email OTP signup is enabled
+		if (!featureFlagService.isEmailOtpSignupEnabled()) {
+			log.warn("Email OTP signup is disabled - rejecting signup for: {}", email);
+			throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED, "Email OTP signup is currently disabled");
+		}
 
-    @Autowired
-    private SignupResponseBuilder responseBuilder;
+		// Verify reCAPTCHA token for fraud detection
+		if (fraudDetectionService != null) {
+			fraudDetectionService.verifySignup(request.recaptchaToken(), email);
+		}
 
-    @Autowired
-    private FeatureFlagService featureFlagService;
+		// Check for admin bypass
+		if (adminBypassEnabled && isAdminEmail(email)) {
+			log.info("Admin email detected - bypass enabled for: {}", email);
+		}
 
-    @Autowired
-    private EmailReservationService emailReservationService;
+		// Generate session ID and OTP
+		String sessionId = UUID.randomUUID().toString();
+		String otpCode = generateOtpCode();
+		Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
 
-    /**
-     * Initiate email signup by sending OTP verification code.
-     *
-     * @param request Signup request with name and email (passwordless)
-     * @return Session ID to use for verification
-     */
-    public String initiateSignup(EmailSignupInitiateRequest request) {
-        String email = request.email().toLowerCase();
-        log.info("Initiating email signup for: {}", email);
+		// Check email availability (without creating a reservation)
+		if (!emailReservationService.isEmailAvailable(email)) {
+			throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already registered");
+		}
+		log.info("Email available for signup - email: {}, sessionId: {}", email, sessionId);
 
-        // Check if email OTP signup is enabled
-        if (!featureFlagService.isEmailOtpSignupEnabled()) {
-            log.warn("Email OTP signup is disabled - rejecting signup for: {}", email);
-            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
-                "Email OTP signup is currently disabled");
-        }
+		// Store OTP in Firestore with hashed code
+		OtpCodeEntity otpEntity = new OtpCodeEntity(email, EMAIL_SIGNUP_PURPOSE, passwordEncoder.encode(otpCode),
+				expiration);
+		otpEntity.setSessionId(sessionId);
+		Map<String, String> metadata = new HashMap<>();
+		metadata.put("name", request.name());
+		otpEntity.setMetadata(metadata);
+		otpCodeRepository.save(otpEntity, "system");
 
-        // Verify reCAPTCHA token for fraud detection
-        if (fraudDetectionService != null) {
-            fraudDetectionService.verifySignup(request.recaptchaToken(), email);
-        }
+		// Send OTP email (skip for admin bypass in dev)
+		if (!adminBypassEnabled || !isAdminEmail(email)) {
+			boolean sent = sendOtpEmail(email, otpCode);
+			if (!sent) {
+				otpCodeRepository.deleteByEmailAndPurpose(email, EMAIL_SIGNUP_PURPOSE);
+				throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, "Failed to send verification email");
+			}
+		}
+		else {
+			log.info("Admin bypass - OTP for {}: {}", email, otpCode);
+		}
 
-        // Check for admin bypass
-        if (adminBypassEnabled && isAdminEmail(email)) {
-            log.info("Admin email detected - bypass enabled for: {}", email);
-        }
+		log.info("Email signup initiated - sessionId: {}, email: {}", sessionId, email);
+		return sessionId;
+	}
 
-        // Generate session ID and OTP
-        String sessionId = UUID.randomUUID().toString();
-        String otpCode = generateOtpCode();
-        Instant expiration = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(expirationMinutes));
+	/**
+	 * Verify OTP and return verified email data. No account is created at this
+	 * point. The account will be created atomically when the user completes auth
+	 * method registration in Step 2.
+	 * @param email User's email
+	 * @param otpCode OTP code entered by user
+	 * @param sessionId Session ID from initiation
+	 * @return Verified email result with email and name for signup token issuance
+	 */
+	public EmailVerificationResult verifyEmailOtp(String email, String otpCode, String sessionId) {
+		String normalizedEmail = email.toLowerCase();
+		log.info("Verifying email signup for: {}", normalizedEmail);
 
-        // Check email availability (without creating a reservation)
-        // The reservation will be created atomically with the user after OTP verification
-        if (!emailReservationService.isEmailAvailable(email)) {
-            throw new StrategizException(AuthErrors.EMAIL_ALREADY_EXISTS, "Email address is already registered");
-        }
-        String userId = UUID.randomUUID().toString();
-        log.info("Email available for signup - email: {}, userId: {}, sessionId: {}", email, userId, sessionId);
+		// Get pending signup from Firestore
+		Optional<OtpCodeEntity> otpOpt = otpCodeRepository.findBySessionId(sessionId);
+		if (otpOpt.isEmpty()) {
+			throw new StrategizException(AuthErrors.OTP_NOT_FOUND, "No pending signup found for this session");
+		}
+		OtpCodeEntity otpEntity = otpOpt.get();
 
-        // Store OTP in Firestore with hashed code
-        OtpCodeEntity otpEntity = new OtpCodeEntity(email, EMAIL_SIGNUP_PURPOSE,
-            passwordEncoder.encode(otpCode), expiration);
-        otpEntity.setSessionId(sessionId);
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("name", request.name());
-        metadata.put("userId", userId);
-        otpEntity.setMetadata(metadata);
-        otpCodeRepository.save(otpEntity, "system");
+		// Verify email matches
+		if (!otpEntity.getEmail().equals(normalizedEmail)) {
+			throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Email does not match pending signup");
+		}
 
-        // Send OTP email (skip for admin bypass in dev)
-        if (!adminBypassEnabled || !isAdminEmail(email)) {
-            boolean sent = sendOtpEmail(email, otpCode);
-            if (!sent) {
-                otpCodeRepository.deleteByEmailAndPurpose(email, EMAIL_SIGNUP_PURPOSE);
-                throw new StrategizException(AuthErrors.EMAIL_SEND_FAILED, "Failed to send verification email");
-            }
-        } else {
-            log.info("Admin bypass - OTP for {}: {}", email, otpCode);
-        }
+		// Check expiration
+		if (otpEntity.isExpired()) {
+			otpCodeRepository.deleteById(otpEntity.getId());
+			throw new StrategizException(AuthErrors.OTP_EXPIRED, "Verification code has expired");
+		}
 
-        log.info("Email signup initiated - sessionId: {}, email: {}", sessionId, email);
-        return sessionId;
-    }
+		// Verify OTP (admin bypass check)
+		boolean isAdmin = adminBypassEnabled && isAdminEmail(normalizedEmail);
+		if (!isAdmin && !passwordEncoder.matches(otpCode, otpEntity.getCodeHash())) {
+			otpEntity.incrementAttempts();
+			otpCodeRepository.update(otpEntity, "system");
+			throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Invalid verification code");
+		}
 
-    /**
-     * Verify OTP and complete signup.
-     *
-     * @param email User's email
-     * @param otpCode OTP code entered by user
-     * @param sessionId Session ID from initiation
-     * @param deviceId Device ID for token generation
-     * @param ipAddress IP address for token generation
-     * @return Signup response with user details and tokens
-     */
-    public OAuthSignupResponse verifyAndCompleteSignup(String email, String otpCode, String sessionId,
-                                                       String deviceId, String ipAddress) {
-        String normalizedEmail = email.toLowerCase();
-        log.info("Verifying email signup for: {}", normalizedEmail);
+		if (isAdmin) {
+			log.info("Admin bypass - auto-verifying OTP for: {}", normalizedEmail);
+		}
 
-        // Get pending signup from Firestore
-        Optional<OtpCodeEntity> otpOpt = otpCodeRepository.findBySessionId(sessionId);
-        if (otpOpt.isEmpty()) {
-            throw new StrategizException(AuthErrors.OTP_NOT_FOUND, "No pending signup found for this session");
-        }
-        OtpCodeEntity otpEntity = otpOpt.get();
+		Map<String, String> signupMetadata = otpEntity.getMetadata();
+		String name = signupMetadata.get("name");
 
-        // Verify email matches
-        if (!otpEntity.getEmail().equals(normalizedEmail)) {
-            throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Email does not match pending signup");
-        }
+		// Clean up OTP record
+		otpCodeRepository.deleteById(otpEntity.getId());
 
-        // Check expiration (also checked in findBySessionId, but be explicit)
-        if (otpEntity.isExpired()) {
-            otpCodeRepository.deleteById(otpEntity.getId());
-            throw new StrategizException(AuthErrors.OTP_EXPIRED, "Verification code has expired");
-        }
+		log.info("Email OTP verified for: {} - no account created yet (deferred to Step 2)", normalizedEmail);
+		return new EmailVerificationResult(normalizedEmail, name);
+	}
 
-        // Verify OTP (admin bypass check)
-        boolean isAdmin = adminBypassEnabled && isAdminEmail(normalizedEmail);
-        if (!isAdmin && !passwordEncoder.matches(otpCode, otpEntity.getCodeHash())) {
-            otpEntity.incrementAttempts();
-            otpCodeRepository.update(otpEntity, "system");
-            throw new StrategizException(AuthErrors.VERIFICATION_FAILED, "Invalid verification code");
-        }
+	/**
+	 * Result of email OTP verification. Contains data needed for signup token.
+	 */
+	public record EmailVerificationResult(String email, String name) {
+	}
 
-        if (isAdmin) {
-            log.info("Admin bypass - auto-verifying OTP for: {}", normalizedEmail);
-        }
+	/**
+	 * Check if email is in the admin bypass list.
+	 */
+	private boolean isAdminEmail(String email) {
+		if (adminEmails == null || adminEmails.isBlank()) {
+			return false;
+		}
+		String[] emails = adminEmails.split(",");
+		for (String adminEmail : emails) {
+			if (adminEmail.trim().equalsIgnoreCase(email)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-        Map<String, String> signupMetadata = otpEntity.getMetadata();
+	/**
+	 * Generate a random OTP code.
+	 */
+	private String generateOtpCode() {
+		SecureRandom random = new SecureRandom();
+		StringBuilder sb = new StringBuilder(codeLength);
+		for (int i = 0; i < codeLength; i++) {
+			sb.append(random.nextInt(10));
+		}
+		return sb.toString();
+	}
 
-        // Create user account
-        try {
-            UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Create CONFIRMED email reservation in a single write (no read)
-                // This creates the userEmails document only after OTP verification succeeds
-                String userId = signupMetadata.get("userId");
-                emailReservationService.createConfirmedReservation(normalizedEmail, userId, "email_otp");
-                UserProfileEntity profile = new UserProfileEntity(
-                    signupMetadata.get("name"),
-                    normalizedEmail,
-                    null, // No photo
-                    true, // Email verified through OTP
-                    SubscriptionTierConstants.DEFAULT, // Explorer (free) tier
-                    true // Demo mode
-                );
+	/**
+	 * Build futuristic HTML email template for verification code.
+	 */
+	private String buildVerificationEmailHtml(String otpCode) {
+		// Split OTP into individual digits for stylized display
+		StringBuilder otpDigits = new StringBuilder();
+		for (char digit : otpCode.toCharArray()) {
+			otpDigits.append("<span style=\"display: inline-block; width: 52px; height: 64px; ")
+				.append("background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); ")
+				.append("border: 1px solid #334155; border-radius: 12px; margin: 0 4px; ")
+				.append("line-height: 64px; font-size: 28px; font-weight: 700; color: #00ff88; ")
+				.append("font-family: 'SF Mono', 'Fira Code', monospace; ")
+				.append("box-shadow: 0 4px 16px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);\">")
+				.append(digit)
+				.append("</span>");
+		}
 
-                // Set ADMIN role for admin emails
-                if (isAdminEmail(normalizedEmail)) {
-                    profile.setRole("ADMIN");
-                    log.info("Setting ADMIN role for admin email: {}", normalizedEmail);
-                }
+		return "<!DOCTYPE html>" + "<html lang=\"en\">"
+				+ "<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>"
+				+ "<body style=\"margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\">"
+				+ "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background-color: #0a0a0f;\">"
+				+ "<tr><td align=\"center\" style=\"padding: 40px 20px;\">"
+				+ "<table role=\"presentation\" width=\"100%\" style=\"max-width: 520px; background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%); border-radius: 24px; border: 1px solid #1e293b; overflow: hidden;\">"
+				+
 
-                UserEntity user = new UserEntity();
-                user.setUserId(userId);
-                user.setProfile(profile);
+				// Header with logo
+				"<tr><td style=\"padding: 40px 40px 24px 40px; text-align: center;\">"
+				+ "<div style=\"display: inline-block; margin-bottom: 8px;\">"
+				+ "<span style=\"font-size: 32px; font-weight: 800; color: #00ff88; letter-spacing: -1px;\">STRATEGIZ</span>"
+				+ "</div>"
+				+ "<div style=\"width: 60px; height: 3px; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%); margin: 0 auto; border-radius: 2px;\"></div>"
+				+ "</td></tr>" +
 
-                // Create user
-                UserEntity created = userRepository.createUser(user);
+				// Main content
+				"<tr><td style=\"padding: 0 40px;\">"
+				+ "<h1 style=\"color: #f8fafc; font-size: 24px; font-weight: 600; margin: 0 0 8px 0; text-align: center;\">Verify Your Email</h1>"
+				+ "<p style=\"color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;\">Enter this code to complete your registration and start building intelligent trading strategies.</p>"
+				+ "</td></tr>" +
 
-                // Create EMAIL_OTP authentication method (passwordless - user will add Passkey/TOTP/SMS in Step 2)
-                AuthenticationMethodEntity authMethod = new AuthenticationMethodEntity(
-                    AuthenticationMethodType.EMAIL_OTP,
-                    "Email: " + normalizedEmail
-                );
-                authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.EMAIL_ADDRESS, normalizedEmail);
-                authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.IS_VERIFIED, true);
-                authMethod.putMetadata(AuthenticationMethodMetadata.EmailOtpMetadata.VERIFICATION_TIME, Instant.now().toString());
-                authMethod.setIsActive(true);
+				// OTP Code display
+				"<tr><td style=\"padding: 0 40px;\">"
+				+ "<div style=\"background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 16px;\">"
+				+ "<p style=\"color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 16px 0;\">Your Verification Code</p>"
+				+ "<div style=\"display: inline-block;\">" + otpDigits + "</div>" +
+				// Copy hint
+				"<p style=\"color: #475569; font-size: 12px; margin: 16px 0 0 0;\">📋 Select code to copy</p>"
+				+ "</div>" + "</td></tr>" +
 
-                authenticationMethodRepository.saveForUser(created.getUserId(), authMethod);
-                log.info("Created EMAIL_OTP authentication method for user: {}", created.getUserId());
+				// Timer/expiration notice
+				"<tr><td style=\"padding: 0 40px;\">" + "<div style=\"text-align: center; margin-bottom: 32px;\">"
+				+ "<span style=\"display: inline-block; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 20px; padding: 8px 16px; color: #00ff88; font-size: 13px;\">"
+				+ "⏱ Expires in " + expirationMinutes + " minutes" + "</span>" + "</div>" + "</td></tr>" +
 
-                return created;
-            });
+				// Divider
+				"<tr><td style=\"padding: 0 40px;\">"
+				+ "<div style=\"height: 1px; background: linear-gradient(90deg, transparent 0%, #1e293b 50%, transparent 100%); margin-bottom: 24px;\"></div>"
+				+ "</td></tr>" +
 
-            // Clean up OTP record from Firestore
-            otpCodeRepository.deleteById(otpEntity.getId());
+				// Security notice
+				"<tr><td style=\"padding: 0 40px 40px 40px;\">"
+				+ "<p style=\"color: #64748b; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;\">"
+				+ "Didn't request this code? You can safely ignore this email.<br>"
+				+ "Someone may have entered your email by mistake." + "</p>" + "</td></tr>" +
 
-            // Initialize trial subscription
-            if (subscriptionService != null) {
-                try {
-                    subscriptionService.initializeTrial(createdUser.getUserId());
-                    log.info("Initialized 30-day trial for user: {}", createdUser.getUserId());
-                } catch (Exception e) {
-                    log.warn("Failed to initialize trial subscription: {}", e.getMessage());
-                }
-            }
+				// Footer
+				"<tr><td style=\"background: #080810; padding: 24px 40px; border-top: 1px solid #1e293b;\">"
+				+ "<table role=\"presentation\" width=\"100%\"><tr>" + "<td style=\"text-align: center;\">"
+				+ "<p style=\"color: #475569; font-size: 12px; margin: 0 0 8px 0;\">© 2026 Strategiz. All rights reserved.</p>"
+				+ "<p style=\"margin: 0;\">"
+				+ "<a href=\"https://strategiz.io\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Website</a>"
+				+ "<span style=\"color: #334155;\">•</span>"
+				+ "<a href=\"https://strategiz.io/privacy\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Privacy</a>"
+				+ "<span style=\"color: #334155;\">•</span>"
+				+ "<a href=\"https://strategiz.io/terms\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Terms</a>"
+				+ "</p>" + "</td>" + "</tr></table>" + "</td></tr>" +
 
-            // Build response with tokens
-            List<String> authMethods = List.of("email_otp");
-            return responseBuilder.buildSuccessResponse(
-                createdUser,
-                "Email signup completed successfully",
-                authMethods,
-                deviceId,
-                ipAddress
-            );
+				"</table>" + "</td></tr></table>" + "</body></html>";
+	}
 
-        } catch (StrategizException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error completing email signup: {}", e.getMessage(), e);
-            throw new StrategizException(AuthErrors.SIGNUP_FAILED, "Failed to complete signup");
-        }
-    }
+	/**
+	 * Send OTP email via SendGrid.
+	 */
+	private boolean sendOtpEmail(String email, String otpCode) {
+		try {
+			if (emailProvider == null || !emailProvider.isAvailable()) {
+				log.error("Email provider not configured or unavailable. Cannot send OTP to {}", email);
+				return false;
+			}
 
-    /**
-     * Check if email is in the admin bypass list.
-     */
-    private boolean isAdminEmail(String email) {
-        if (adminEmails == null || adminEmails.isBlank()) {
-            return false;
-        }
-        String[] emails = adminEmails.split(",");
-        for (String adminEmail : emails) {
-            if (adminEmail.trim().equalsIgnoreCase(email)) {
-                return true;
-            }
-        }
-        return false;
-    }
+			String subject = "Verify Your Email - Strategiz";
+			String textContent = "Welcome to Strategiz!\n\n" + "Your verification code is: " + otpCode + "\n\n"
+					+ "Enter this code to complete your registration.\n" + "This code expires in " + expirationMinutes
+					+ " minutes.\n\n" + "If you didn't request this, please ignore this email.";
 
-    /**
-     * Generate a random OTP code.
-     */
-    private String generateOtpCode() {
-        SecureRandom random = new SecureRandom();
-        StringBuilder sb = new StringBuilder(codeLength);
-        for (int i = 0; i < codeLength; i++) {
-            sb.append(random.nextInt(10));
-        }
-        return sb.toString();
-    }
+			String htmlContent = buildVerificationEmailHtml(otpCode);
 
-    /**
-     * Build futuristic HTML email template for verification code.
-     */
-    private String buildVerificationEmailHtml(String otpCode) {
-        // Split OTP into individual digits for stylized display
-        StringBuilder otpDigits = new StringBuilder();
-        for (char digit : otpCode.toCharArray()) {
-            otpDigits.append("<span style=\"display: inline-block; width: 52px; height: 64px; ")
-                .append("background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); ")
-                .append("border: 1px solid #334155; border-radius: 12px; margin: 0 4px; ")
-                .append("line-height: 64px; font-size: 28px; font-weight: 700; color: #00ff88; ")
-                .append("font-family: 'SF Mono', 'Fira Code', monospace; ")
-                .append("box-shadow: 0 4px 16px rgba(0, 255, 136, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);\">")
-                .append(digit)
-                .append("</span>");
-        }
+			EmailMessage message = EmailMessage.builder()
+				.toEmail(email)
+				.fromEmail(fromEmail)
+				.fromName("Strategiz")
+				.subject(subject)
+				.bodyText(textContent)
+				.bodyHtml(htmlContent)
+				.build();
 
-        return "<!DOCTYPE html>" +
-            "<html lang=\"en\">" +
-            "<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"></head>" +
-            "<body style=\"margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\">" +
-            "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"background-color: #0a0a0f;\">" +
-            "<tr><td align=\"center\" style=\"padding: 40px 20px;\">" +
-            "<table role=\"presentation\" width=\"100%\" style=\"max-width: 520px; background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%); border-radius: 24px; border: 1px solid #1e293b; overflow: hidden;\">" +
+			EmailDeliveryResult result = emailProvider.sendEmail(message);
 
-            // Header with logo
-            "<tr><td style=\"padding: 40px 40px 24px 40px; text-align: center;\">" +
-            "<div style=\"display: inline-block; margin-bottom: 8px;\">" +
-            "<span style=\"font-size: 32px; font-weight: 800; color: #00ff88; letter-spacing: -1px;\">STRATEGIZ</span>" +
-            "</div>" +
-            "<div style=\"width: 60px; height: 3px; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%); margin: 0 auto; border-radius: 2px;\"></div>" +
-            "</td></tr>" +
-
-            // Main content
-            "<tr><td style=\"padding: 0 40px;\">" +
-            "<h1 style=\"color: #f8fafc; font-size: 24px; font-weight: 600; margin: 0 0 8px 0; text-align: center;\">Verify Your Email</h1>" +
-            "<p style=\"color: #94a3b8; font-size: 15px; line-height: 1.6; margin: 0 0 32px 0; text-align: center;\">Enter this code to complete your registration and start building intelligent trading strategies.</p>" +
-            "</td></tr>" +
-
-            // OTP Code display
-            "<tr><td style=\"padding: 0 40px;\">" +
-            "<div style=\"background: linear-gradient(180deg, #0f172a 0%, #020617 100%); border: 1px solid #1e293b; border-radius: 16px; padding: 32px 20px; text-align: center; margin-bottom: 16px;\">" +
-            "<p style=\"color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 16px 0;\">Your Verification Code</p>" +
-            "<div style=\"display: inline-block;\">" + otpDigits + "</div>" +
-            // Copy hint
-            "<p style=\"color: #475569; font-size: 12px; margin: 16px 0 0 0;\">📋 Select code to copy</p>" +
-            "</div>" +
-            "</td></tr>" +
-
-            // Timer/expiration notice
-            "<tr><td style=\"padding: 0 40px;\">" +
-            "<div style=\"text-align: center; margin-bottom: 32px;\">" +
-            "<span style=\"display: inline-block; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 20px; padding: 8px 16px; color: #00ff88; font-size: 13px;\">" +
-            "⏱ Expires in " + expirationMinutes + " minutes" +
-            "</span>" +
-            "</div>" +
-            "</td></tr>" +
-
-            // Divider
-            "<tr><td style=\"padding: 0 40px;\">" +
-            "<div style=\"height: 1px; background: linear-gradient(90deg, transparent 0%, #1e293b 50%, transparent 100%); margin-bottom: 24px;\"></div>" +
-            "</td></tr>" +
-
-            // Security notice
-            "<tr><td style=\"padding: 0 40px 40px 40px;\">" +
-            "<p style=\"color: #64748b; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;\">" +
-            "Didn't request this code? You can safely ignore this email.<br>" +
-            "Someone may have entered your email by mistake." +
-            "</p>" +
-            "</td></tr>" +
-
-            // Footer
-            "<tr><td style=\"background: #080810; padding: 24px 40px; border-top: 1px solid #1e293b;\">" +
-            "<table role=\"presentation\" width=\"100%\"><tr>" +
-            "<td style=\"text-align: center;\">" +
-            "<p style=\"color: #475569; font-size: 12px; margin: 0 0 8px 0;\">© 2026 Strategiz. All rights reserved.</p>" +
-            "<p style=\"margin: 0;\">" +
-            "<a href=\"https://strategiz.io\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Website</a>" +
-            "<span style=\"color: #334155;\">•</span>" +
-            "<a href=\"https://strategiz.io/privacy\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Privacy</a>" +
-            "<span style=\"color: #334155;\">•</span>" +
-            "<a href=\"https://strategiz.io/terms\" style=\"color: #64748b; text-decoration: none; font-size: 12px; margin: 0 8px;\">Terms</a>" +
-            "</p>" +
-            "</td>" +
-            "</tr></table>" +
-            "</td></tr>" +
-
-            "</table>" +
-            "</td></tr></table>" +
-            "</body></html>";
-    }
-
-    /**
-     * Send OTP email via SendGrid.
-     */
-    private boolean sendOtpEmail(String email, String otpCode) {
-        try {
-            if (emailProvider == null || !emailProvider.isAvailable()) {
-                log.error("Email provider not configured or unavailable. Cannot send OTP to {}", email);
-                return false;
-            }
-
-            String subject = "Verify Your Email - Strategiz";
-            String textContent = "Welcome to Strategiz!\n\n" +
-                "Your verification code is: " + otpCode + "\n\n" +
-                "Enter this code to complete your registration.\n" +
-                "This code expires in " + expirationMinutes + " minutes.\n\n" +
-                "If you didn't request this, please ignore this email.";
-
-            String htmlContent = buildVerificationEmailHtml(otpCode);
-
-            EmailMessage message = EmailMessage.builder()
-                .toEmail(email)
-                .fromEmail(fromEmail)
-                .fromName("Strategiz")
-                .subject(subject)
-                .bodyText(textContent)
-                .bodyHtml(htmlContent)
-                .build();
-
-            EmailDeliveryResult result = emailProvider.sendEmail(message);
-
-            if (result.isSuccess()) {
-                log.info("Sent verification email to {} via {}", email, result.getProviderName());
-                return true;
-            } else {
-                log.error("Failed to send verification email to {}: {} - {}",
-                    email, result.getErrorCode(), result.getErrorMessage());
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("Error sending verification email: {}", e.getMessage(), e);
-            return false;
-        }
-    }
+			if (result.isSuccess()) {
+				log.info("Sent verification email to {} via {}", email, result.getProviderName());
+				return true;
+			}
+			else {
+				log.error("Failed to send verification email to {}: {} - {}", email, result.getErrorCode(),
+						result.getErrorMessage());
+				return false;
+			}
+		}
+		catch (Exception e) {
+			log.error("Error sending verification email: {}", e.getMessage(), e);
+			return false;
+		}
+	}
 
 }

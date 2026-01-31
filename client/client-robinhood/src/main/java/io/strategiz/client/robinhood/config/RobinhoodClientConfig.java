@@ -11,11 +11,12 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class RobinhoodClientConfig {
 
-    @Bean(name = "robinhoodRestTemplate")
-    public RestTemplate robinhoodRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10000);
-        factory.setReadTimeout(30000);
-        return new RestTemplate(factory);
-    }
+	@Bean(name = "robinhoodRestTemplate")
+	public RestTemplate robinhoodRestTemplate() {
+		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+		factory.setConnectTimeout(10000);
+		factory.setReadTimeout(30000);
+		return new RestTemplate(factory);
+	}
+
 }

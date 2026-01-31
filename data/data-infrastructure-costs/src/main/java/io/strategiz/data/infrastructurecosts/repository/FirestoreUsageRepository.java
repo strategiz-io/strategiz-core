@@ -25,135 +25,138 @@ import java.util.concurrent.ExecutionException;
 @Repository
 public class FirestoreUsageRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(FirestoreUsageRepository.class);
-    private static final String COLLECTION_PATH = "infrastructure";
-    private static final String SUBCOLLECTION_USAGE = "usage";
-    private static final String SUBCOLLECTION_FIRESTORE = "firestore";
+	private static final Logger logger = LoggerFactory.getLogger(FirestoreUsageRepository.class);
 
-    private final Firestore firestore;
+	private static final String COLLECTION_PATH = "infrastructure";
 
-    public FirestoreUsageRepository(Firestore firestore) {
-        this.firestore = firestore;
-    }
+	private static final String SUBCOLLECTION_USAGE = "usage";
 
-    private CollectionReference getFirestoreUsageCollection() {
-        return firestore.collection(COLLECTION_PATH)
-                .document(SUBCOLLECTION_USAGE)
-                .collection(SUBCOLLECTION_FIRESTORE);
-    }
+	private static final String SUBCOLLECTION_FIRESTORE = "firestore";
 
-    /**
-     * Save or update a Firestore usage record
-     */
-    public FirestoreUsageEntity save(FirestoreUsageEntity entity) {
-        try {
-            DocumentReference docRef = getFirestoreUsageCollection().document(entity.getDate());
-            docRef.set(entity).get();
-            logger.debug("Saved Firestore usage for date: {}", entity.getDate());
-            return entity;
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error saving Firestore usage: {}", e.getMessage(), e);
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "FirestoreUsageEntity");
-        }
-    }
+	private final Firestore firestore;
 
-    /**
-     * Find Firestore usage by date
-     */
-    public Optional<FirestoreUsageEntity> findByDate(String date) {
-        try {
-            DocumentSnapshot doc = getFirestoreUsageCollection().document(date).get().get();
-            if (doc.exists()) {
-                return Optional.ofNullable(doc.toObject(FirestoreUsageEntity.class));
-            }
-            return Optional.empty();
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error finding Firestore usage by date: {}", e.getMessage(), e);
-            Thread.currentThread().interrupt();
-            return Optional.empty();
-        }
-    }
+	public FirestoreUsageRepository(Firestore firestore) {
+		this.firestore = firestore;
+	}
 
-    /**
-     * Find Firestore usage for a date range
-     */
-    public List<FirestoreUsageEntity> findByDateRange(String startDate, String endDate) {
-        try {
-            Query query = getFirestoreUsageCollection()
-                    .whereGreaterThanOrEqualTo("date", startDate)
-                    .whereLessThanOrEqualTo("date", endDate)
-                    .orderBy("date", Query.Direction.DESCENDING);
+	private CollectionReference getFirestoreUsageCollection() {
+		return firestore.collection(COLLECTION_PATH).document(SUBCOLLECTION_USAGE).collection(SUBCOLLECTION_FIRESTORE);
+	}
 
-            QuerySnapshot snapshot = query.get().get();
-            List<FirestoreUsageEntity> results = new ArrayList<>();
-            for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                FirestoreUsageEntity entity = doc.toObject(FirestoreUsageEntity.class);
-                if (entity != null) {
-                    results.add(entity);
-                }
-            }
-            return results;
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error finding Firestore usage by range: {}", e.getMessage(), e);
-            Thread.currentThread().interrupt();
-            return new ArrayList<>();
-        }
-    }
+	/**
+	 * Save or update a Firestore usage record
+	 */
+	public FirestoreUsageEntity save(FirestoreUsageEntity entity) {
+		try {
+			DocumentReference docRef = getFirestoreUsageCollection().document(entity.getDate());
+			docRef.set(entity).get();
+			logger.debug("Saved Firestore usage for date: {}", entity.getDate());
+			return entity;
+		}
+		catch (InterruptedException | ExecutionException e) {
+			logger.error("Error saving Firestore usage: {}", e.getMessage(), e);
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "FirestoreUsageEntity");
+		}
+	}
 
-    /**
-     * Find the most recent N Firestore usage records
-     */
-    public List<FirestoreUsageEntity> findRecent(int limit) {
-        try {
-            Query query = getFirestoreUsageCollection()
-                    .orderBy("date", Query.Direction.DESCENDING)
-                    .limit(limit);
+	/**
+	 * Find Firestore usage by date
+	 */
+	public Optional<FirestoreUsageEntity> findByDate(String date) {
+		try {
+			DocumentSnapshot doc = getFirestoreUsageCollection().document(date).get().get();
+			if (doc.exists()) {
+				return Optional.ofNullable(doc.toObject(FirestoreUsageEntity.class));
+			}
+			return Optional.empty();
+		}
+		catch (InterruptedException | ExecutionException e) {
+			logger.error("Error finding Firestore usage by date: {}", e.getMessage(), e);
+			Thread.currentThread().interrupt();
+			return Optional.empty();
+		}
+	}
 
-            QuerySnapshot snapshot = query.get().get();
-            List<FirestoreUsageEntity> results = new ArrayList<>();
-            for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                FirestoreUsageEntity entity = doc.toObject(FirestoreUsageEntity.class);
-                if (entity != null) {
-                    results.add(entity);
-                }
-            }
-            return results;
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Error finding recent Firestore usage: {}", e.getMessage(), e);
-            Thread.currentThread().interrupt();
-            return new ArrayList<>();
-        }
-    }
+	/**
+	 * Find Firestore usage for a date range
+	 */
+	public List<FirestoreUsageEntity> findByDateRange(String startDate, String endDate) {
+		try {
+			Query query = getFirestoreUsageCollection().whereGreaterThanOrEqualTo("date", startDate)
+				.whereLessThanOrEqualTo("date", endDate)
+				.orderBy("date", Query.Direction.DESCENDING);
 
-    /**
-     * Get or create today's usage record
-     */
-    public FirestoreUsageEntity getOrCreateForDate(String date) {
-        return findByDate(date).orElseGet(() -> {
-            FirestoreUsageEntity entity = new FirestoreUsageEntity(date);
-            entity.setReadsByCollection(new HashMap<>());
-            entity.setWritesByCollection(new HashMap<>());
-            entity.setDeletesByCollection(new HashMap<>());
-            return save(entity);
-        });
-    }
+			QuerySnapshot snapshot = query.get().get();
+			List<FirestoreUsageEntity> results = new ArrayList<>();
+			for (DocumentSnapshot doc : snapshot.getDocuments()) {
+				FirestoreUsageEntity entity = doc.toObject(FirestoreUsageEntity.class);
+				if (entity != null) {
+					results.add(entity);
+				}
+			}
+			return results;
+		}
+		catch (InterruptedException | ExecutionException e) {
+			logger.error("Error finding Firestore usage by range: {}", e.getMessage(), e);
+			Thread.currentThread().interrupt();
+			return new ArrayList<>();
+		}
+	}
 
-    /**
-     * Increment read count for a collection
-     */
-    public void incrementReads(String date, String collection, long count) {
-        FirestoreUsageEntity entity = getOrCreateForDate(date);
-        entity.incrementReads(collection, count);
-        save(entity);
-    }
+	/**
+	 * Find the most recent N Firestore usage records
+	 */
+	public List<FirestoreUsageEntity> findRecent(int limit) {
+		try {
+			Query query = getFirestoreUsageCollection().orderBy("date", Query.Direction.DESCENDING).limit(limit);
 
-    /**
-     * Increment write count for a collection
-     */
-    public void incrementWrites(String date, String collection, long count) {
-        FirestoreUsageEntity entity = getOrCreateForDate(date);
-        entity.incrementWrites(collection, count);
-        save(entity);
-    }
+			QuerySnapshot snapshot = query.get().get();
+			List<FirestoreUsageEntity> results = new ArrayList<>();
+			for (DocumentSnapshot doc : snapshot.getDocuments()) {
+				FirestoreUsageEntity entity = doc.toObject(FirestoreUsageEntity.class);
+				if (entity != null) {
+					results.add(entity);
+				}
+			}
+			return results;
+		}
+		catch (InterruptedException | ExecutionException e) {
+			logger.error("Error finding recent Firestore usage: {}", e.getMessage(), e);
+			Thread.currentThread().interrupt();
+			return new ArrayList<>();
+		}
+	}
+
+	/**
+	 * Get or create today's usage record
+	 */
+	public FirestoreUsageEntity getOrCreateForDate(String date) {
+		return findByDate(date).orElseGet(() -> {
+			FirestoreUsageEntity entity = new FirestoreUsageEntity(date);
+			entity.setReadsByCollection(new HashMap<>());
+			entity.setWritesByCollection(new HashMap<>());
+			entity.setDeletesByCollection(new HashMap<>());
+			return save(entity);
+		});
+	}
+
+	/**
+	 * Increment read count for a collection
+	 */
+	public void incrementReads(String date, String collection, long count) {
+		FirestoreUsageEntity entity = getOrCreateForDate(date);
+		entity.incrementReads(collection, count);
+		save(entity);
+	}
+
+	/**
+	 * Increment write count for a collection
+	 */
+	public void incrementWrites(String date, String collection, long count) {
+		FirestoreUsageEntity entity = getOrCreateForDate(date);
+		entity.incrementWrites(collection, count);
+		save(entity);
+	}
+
 }

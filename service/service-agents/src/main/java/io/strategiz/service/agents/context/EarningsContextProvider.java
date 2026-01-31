@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Provides comprehensive earnings context for AI agents. Combines FMP earnings calendar with
- * historical fundamentals data.
+ * Provides comprehensive earnings context for AI agents. Combines FMP earnings calendar
+ * with historical fundamentals data.
  */
 @Component
 public class EarningsContextProvider {
@@ -194,15 +194,11 @@ public class EarningsContextProvider {
 			var fundamentals = fundamentalsQueryService.getLatestFundamentalsOrNull(symbol);
 			if (fundamentals != null) {
 				context.append("\n").append(symbol.toUpperCase()).append(" Fundamentals:\n");
-				context.append("  • EPS (Diluted): $")
-					.append(formatNumber(fundamentals.getEpsDiluted()))
-					.append("\n");
+				context.append("  • EPS (Diluted): $").append(formatNumber(fundamentals.getEpsDiluted())).append("\n");
 				context.append("  • EPS Growth YoY: ")
 					.append(formatPercent(fundamentals.getEpsGrowthYoy()))
 					.append("\n");
-				context.append("  • P/E Ratio: ")
-					.append(formatNumber(fundamentals.getPriceToEarnings()))
-					.append("\n");
+				context.append("  • P/E Ratio: ").append(formatNumber(fundamentals.getPriceToEarnings())).append("\n");
 
 				if (fundamentals.getRevenueGrowthYoy() != null) {
 					context.append("  • Revenue Growth YoY: ")

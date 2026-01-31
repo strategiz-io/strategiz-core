@@ -12,21 +12,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param message user-facing message
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record RecoveryStepResponse(
-        boolean success,
-        String nextStep,
-        String phoneNumberHint,
-        String recoveryToken,
-        String message
-) {
-    public static RecoveryStepResponse from(
-            io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryStepResult result) {
-        return new RecoveryStepResponse(
-                result.success(),
-                result.nextStep(),
-                result.phoneNumberHint(),
-                result.recoveryToken(),
-                result.message()
-        );
-    }
+public record RecoveryStepResponse(boolean success, String nextStep, String phoneNumberHint, String recoveryToken,
+		String message) {
+	public static RecoveryStepResponse from(
+			io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryStepResult result) {
+		return new RecoveryStepResponse(result.success(), result.nextStep(), result.phoneNumberHint(),
+				result.recoveryToken(), result.message());
+	}
 }

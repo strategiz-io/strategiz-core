@@ -4,14 +4,13 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Authentication module error constants for use with StrategizException.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Authentication module error constants for use with StrategizException. Implements
+ * ErrorDetails for integration with the Strategiz exception framework.
  *
  * @deprecated Consider using ServiceAuthErrorDetails for new code. This enum is
- *             maintained for backwards compatibility.
+ * maintained for backwards compatibility.
  *
- *             Usage: throw new StrategizException(AuthErrors.INVALID_CREDENTIALS,
- *             MODULE_NAME);
+ * Usage: throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, MODULE_NAME);
  */
 public enum AuthErrors implements ErrorDetails {
 
@@ -47,8 +46,7 @@ public enum AuthErrors implements ErrorDetails {
 	QR_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "auth-qr-generation-failed"),
 
 	// OTP errors (Email & SMS)
-	OTP_EXPIRED(HttpStatus.BAD_REQUEST, "auth-otp-expired"),
-	OTP_NOT_FOUND(HttpStatus.NOT_FOUND, "auth-otp-not-found"),
+	OTP_EXPIRED(HttpStatus.BAD_REQUEST, "auth-otp-expired"), OTP_NOT_FOUND(HttpStatus.NOT_FOUND, "auth-otp-not-found"),
 	OTP_MAX_ATTEMPTS_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "auth-otp-max-attempts"),
 	OTP_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "auth-otp-rate-limited"),
 	OTP_ALREADY_USED(HttpStatus.BAD_REQUEST, "auth-otp-already-used"),
@@ -107,4 +105,3 @@ public enum AuthErrors implements ErrorDetails {
 	}
 
 }
- 

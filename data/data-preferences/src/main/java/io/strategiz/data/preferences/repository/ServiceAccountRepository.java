@@ -10,9 +10,8 @@ import java.util.Optional;
  *
  * Service accounts are stored in Firestore collection: service_accounts
  *
- * This repository provides CRUD operations for managing service accounts
- * used in machine-to-machine authentication for CI/CD pipelines and
- * integration testing.
+ * This repository provides CRUD operations for managing service accounts used in
+ * machine-to-machine authentication for CI/CD pipelines and integration testing.
  */
 public interface ServiceAccountRepository {
 

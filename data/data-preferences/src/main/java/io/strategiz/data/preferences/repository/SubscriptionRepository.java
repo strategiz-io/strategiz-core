@@ -42,7 +42,8 @@ public class SubscriptionRepository extends SubcollectionRepository<PlatformSubs
 	}
 
 	/**
-	 * Get subscription for a user. Creates default (Explorer) subscription if none exists.
+	 * Get subscription for a user. Creates default (Explorer) subscription if none
+	 * exists.
 	 * @param userId The user ID
 	 * @return The user subscription
 	 */
@@ -82,13 +83,15 @@ public class SubscriptionRepository extends SubcollectionRepository<PlatformSubs
 		}
 
 		// Check if this is a new subscription (doesn't exist in Firestore yet)
-		// This is needed because getByUserId() returns in-memory defaults with ID already set
+		// This is needed because getByUserId() returns in-memory defaults with ID already
+		// set
 		boolean existsInFirestore = findByIdInSubcollection(userId, PlatformSubscription.SUBSCRIPTION_ID).isPresent();
 
 		if (!existsInFirestore) {
 			// Initialize audit fields for new subscription
 			subscription._initAudit(userId);
-		} else {
+		}
+		else {
 			// Update audit fields for existing subscription
 			subscription._updateAudit(userId);
 		}
@@ -96,15 +99,17 @@ public class SubscriptionRepository extends SubcollectionRepository<PlatformSubs
 		// Validate entity state
 		subscription._validate();
 
-		// Save to Firestore (skip audit updates in saveInSubcollection since we handled them here)
+		// Save to Firestore (skip audit updates in saveInSubcollection since we handled
+		// them here)
 		try {
 			getSubcollection(userId).document(subscription.getId()).set(subscription).get();
 			logger.debug("Saved PlatformSubscription for user {}", userId);
 			return subscription;
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			throw new io.strategiz.data.base.exception.DataRepositoryException(
-				io.strategiz.data.base.exception.DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED,
-				e, "PlatformSubscription", userId);
+					io.strategiz.data.base.exception.DataRepositoryErrorDetails.SUBCOLLECTION_ACCESS_FAILED, e,
+					"PlatformSubscription", userId);
 		}
 	}
 

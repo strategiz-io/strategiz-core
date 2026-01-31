@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes for Coinbase client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes for Coinbase client operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(CoinbaseErrors.API_CONNECTION_FAILED, MODULE_NAME);
  */
@@ -45,4 +45,3 @@ public enum CoinbaseErrors implements ErrorDetails {
 	}
 
 }
- 

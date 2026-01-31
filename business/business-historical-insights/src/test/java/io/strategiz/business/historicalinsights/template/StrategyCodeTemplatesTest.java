@@ -10,8 +10,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for StrategyCodeTemplates.
- * Verifies that all strategy templates generate valid Python code.
+ * Unit tests for StrategyCodeTemplates. Verifies that all strategy templates generate
+ * valid Python code.
  */
 @DisplayName("Strategy Code Templates Tests")
 class StrategyCodeTemplatesTest {
@@ -23,12 +23,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate valid RSI code with default parameters")
 		void shouldGenerateValidRSICode() {
-			Map<String, Object> params = Map.of(
-				"period", 14,
-				"oversold", 30,
-				"overbought", 70,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("period", 14, "oversold", 30, "overbought", 70, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.RSI_MEAN_REVERSION, params);
 
@@ -58,12 +53,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate RSI with different oversold/overbought levels")
 		void shouldGenerateRSIWithCustomLevels() {
-			Map<String, Object> params = Map.of(
-				"period", 7,
-				"oversold", 20,
-				"overbought", 80,
-				"atr_multiplier", 1.5
-			);
+			Map<String, Object> params = Map.of("period", 7, "oversold", 20, "overbought", 80, "atr_multiplier", 1.5);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.RSI_MEAN_REVERSION, params);
 
@@ -72,6 +62,7 @@ class StrategyCodeTemplatesTest {
 			assertTrue(code.contains("OVERBOUGHT = 80"));
 			assertTrue(code.contains("ATR_MULTIPLIER = 1.5"));
 		}
+
 	}
 
 	@Nested
@@ -81,12 +72,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate valid MACD code")
 		void shouldGenerateValidMACDCode() {
-			Map<String, Object> params = Map.of(
-				"fast", 12,
-				"slow", 26,
-				"signal_period", 9,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("fast", 12, "slow", 26, "signal_period", 9, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.MACD_TREND_FOLLOWING, params);
 
@@ -108,12 +94,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate MACD with custom parameters")
 		void shouldGenerateMACDWithCustomParams() {
-			Map<String, Object> params = Map.of(
-				"fast", 8,
-				"slow", 20,
-				"signal_period", 7,
-				"atr_multiplier", 2.5
-			);
+			Map<String, Object> params = Map.of("fast", 8, "slow", 20, "signal_period", 7, "atr_multiplier", 2.5);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.MACD_TREND_FOLLOWING, params);
 
@@ -121,6 +102,7 @@ class StrategyCodeTemplatesTest {
 			assertTrue(code.contains("SLOW_PERIOD = 20"));
 			assertTrue(code.contains("SIGNAL_PERIOD = 7"));
 		}
+
 	}
 
 	@Nested
@@ -130,11 +112,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate Bollinger Mean Reversion code")
 		void shouldGenerateBollingerMeanReversionCode() {
-			Map<String, Object> params = Map.of(
-				"period", 20,
-				"std_mult", 2.0,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.BOLLINGER_MEAN_REVERSION, params);
 
@@ -156,11 +134,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate Bollinger Breakout code with volume filter")
 		void shouldGenerateBollingerBreakoutCode() {
-			Map<String, Object> params = Map.of(
-				"period", 20,
-				"std_mult", 2.0,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.BOLLINGER_BREAKOUT, params);
 
@@ -170,6 +144,7 @@ class StrategyCodeTemplatesTest {
 			assertTrue(code.contains("vol_avg"));
 			assertTrue(code.contains("Breakout with volume"));
 		}
+
 	}
 
 	@Nested
@@ -179,11 +154,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate EMA crossover code")
 		void shouldGenerateEMACrossoverCode() {
-			Map<String, Object> params = Map.of(
-				"fast", 10,
-				"slow", 50,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("fast", 10, "slow", 50, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.MA_CROSSOVER_EMA, params);
 
@@ -198,11 +169,7 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate SMA crossover code")
 		void shouldGenerateSMACrossoverCode() {
-			Map<String, Object> params = Map.of(
-				"fast", 20,
-				"slow", 100,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("fast", 20, "slow", 100, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.MA_CROSSOVER_SMA, params);
 
@@ -211,6 +178,7 @@ class StrategyCodeTemplatesTest {
 			assertTrue(code.contains("rolling(window="));
 			assertFalse(code.contains("ewm(")); // Should not use EMA
 		}
+
 	}
 
 	@Nested
@@ -220,13 +188,8 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate Stochastic code with %K and %D")
 		void shouldGenerateStochasticCode() {
-			Map<String, Object> params = Map.of(
-				"k_period", 14,
-				"d_period", 3,
-				"oversold", 20,
-				"overbought", 80,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("k_period", 14, "d_period", 3, "oversold", 20, "overbought", 80,
+					"atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.STOCHASTIC, params);
 
@@ -244,6 +207,7 @@ class StrategyCodeTemplatesTest {
 			// Verify crossover in oversold zone
 			assertTrue(code.contains("prev_k <= prev_d and k > d"));
 		}
+
 	}
 
 	@Nested
@@ -253,12 +217,8 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate swing trading code with thresholds")
 		void shouldGenerateSwingTradingCode() {
-			Map<String, Object> params = Map.of(
-				"buy_threshold", 10,
-				"sell_threshold", 15,
-				"lookback", 20,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20,
+					"atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.SWING_TRADING, params);
 
@@ -271,6 +231,7 @@ class StrategyCodeTemplatesTest {
 			assertTrue(code.contains("rolling_low"));
 			assertTrue(code.contains("pct_from_high"));
 		}
+
 	}
 
 	@Nested
@@ -280,13 +241,8 @@ class StrategyCodeTemplatesTest {
 		@Test
 		@DisplayName("Should generate combined RSI + ADX code")
 		void shouldGenerateCombinedADXCode() {
-			Map<String, Object> params = Map.of(
-				"adx_threshold", 25,
-				"rsi_period", 14,
-				"rsi_oversold", 30,
-				"rsi_overbought", 70,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30,
+					"rsi_overbought", 70, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.COMBINED_ADX, params);
 
@@ -301,6 +257,7 @@ class StrategyCodeTemplatesTest {
 			// Verify combined logic
 			assertTrue(code.contains("rsi < OVERSOLD and adx > ADX_THRESHOLD"));
 		}
+
 	}
 
 	@Nested
@@ -327,9 +284,9 @@ class StrategyCodeTemplatesTest {
 				String code = StrategyCodeTemplates.generateCode(type, params);
 
 				assertTrue(code.contains("calculate_atr") || code.contains("atr"),
-					"Should include ATR calculation for " + type);
+						"Should include ATR calculation for " + type);
 				assertTrue(code.contains("stop_loss") || code.contains("Stop Loss"),
-					"Should include stop loss for " + type);
+						"Should include stop loss for " + type);
 			}
 		}
 
@@ -378,6 +335,7 @@ class StrategyCodeTemplatesTest {
 			assertNotNull(code);
 			assertTrue(code.contains("RSI_PERIOD = 14")); // Default
 		}
+
 	}
 
 	// Helper method
@@ -385,11 +343,16 @@ class StrategyCodeTemplatesTest {
 		return switch (type) {
 			case RSI_MEAN_REVERSION -> Map.of("period", 14, "oversold", 30, "overbought", 70, "atr_multiplier", 2.0);
 			case MACD_TREND_FOLLOWING -> Map.of("fast", 12, "slow", 26, "signal_period", 9, "atr_multiplier", 2.0);
-			case BOLLINGER_MEAN_REVERSION, BOLLINGER_BREAKOUT -> Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
+			case BOLLINGER_MEAN_REVERSION, BOLLINGER_BREAKOUT ->
+				Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
 			case MA_CROSSOVER_EMA, MA_CROSSOVER_SMA -> Map.of("fast", 10, "slow", 50, "atr_multiplier", 2.0);
-			case STOCHASTIC -> Map.of("k_period", 14, "d_period", 3, "oversold", 20, "overbought", 80, "atr_multiplier", 2.0);
-			case SWING_TRADING -> Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20, "atr_multiplier", 2.0);
-			case COMBINED_ADX -> Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30, "rsi_overbought", 70, "atr_multiplier", 2.0);
+			case STOCHASTIC ->
+				Map.of("k_period", 14, "d_period", 3, "oversold", 20, "overbought", 80, "atr_multiplier", 2.0);
+			case SWING_TRADING ->
+				Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20, "atr_multiplier", 2.0);
+			case COMBINED_ADX -> Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30, "rsi_overbought", 70,
+					"atr_multiplier", 2.0);
 		};
 	}
+
 }

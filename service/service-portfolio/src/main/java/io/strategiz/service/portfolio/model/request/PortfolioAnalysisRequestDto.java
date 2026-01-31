@@ -1,12 +1,13 @@
 package io.strategiz.service.portfolio.model.request;
 
 /**
- * Request DTO for portfolio AI analysis.
- * Used to specify which type of insight to generate and which LLM model to use.
+ * Request DTO for portfolio AI analysis. Used to specify which type of insight to
+ * generate and which LLM model to use.
  */
 public class PortfolioAnalysisRequestDto {
 
-	private String insightType; // "risk", "performance", "rebalancing", "opportunities", or "all"
+	private String insightType; // "risk", "performance", "rebalancing", "opportunities",
+								// or "all"
 
 	private String providerId; // Optional: analyze specific provider/account only
 

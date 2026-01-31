@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 import java.text.DecimalFormat;
 
 /**
- * SMS notification sender for strategy alerts. Uses Twilio to deliver SMS notifications when
- * alerts are triggered.
+ * SMS notification sender for strategy alerts. Uses Twilio to deliver SMS notifications
+ * when alerts are triggered.
  */
 @Component
 @ConditionalOnBean(SmsProvider.class)

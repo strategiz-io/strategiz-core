@@ -3,9 +3,8 @@ package io.strategiz.business.livestrategies.adapter;
 import io.strategiz.business.livestrategies.model.Signal;
 
 /**
- * Interface for routing signals to their destinations.
- * Implementations handle the specific logic for alerts (notifications)
- * and bots (trading).
+ * Interface for routing signals to their destinations. Implementations handle the
+ * specific logic for alerts (notifications) and bots (trading).
  */
 public interface SignalAdapter {
 
@@ -26,13 +25,7 @@ public interface SignalAdapter {
 	/**
 	 * Result of signal processing
 	 */
-	record SignalResult(
-			boolean success,
-			String deploymentId,
-			String channel,
-			String message,
-			Exception error
-	) {
+	record SignalResult(boolean success, String deploymentId, String channel, String message, Exception error) {
 		public static SignalResult success(String deploymentId, String channel, String message) {
 			return new SignalResult(true, deploymentId, channel, message, null);
 		}

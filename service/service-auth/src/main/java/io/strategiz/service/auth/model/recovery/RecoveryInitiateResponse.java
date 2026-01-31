@@ -12,21 +12,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * @param message user-facing message
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record RecoveryInitiateResponse(
-        boolean success,
-        String recoveryId,
-        boolean mfaRequired,
-        String phoneNumberHint,
-        String message
-) {
-    public static RecoveryInitiateResponse from(
-            io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryInitiationResult result) {
-        return new RecoveryInitiateResponse(
-                result.success(),
-                result.recoveryId(),
-                result.mfaRequired(),
-                result.phoneNumberHint(),
-                result.message()
-        );
-    }
+public record RecoveryInitiateResponse(boolean success, String recoveryId, boolean mfaRequired, String phoneNumberHint,
+		String message) {
+	public static RecoveryInitiateResponse from(
+			io.strategiz.business.tokenauth.AccountRecoveryBusiness.RecoveryInitiationResult result) {
+		return new RecoveryInitiateResponse(result.success(), result.recoveryId(), result.mfaRequired(),
+				result.phoneNumberHint(), result.message());
+	}
 }

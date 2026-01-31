@@ -13,9 +13,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Service for fetching and processing prices from FMP (Financial Modeling Prep).
- * Contains the business logic for transforming raw API data into usable price
- * information.
+ * Service for fetching and processing prices from FMP (Financial Modeling Prep). Contains
+ * the business logic for transforming raw API data into usable price information.
  */
 @Service
 public class FmpPriceService {
@@ -68,8 +67,8 @@ public class FmpPriceService {
 	}
 
 	/**
-	 * Convert a standard symbol to FMP format. For crypto symbols, append USD (e.g.,
-	 * BTC -> BTCUSD). Strips dashes (BTC-USD -> BTCUSD).
+	 * Convert a standard symbol to FMP format. For crypto symbols, append USD (e.g., BTC
+	 * -> BTCUSD). Strips dashes (BTC-USD -> BTCUSD).
 	 */
 	private String toFmpSymbol(String symbol) {
 		if (symbol == null) {

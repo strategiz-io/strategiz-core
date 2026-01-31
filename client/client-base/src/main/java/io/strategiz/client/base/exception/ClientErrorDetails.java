@@ -4,17 +4,16 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error details for generic client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
- * This can be used by any client module that doesn't have its own specific error codes.
+ * Error details for generic client operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework. This can be used by any client module that
+ * doesn't have its own specific error codes.
  *
  * Usage: throw new StrategizException(ClientErrorDetails.API_ERROR, MODULE_NAME);
  */
 public enum ClientErrorDetails implements ErrorDetails {
 
 	// === Connection/Authentication Errors ===
-	API_ERROR(HttpStatus.BAD_GATEWAY, "client-api-error"),
-	AUTH_FAILED(HttpStatus.UNAUTHORIZED, "client-auth-failed"),
+	API_ERROR(HttpStatus.BAD_GATEWAY, "client-api-error"), AUTH_FAILED(HttpStatus.UNAUTHORIZED, "client-auth-failed"),
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "client-invalid-credentials"),
 	MISSING_CREDENTIALS(HttpStatus.BAD_REQUEST, "client-missing-credentials"),
 

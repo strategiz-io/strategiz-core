@@ -19,161 +19,172 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for Strategy Optimizer agent - trading strategy optimization
- * Enhanced with comprehensive optimization frameworks and market context
+ * Service for Strategy Optimizer agent - trading strategy optimization Enhanced with
+ * comprehensive optimization frameworks and market context
  */
 @Service
 public class StrategyOptimizerService extends BaseService {
 
-    private static final String AGENT_ID = "strategyOptimizer";
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+	private static final String AGENT_ID = "strategyOptimizer";
 
-    private final AIChatBusiness aiChatBusiness;
-    private final StrategyOptimizationContextProvider optimizationContextProvider;
+	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public StrategyOptimizerService(
-            AIChatBusiness aiChatBusiness,
-            StrategyOptimizationContextProvider optimizationContextProvider) {
-        this.aiChatBusiness = aiChatBusiness;
-        this.optimizationContextProvider = optimizationContextProvider;
-    }
+	private final AIChatBusiness aiChatBusiness;
 
-    @Override
-    protected String getModuleName() {
-        return "service-agents-strategy-optimizer";
-    }
+	private final StrategyOptimizationContextProvider optimizationContextProvider;
 
-    public Mono<AgentChatResponse> chat(AgentChatRequest request, String userId) {
-        log.info("Strategy Optimizer chat request from user: {}, model: {}", userId, request.getModel());
+	public StrategyOptimizerService(AIChatBusiness aiChatBusiness,
+			StrategyOptimizationContextProvider optimizationContextProvider) {
+		this.aiChatBusiness = aiChatBusiness;
+		this.optimizationContextProvider = optimizationContextProvider;
+	}
 
-        try {
-            ChatContext context = buildContext(request, userId);
-            List<ChatMessage> history = convertHistory(request.getConversationHistory());
+	@Override
+	protected String getModuleName() {
+		return "service-agents-strategy-optimizer";
+	}
 
-            return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel())
-                .map(response -> convertToDto(response, AGENT_ID));
-        } catch (Exception e) {
-            log.error("Error processing Strategy Optimizer chat request", e);
-            return Mono.just(AgentChatResponse.error(AGENT_ID, "Failed to process chat: " + e.getMessage()));
-        }
-    }
+	public Mono<AgentChatResponse> chat(AgentChatRequest request, String userId) {
+		log.info("Strategy Optimizer chat request from user: {}, model: {}", userId, request.getModel());
 
-    public Flux<AgentChatResponse> chatStream(AgentChatRequest request, String userId) {
-        log.info("Strategy Optimizer streaming chat request from user: {}, model: {}", userId, request.getModel());
+		try {
+			ChatContext context = buildContext(request, userId);
+			List<ChatMessage> history = convertHistory(request.getConversationHistory());
 
-        try {
-            ChatContext context = buildContext(request, userId);
-            List<ChatMessage> history = convertHistory(request.getConversationHistory());
+			return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel())
+				.map(response -> convertToDto(response, AGENT_ID));
+		}
+		catch (Exception e) {
+			log.error("Error processing Strategy Optimizer chat request", e);
+			return Mono.just(AgentChatResponse.error(AGENT_ID, "Failed to process chat: " + e.getMessage()));
+		}
+	}
 
-            return aiChatBusiness.chatStream(request.getMessage(), context, history, request.getModel())
-                .map(response -> convertToDto(response, AGENT_ID));
-        } catch (Exception e) {
-            log.error("Error processing Strategy Optimizer streaming chat request", e);
-            return Flux.just(AgentChatResponse.error(AGENT_ID, "Failed to process streaming chat: " + e.getMessage()));
-        }
-    }
+	public Flux<AgentChatResponse> chatStream(AgentChatRequest request, String userId) {
+		log.info("Strategy Optimizer streaming chat request from user: {}, model: {}", userId, request.getModel());
 
-    private ChatContext buildContext(AgentChatRequest request, String userId) {
-        ChatContext context = new ChatContext();
-        context.setUserId(userId);
-        context.setFeature("strategy-optimizer");
+		try {
+			ChatContext context = buildContext(request, userId);
+			List<ChatMessage> history = convertHistory(request.getConversationHistory());
 
-        // Build optimization context with comprehensive frameworks
-        String strategyContext = buildStrategyContext(userId, request);
-        context.setSystemPrompt(StrategyOptimizerPrompts.buildSystemPrompt(strategyContext));
+			return aiChatBusiness.chatStream(request.getMessage(), context, history, request.getModel())
+				.map(response -> convertToDto(response, AGENT_ID));
+		}
+		catch (Exception e) {
+			log.error("Error processing Strategy Optimizer streaming chat request", e);
+			return Flux.just(AgentChatResponse.error(AGENT_ID, "Failed to process streaming chat: " + e.getMessage()));
+		}
+	}
 
-        if (request.getAdditionalContext() != null) {
-            context.setAdditionalContext(request.getAdditionalContext());
-        }
+	private ChatContext buildContext(AgentChatRequest request, String userId) {
+		ChatContext context = new ChatContext();
+		context.setUserId(userId);
+		context.setFeature("strategy-optimizer");
 
-        return context;
-    }
+		// Build optimization context with comprehensive frameworks
+		String strategyContext = buildStrategyContext(userId, request);
+		context.setSystemPrompt(StrategyOptimizerPrompts.buildSystemPrompt(strategyContext));
 
-    private String buildStrategyContext(String userId, AgentChatRequest request) {
-        // Extract parameters from request
-        String strategyCode = null;
-        String strategyType = null;
+		if (request.getAdditionalContext() != null) {
+			context.setAdditionalContext(request.getAdditionalContext());
+		}
 
-        if (request.getAdditionalContext() != null) {
-            Object codeObj = request.getAdditionalContext().get("strategyCode");
-            if (codeObj != null) {
-                strategyCode = codeObj.toString();
-            }
+		return context;
+	}
 
-            Object typeObj = request.getAdditionalContext().get("strategyType");
-            if (typeObj != null) {
-                strategyType = typeObj.toString();
-            }
-        }
+	private String buildStrategyContext(String userId, AgentChatRequest request) {
+		// Extract parameters from request
+		String strategyCode = null;
+		String strategyType = null;
 
-        // Detect strategy type from message if not provided
-        if (strategyType == null) {
-            strategyType = detectStrategyType(request.getMessage());
-        }
+		if (request.getAdditionalContext() != null) {
+			Object codeObj = request.getAdditionalContext().get("strategyCode");
+			if (codeObj != null) {
+				strategyCode = codeObj.toString();
+			}
 
-        // Build appropriate context based on request
-        if (strategyCode != null && !strategyCode.isBlank()) {
-            // User provided strategy code - full optimization context
-            log.debug("Building optimization context with strategy code");
-            return optimizationContextProvider.buildOptimizationContext(userId, strategyCode, strategyType);
-        } else if (strategyType != null) {
-            // User asking about a specific strategy type
-            log.debug("Building strategy type context for: {}", strategyType);
-            return optimizationContextProvider.buildStrategyTypeContext(strategyType);
-        } else {
-            // General strategy analysis context
-            log.debug("Building general strategy analysis context");
-            return optimizationContextProvider.buildStrategyAnalysisContext(userId);
-        }
-    }
+			Object typeObj = request.getAdditionalContext().get("strategyType");
+			if (typeObj != null) {
+				strategyType = typeObj.toString();
+			}
+		}
 
-    /**
-     * Detect strategy type from user message
-     */
-    private String detectStrategyType(String message) {
-        if (message == null || message.isBlank()) {
-            return null;
-        }
+		// Detect strategy type from message if not provided
+		if (strategyType == null) {
+			strategyType = detectStrategyType(request.getMessage());
+		}
 
-        String messageLower = message.toLowerCase();
+		// Build appropriate context based on request
+		if (strategyCode != null && !strategyCode.isBlank()) {
+			// User provided strategy code - full optimization context
+			log.debug("Building optimization context with strategy code");
+			return optimizationContextProvider.buildOptimizationContext(userId, strategyCode, strategyType);
+		}
+		else if (strategyType != null) {
+			// User asking about a specific strategy type
+			log.debug("Building strategy type context for: {}", strategyType);
+			return optimizationContextProvider.buildStrategyTypeContext(strategyType);
+		}
+		else {
+			// General strategy analysis context
+			log.debug("Building general strategy analysis context");
+			return optimizationContextProvider.buildStrategyAnalysisContext(userId);
+		}
+	}
 
-        if (messageLower.contains("momentum")) {
-            return "momentum";
-        } else if (messageLower.contains("mean reversion") || messageLower.contains("reversal")) {
-            return "mean-reversion";
-        } else if (messageLower.contains("breakout")) {
-            return "breakout";
-        } else if (messageLower.contains("trend follow")) {
-            return "trend-following";
-        } else if (messageLower.contains("pairs") || messageLower.contains("arbitrage")) {
-            return "pairs-trading";
-        } else if (messageLower.contains("scalp")) {
-            return "scalping";
-        }
+	/**
+	 * Detect strategy type from user message
+	 */
+	private String detectStrategyType(String message) {
+		if (message == null || message.isBlank()) {
+			return null;
+		}
 
-        return null;
-    }
+		String messageLower = message.toLowerCase();
 
-    private List<ChatMessage> convertHistory(List<AgentChatMessage> historyDto) {
-        if (historyDto == null || historyDto.isEmpty()) {
-            return List.of();
-        }
+		if (messageLower.contains("momentum")) {
+			return "momentum";
+		}
+		else if (messageLower.contains("mean reversion") || messageLower.contains("reversal")) {
+			return "mean-reversion";
+		}
+		else if (messageLower.contains("breakout")) {
+			return "breakout";
+		}
+		else if (messageLower.contains("trend follow")) {
+			return "trend-following";
+		}
+		else if (messageLower.contains("pairs") || messageLower.contains("arbitrage")) {
+			return "pairs-trading";
+		}
+		else if (messageLower.contains("scalp")) {
+			return "scalping";
+		}
 
-        return historyDto.stream()
-            .map(dto -> new ChatMessage(dto.getRole(), dto.getContent()))
-            .collect(Collectors.toList());
-    }
+		return null;
+	}
 
-    private AgentChatResponse convertToDto(ChatResponse response, String agentId) {
-        AgentChatResponse dto = new AgentChatResponse();
-        dto.setId(response.getId());
-        dto.setContent(response.getContent());
-        dto.setTimestamp(response.getTimestamp() != null ? response.getTimestamp().format(DATE_FORMATTER) : null);
-        dto.setTokensUsed(response.getTokensUsed());
-        dto.setModel(response.getModel());
-        dto.setAgentId(agentId);
-        dto.setSuccess(response.isSuccess());
-        dto.setError(response.getError());
-        return dto;
-    }
+	private List<ChatMessage> convertHistory(List<AgentChatMessage> historyDto) {
+		if (historyDto == null || historyDto.isEmpty()) {
+			return List.of();
+		}
+
+		return historyDto.stream()
+			.map(dto -> new ChatMessage(dto.getRole(), dto.getContent()))
+			.collect(Collectors.toList());
+	}
+
+	private AgentChatResponse convertToDto(ChatResponse response, String agentId) {
+		AgentChatResponse dto = new AgentChatResponse();
+		dto.setId(response.getId());
+		dto.setContent(response.getContent());
+		dto.setTimestamp(response.getTimestamp() != null ? response.getTimestamp().format(DATE_FORMATTER) : null);
+		dto.setTokensUsed(response.getTokensUsed());
+		dto.setModel(response.getModel());
+		dto.setAgentId(agentId);
+		dto.setSuccess(response.isSuccess());
+		dto.setError(response.getError());
+		return dto;
+	}
+
 }

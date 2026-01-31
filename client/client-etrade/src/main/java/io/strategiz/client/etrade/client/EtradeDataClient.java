@@ -17,17 +17,16 @@ import java.net.URI;
 import java.util.*;
 
 /**
- * Client for fetching data from E*TRADE using OAuth 1.0a access tokens.
- * This class handles all account, position, and market data retrieval operations.
+ * Client for fetching data from E*TRADE using OAuth 1.0a access tokens. This class
+ * handles all account, position, and market data retrieval operations.
  *
  * API Documentation: https://apisb.etrade.com/docs/api/account/api-account-v1.html
  *
- * Key endpoints:
- * - /v1/accounts/list - List all accounts
- * - /v1/accounts/{accountIdKey}/balance - Account balance
- * - /v1/accounts/{accountIdKey}/portfolio - Account holdings/positions
- * - /v1/accounts/{accountIdKey}/transactions - Transaction history
- * - /v1/market/quote/{symbols} - Stock quotes
+ * Key endpoints: - /v1/accounts/list - List all accounts -
+ * /v1/accounts/{accountIdKey}/balance - Account balance -
+ * /v1/accounts/{accountIdKey}/portfolio - Account holdings/positions -
+ * /v1/accounts/{accountIdKey}/transactions - Transaction history -
+ * /v1/market/quote/{symbols} - Stock quotes
  */
 @Component
 public class EtradeDataClient {
@@ -303,7 +302,8 @@ public class EtradeDataClient {
 		if (response instanceof Map) {
 			Map<String, Object> map = (Map<String, Object>) response;
 
-			// E*TRADE returns: { "AccountListResponse": { "Accounts": { "Account": [...] }
+			// E*TRADE returns: { "AccountListResponse": { "Accounts": { "Account": [...]
+			// }
 			// } }
 			if (map.containsKey("AccountListResponse")) {
 				Map<String, Object> accountListResponse = (Map<String, Object>) map.get("AccountListResponse");

@@ -5,247 +5,268 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Passkey credential domain model
- * This is a business domain object for individual passkey credentials
+ * Passkey credential domain model This is a business domain object for individual passkey
+ * credentials
  */
 public class PasskeyCredential {
-    
-    private String id;
-    private String userId; // The user this credential belongs to
-    private String credentialId; // Base64-encoded credential ID
-    private byte[] publicKey; // Binary public key
-    private String publicKeyBase64; // Base64-encoded public key for compatibility
-    private int signatureCount;
-    private String authenticatorData;
-    private String clientDataJSON;
-    private String attestationObject;
-    private String name; // User-given name for the credential
-    private String authenticatorName; // Name of the authenticator device
-    private String deviceName; // Device identifier/name
-    private String device; // Legacy device field for compatibility
-    private String aaguid; // Authenticator Attestation GUID
-    private String userAgent; // User agent string from registration
-    private boolean verified = false;
-    private boolean trusted = false; // Whether this credential is trusted
-    private Instant createdAt;
-    private Instant registrationTime; // Alias for createdAt
-    private Instant lastUsedAt;
-    private Instant lastUsedTime; // Alias for lastUsedAt
-    private Map<String, Object> metadata;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public PasskeyCredential() {
-        this.createdAt = Instant.now();
-        this.metadata = new HashMap<>();
-    }
+	private String userId; // The user this credential belongs to
 
-    public PasskeyCredential(String credentialId, String publicKeyBase64) {
-        this();
-        this.credentialId = credentialId;
-        this.publicKeyBase64 = publicKeyBase64;
-        // Convert base64 to bytes if needed
-        if (publicKeyBase64 != null) {
-            this.publicKey = java.util.Base64.getDecoder().decode(publicKeyBase64);
-        }
-    }
+	private String credentialId; // Base64-encoded credential ID
 
-    // === CONVENIENCE METHODS ===
+	private byte[] publicKey; // Binary public key
 
-    public boolean isVerified() {
-        return verified;
-    }
+	private String publicKeyBase64; // Base64-encoded public key for compatibility
 
-    public void markAsUsed() {
-        this.lastUsedAt = Instant.now();
-        this.signatureCount++;
-    }
+	private int signatureCount;
 
-    public boolean isConfigured() {
-        return credentialId != null && !credentialId.trim().isEmpty() && 
-               publicKey != null && publicKey.length > 0;
-    }
+	private String authenticatorData;
 
-    // === GETTERS AND SETTERS ===
+	private String clientDataJSON;
 
-    public String getId() {
-        return id;
-    }
+	private String attestationObject;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private String name; // User-given name for the credential
 
-    public String getCredentialId() {
-        return credentialId;
-    }
+	private String authenticatorName; // Name of the authenticator device
 
-    public void setCredentialId(String credentialId) {
-        this.credentialId = credentialId;
-    }
+	private String deviceName; // Device identifier/name
 
-    public byte[] getPublicKey() {
-        return publicKey;
-    }
+	private String device; // Legacy device field for compatibility
 
-    public void setPublicKey(byte[] publicKey) {
-        this.publicKey = publicKey;
-    }
+	private String aaguid; // Authenticator Attestation GUID
 
-    public String getPublicKeyBase64() {
-        return publicKeyBase64;
-    }
+	private String userAgent; // User agent string from registration
 
-    public void setPublicKeyBase64(String publicKeyBase64) {
-        this.publicKeyBase64 = publicKeyBase64;
-    }
+	private boolean verified = false;
 
-    public int getSignatureCount() {
-        return signatureCount;
-    }
+	private boolean trusted = false; // Whether this credential is trusted
 
-    public void setSignatureCount(int signatureCount) {
-        this.signatureCount = signatureCount;
-    }
+	private Instant createdAt;
 
-    public String getAuthenticatorData() {
-        return authenticatorData;
-    }
+	private Instant registrationTime; // Alias for createdAt
 
-    public void setAuthenticatorData(String authenticatorData) {
-        this.authenticatorData = authenticatorData;
-    }
+	private Instant lastUsedAt;
 
-    public String getClientDataJSON() {
-        return clientDataJSON;
-    }
+	private Instant lastUsedTime; // Alias for lastUsedAt
 
-    public void setClientDataJSON(String clientDataJSON) {
-        this.clientDataJSON = clientDataJSON;
-    }
+	private Map<String, Object> metadata;
 
-    public String getAttestationObject() {
-        return attestationObject;
-    }
+	// === CONSTRUCTORS ===
 
-    public void setAttestationObject(String attestationObject) {
-        this.attestationObject = attestationObject;
-    }
+	public PasskeyCredential() {
+		this.createdAt = Instant.now();
+		this.metadata = new HashMap<>();
+	}
 
-    public String getName() {
-        return name;
-    }
+	public PasskeyCredential(String credentialId, String publicKeyBase64) {
+		this();
+		this.credentialId = credentialId;
+		this.publicKeyBase64 = publicKeyBase64;
+		// Convert base64 to bytes if needed
+		if (publicKeyBase64 != null) {
+			this.publicKey = java.util.Base64.getDecoder().decode(publicKeyBase64);
+		}
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public String getDevice() {
-        return device;
-    }
+	public boolean isVerified() {
+		return verified;
+	}
 
-    public void setDevice(String device) {
-        this.device = device;
-    }
+	public void markAsUsed() {
+		this.lastUsedAt = Instant.now();
+		this.signatureCount++;
+	}
 
-    public boolean getVerified() {
-        return verified;
-    }
+	public boolean isConfigured() {
+		return credentialId != null && !credentialId.trim().isEmpty() && publicKey != null && publicKey.length > 0;
+	}
 
-    public void setVerified(boolean verified) {
-        this.verified = verified;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public Instant getLastUsedAt() {
-        return lastUsedAt;
-    }
+	public String getCredentialId() {
+		return credentialId;
+	}
 
-    public void setLastUsedAt(Instant lastUsedAt) {
-        this.lastUsedAt = lastUsedAt;
-    }
+	public void setCredentialId(String credentialId) {
+		this.credentialId = credentialId;
+	}
 
-    public Map<String, Object> getMetadata() {
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
-        return metadata;
-    }
+	public byte[] getPublicKey() {
+		return publicKey;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public void setPublicKey(byte[] publicKey) {
+		this.publicKey = publicKey;
+	}
 
-    // Missing getter/setter methods for new fields
-    
-    public String getUserId() {
-        return userId;
-    }
+	public String getPublicKeyBase64() {
+		return publicKeyBase64;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public void setPublicKeyBase64(String publicKeyBase64) {
+		this.publicKeyBase64 = publicKeyBase64;
+	}
 
-    public String getAuthenticatorName() {
-        return authenticatorName;
-    }
+	public int getSignatureCount() {
+		return signatureCount;
+	}
 
-    public void setAuthenticatorName(String authenticatorName) {
-        this.authenticatorName = authenticatorName;
-    }
+	public void setSignatureCount(int signatureCount) {
+		this.signatureCount = signatureCount;
+	}
 
-    public String getDeviceName() {
-        return deviceName;
-    }
+	public String getAuthenticatorData() {
+		return authenticatorData;
+	}
 
-    public void setDeviceName(String deviceName) {
-        this.deviceName = deviceName;
-    }
+	public void setAuthenticatorData(String authenticatorData) {
+		this.authenticatorData = authenticatorData;
+	}
 
-    public String getAaguid() {
-        return aaguid;
-    }
+	public String getClientDataJSON() {
+		return clientDataJSON;
+	}
 
-    public void setAaguid(String aaguid) {
-        this.aaguid = aaguid;
-    }
+	public void setClientDataJSON(String clientDataJSON) {
+		this.clientDataJSON = clientDataJSON;
+	}
 
-    public String getUserAgent() {
-        return userAgent;
-    }
+	public String getAttestationObject() {
+		return attestationObject;
+	}
 
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
-    }
+	public void setAttestationObject(String attestationObject) {
+		this.attestationObject = attestationObject;
+	}
 
-    public boolean isTrusted() {
-        return trusted;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setTrusted(boolean trusted) {
-        this.trusted = trusted;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public Instant getRegistrationTime() {
-        return registrationTime != null ? registrationTime : createdAt;
-    }
+	public String getDevice() {
+		return device;
+	}
 
-    public void setRegistrationTime(Instant registrationTime) {
-        this.registrationTime = registrationTime;
-    }
+	public void setDevice(String device) {
+		this.device = device;
+	}
 
-    public Instant getLastUsedTime() {
-        return lastUsedTime != null ? lastUsedTime : lastUsedAt;
-    }
+	public boolean getVerified() {
+		return verified;
+	}
 
-    public void setLastUsedTime(Instant lastUsedTime) {
-        this.lastUsedTime = lastUsedTime;
-    }
+	public void setVerified(boolean verified) {
+		this.verified = verified;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getLastUsedAt() {
+		return lastUsedAt;
+	}
+
+	public void setLastUsedAt(Instant lastUsedAt) {
+		this.lastUsedAt = lastUsedAt;
+	}
+
+	public Map<String, Object> getMetadata() {
+		if (metadata == null) {
+			metadata = new HashMap<>();
+		}
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
+	// Missing getter/setter methods for new fields
+
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	public String getAuthenticatorName() {
+		return authenticatorName;
+	}
+
+	public void setAuthenticatorName(String authenticatorName) {
+		this.authenticatorName = authenticatorName;
+	}
+
+	public String getDeviceName() {
+		return deviceName;
+	}
+
+	public void setDeviceName(String deviceName) {
+		this.deviceName = deviceName;
+	}
+
+	public String getAaguid() {
+		return aaguid;
+	}
+
+	public void setAaguid(String aaguid) {
+		this.aaguid = aaguid;
+	}
+
+	public String getUserAgent() {
+		return userAgent;
+	}
+
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
+	}
+
+	public boolean isTrusted() {
+		return trusted;
+	}
+
+	public void setTrusted(boolean trusted) {
+		this.trusted = trusted;
+	}
+
+	public Instant getRegistrationTime() {
+		return registrationTime != null ? registrationTime : createdAt;
+	}
+
+	public void setRegistrationTime(Instant registrationTime) {
+		this.registrationTime = registrationTime;
+	}
+
+	public Instant getLastUsedTime() {
+		return lastUsedTime != null ? lastUsedTime : lastUsedAt;
+	}
+
+	public void setLastUsedTime(Instant lastUsedTime) {
+		this.lastUsedTime = lastUsedTime;
+	}
+
 }

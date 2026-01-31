@@ -5,9 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * System prompts for Portfolio AI Analysis feature.
- * Provides specialized prompts for Risk Analysis, Performance Analysis,
- * Rebalancing Suggestions, and Investment Opportunities.
+ * System prompts for Portfolio AI Analysis feature. Provides specialized prompts for Risk
+ * Analysis, Performance Analysis, Rebalancing Suggestions, and Investment Opportunities.
  */
 public class PortfolioAnalysisPrompts {
 
@@ -84,9 +83,10 @@ public class PortfolioAnalysisPrompts {
 	/**
 	 * Build contextual prompt by combining system prompt, specific insight type prompt,
 	 * and actual portfolio data from the user's account.
-	 *
-	 * @param insightType Type of insight: "risk", "performance", "rebalancing", "opportunities"
-	 * @param portfolioContext Portfolio data including totals, allocations, holdings, risk metrics
+	 * @param insightType Type of insight: "risk", "performance", "rebalancing",
+	 * "opportunities"
+	 * @param portfolioContext Portfolio data including totals, allocations, holdings,
+	 * risk metrics
 	 * @return Complete prompt with system instructions + context + specific focus
 	 */
 	public static String buildContextualPrompt(String insightType, Map<String, Object> portfolioContext) {
@@ -103,7 +103,8 @@ public class PortfolioAnalysisPrompts {
 			case "performance" -> PERFORMANCE_ANALYSIS_PROMPT;
 			case "rebalancing" -> REBALANCING_PROMPT;
 			case "opportunities" -> OPPORTUNITIES_PROMPT;
-			default -> "Provide a comprehensive overview of the portfolio covering risk, performance, and opportunities.";
+			default ->
+				"Provide a comprehensive overview of the portfolio covering risk, performance, and opportunities.";
 		};
 		prompt.append(specificPrompt);
 
@@ -126,27 +127,24 @@ public class PortfolioAnalysisPrompts {
 		if (Boolean.FALSE.equals(hasPortfolio)) {
 			Integer connectedProviders = (Integer) portfolioContext.getOrDefault("connectedProviders", 0);
 			if (connectedProviders > 0) {
-				return String.format("User has %d connected account(s) but no holdings data yet. Accounts may be syncing.", connectedProviders);
+				return String.format(
+						"User has %d connected account(s) but no holdings data yet. Accounts may be syncing.",
+						connectedProviders);
 			}
 			return "No portfolio data available. User should connect brokerage or exchange accounts to get insights.";
 		}
 
 		// Portfolio Totals
 		context.append("**Portfolio Totals:**\n");
-		context.append(String.format("- Total Value: $%s\n",
-				formatNumber(portfolioContext.get("totalValue"))));
-		context.append(String.format("- Day Change: $%s (%s%%)\n",
-				formatNumber(portfolioContext.get("dayChange")),
+		context.append(String.format("- Total Value: $%s\n", formatNumber(portfolioContext.get("totalValue"))));
+		context.append(String.format("- Day Change: $%s (%s%%)\n", formatNumber(portfolioContext.get("dayChange")),
 				formatNumber(portfolioContext.get("dayChangePercent"))));
-		context.append(String.format("- Total P&L: $%s (%s%%)\n",
-				formatNumber(portfolioContext.get("totalProfitLoss")),
+		context.append(String.format("- Total P&L: $%s (%s%%)\n", formatNumber(portfolioContext.get("totalProfitLoss")),
 				formatNumber(portfolioContext.get("totalProfitLossPercent"))));
-		context.append(String.format("- Cash Balance: $%s\n",
-				formatNumber(portfolioContext.get("cashBalance"))));
-		context.append(String.format("- Connected Accounts: %d\n",
-				portfolioContext.getOrDefault("connectedProviders", 0)));
-		context.append(String.format("- Total Positions: %d\n\n",
-				portfolioContext.getOrDefault("totalPositions", 0)));
+		context.append(String.format("- Cash Balance: $%s\n", formatNumber(portfolioContext.get("cashBalance"))));
+		context.append(
+				String.format("- Connected Accounts: %d\n", portfolioContext.getOrDefault("connectedProviders", 0)));
+		context.append(String.format("- Total Positions: %d\n\n", portfolioContext.getOrDefault("totalPositions", 0)));
 
 		// Asset Allocation
 		Map<String, Object> allocation = (Map<String, Object>) portfolioContext.get("allocation");
@@ -171,13 +169,9 @@ public class PortfolioAnalysisPrompts {
 			context.append("**Top Holdings:**\n");
 			for (int i = 0; i < topHoldings.size() && i < 5; i++) {
 				Map<String, Object> holding = topHoldings.get(i);
-				context.append(String.format("%d. %s (%s) - Value: $%s, P&L: $%s (%s%%), Type: %s\n",
-						i + 1,
-						holding.get("name"),
-						holding.get("symbol"),
-						formatNumber(holding.get("currentValue")),
-						formatNumber(holding.get("profitLoss")),
-						formatNumber(holding.get("profitLossPercent")),
+				context.append(String.format("%d. %s (%s) - Value: $%s, P&L: $%s (%s%%), Type: %s\n", i + 1,
+						holding.get("name"), holding.get("symbol"), formatNumber(holding.get("currentValue")),
+						formatNumber(holding.get("profitLoss")), formatNumber(holding.get("profitLossPercent")),
 						holding.get("assetType")));
 			}
 			context.append("\n");
@@ -190,12 +184,10 @@ public class PortfolioAnalysisPrompts {
 			context.append(String.format("- Concentration Risk: %s\n", riskMetrics.get("concentrationRisk")));
 			if (riskMetrics.get("largestPosition") != null) {
 				context.append(String.format("- Largest Position: %s (%s%% of portfolio)\n",
-						riskMetrics.get("largestPosition"),
-						formatNumber(riskMetrics.get("largestPositionPercent"))));
+						riskMetrics.get("largestPosition"), formatNumber(riskMetrics.get("largestPositionPercent"))));
 			}
 			context.append(String.format("- Diversification Score: %s (%d positions)\n",
-					riskMetrics.get("diversificationScore"),
-					riskMetrics.get("positionCount")));
+					riskMetrics.get("diversificationScore"), riskMetrics.get("positionCount")));
 		}
 
 		return context.toString();

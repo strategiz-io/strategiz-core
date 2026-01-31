@@ -7,119 +7,121 @@ import com.google.cloud.Timestamp;
 import java.util.List;
 
 /**
- * Simplified alert deployment information for nesting within StrategyWithDeploymentsResponse.
- * Contains essential deployment info without full details.
+ * Simplified alert deployment information for nesting within
+ * StrategyWithDeploymentsResponse. Contains essential deployment info without full
+ * details.
  */
 public class AlertDeploymentDTO {
 
-    @JsonProperty("id")
-    private String id;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("strategyId")
-    private String strategyId;
+	@JsonProperty("strategyId")
+	private String strategyId;
 
-    @JsonProperty("alertName")
-    private String alertName;
+	@JsonProperty("alertName")
+	private String alertName;
 
-    @JsonProperty("symbols")
-    private List<String> symbols;
+	@JsonProperty("symbols")
+	private List<String> symbols;
 
-    @JsonProperty("status")
-    private String status; // ACTIVE, PAUSED, STOPPED, ERROR
+	@JsonProperty("status")
+	private String status; // ACTIVE, PAUSED, STOPPED, ERROR
 
-    @JsonProperty("triggerCount")
-    private Integer triggerCount;
+	@JsonProperty("triggerCount")
+	private Integer triggerCount;
 
-    @JsonProperty("lastTriggeredAt")
-    private Timestamp lastTriggeredAt;
+	@JsonProperty("lastTriggeredAt")
+	private Timestamp lastTriggeredAt;
 
-    @JsonProperty("deployedAt")
-    private Timestamp deployedAt;
+	@JsonProperty("deployedAt")
+	private Timestamp deployedAt;
 
-    @JsonProperty("notificationChannels")
-    private List<String> notificationChannels;
+	@JsonProperty("notificationChannels")
+	private List<String> notificationChannels;
 
-    @JsonProperty("livePerformance")
-    private AlertLivePerformance livePerformance;
+	@JsonProperty("livePerformance")
+	private AlertLivePerformance livePerformance;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getStrategyId() {
-        return strategyId;
-    }
+	public String getStrategyId() {
+		return strategyId;
+	}
 
-    public void setStrategyId(String strategyId) {
-        this.strategyId = strategyId;
-    }
+	public void setStrategyId(String strategyId) {
+		this.strategyId = strategyId;
+	}
 
-    public String getAlertName() {
-        return alertName;
-    }
+	public String getAlertName() {
+		return alertName;
+	}
 
-    public void setAlertName(String alertName) {
-        this.alertName = alertName;
-    }
+	public void setAlertName(String alertName) {
+		this.alertName = alertName;
+	}
 
-    public List<String> getSymbols() {
-        return symbols;
-    }
+	public List<String> getSymbols() {
+		return symbols;
+	}
 
-    public void setSymbols(List<String> symbols) {
-        this.symbols = symbols;
-    }
+	public void setSymbols(List<String> symbols) {
+		this.symbols = symbols;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public Integer getTriggerCount() {
-        return triggerCount;
-    }
+	public Integer getTriggerCount() {
+		return triggerCount;
+	}
 
-    public void setTriggerCount(Integer triggerCount) {
-        this.triggerCount = triggerCount;
-    }
+	public void setTriggerCount(Integer triggerCount) {
+		this.triggerCount = triggerCount;
+	}
 
-    public Timestamp getLastTriggeredAt() {
-        return lastTriggeredAt;
-    }
+	public Timestamp getLastTriggeredAt() {
+		return lastTriggeredAt;
+	}
 
-    public void setLastTriggeredAt(Timestamp lastTriggeredAt) {
-        this.lastTriggeredAt = lastTriggeredAt;
-    }
+	public void setLastTriggeredAt(Timestamp lastTriggeredAt) {
+		this.lastTriggeredAt = lastTriggeredAt;
+	}
 
-    public Timestamp getDeployedAt() {
-        return deployedAt;
-    }
+	public Timestamp getDeployedAt() {
+		return deployedAt;
+	}
 
-    public void setDeployedAt(Timestamp deployedAt) {
-        this.deployedAt = deployedAt;
-    }
+	public void setDeployedAt(Timestamp deployedAt) {
+		this.deployedAt = deployedAt;
+	}
 
-    public List<String> getNotificationChannels() {
-        return notificationChannels;
-    }
+	public List<String> getNotificationChannels() {
+		return notificationChannels;
+	}
 
-    public void setNotificationChannels(List<String> notificationChannels) {
-        this.notificationChannels = notificationChannels;
-    }
+	public void setNotificationChannels(List<String> notificationChannels) {
+		this.notificationChannels = notificationChannels;
+	}
 
-    public AlertLivePerformance getLivePerformance() {
-        return livePerformance;
-    }
+	public AlertLivePerformance getLivePerformance() {
+		return livePerformance;
+	}
 
-    public void setLivePerformance(AlertLivePerformance livePerformance) {
-        this.livePerformance = livePerformance;
-    }
+	public void setLivePerformance(AlertLivePerformance livePerformance) {
+		this.livePerformance = livePerformance;
+	}
+
 }

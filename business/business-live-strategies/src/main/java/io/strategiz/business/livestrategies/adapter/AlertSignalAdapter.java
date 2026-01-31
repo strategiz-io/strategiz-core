@@ -12,8 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Routes alert signals to notification channels (email, SMS, push, in-app).
- * Each notification channel is handled by a dedicated sender.
+ * Routes alert signals to notification channels (email, SMS, push, in-app). Each
+ * notification channel is handled by a dedicated sender.
  */
 @Component
 public class AlertSignalAdapter implements SignalAdapter {
@@ -21,11 +21,12 @@ public class AlertSignalAdapter implements SignalAdapter {
 	private static final Logger log = LoggerFactory.getLogger(AlertSignalAdapter.class);
 
 	private final ReadAlertDeploymentRepository readAlertDeploymentRepository;
+
 	private final UpdateAlertDeploymentRepository updateAlertDeploymentRepository;
+
 	private final List<NotificationSender> notificationSenders;
 
-	public AlertSignalAdapter(
-			ReadAlertDeploymentRepository readAlertDeploymentRepository,
+	public AlertSignalAdapter(ReadAlertDeploymentRepository readAlertDeploymentRepository,
 			UpdateAlertDeploymentRepository updateAlertDeploymentRepository,
 			List<NotificationSender> notificationSenders) {
 		this.readAlertDeploymentRepository = readAlertDeploymentRepository;
@@ -55,8 +56,7 @@ public class AlertSignalAdapter implements SignalAdapter {
 
 		try {
 			// Load the alert deployment to get notification channels
-			AlertDeployment alert = readAlertDeploymentRepository.findById(alertId)
-					.orElse(null);
+			AlertDeployment alert = readAlertDeploymentRepository.findById(alertId).orElse(null);
 
 			if (alert == null) {
 				log.warn("Alert deployment not found: {}", alertId);
@@ -91,9 +91,9 @@ public class AlertSignalAdapter implements SignalAdapter {
 				try {
 					sendNotification(alert, signal, channel);
 					successChannels.add(channel);
-				} catch (Exception e) {
-					log.error("Failed to send {} notification for alert {}: {}",
-							channel, alertId, e.getMessage());
+				}
+				catch (Exception e) {
+					log.error("Failed to send {} notification for alert {}: {}", channel, alertId, e.getMessage());
 					failedChannels.add(channel);
 				}
 			}
@@ -104,16 +104,18 @@ public class AlertSignalAdapter implements SignalAdapter {
 			if (failedChannels.isEmpty()) {
 				return SignalResult.success(alertId, String.join(",", successChannels),
 						String.format("Sent to %d channels", successChannels.size()));
-			} else if (successChannels.isEmpty()) {
+			}
+			else if (successChannels.isEmpty()) {
 				return SignalResult.failure(alertId, String.join(",", failedChannels),
 						"All notification channels failed", null);
-			} else {
+			}
+			else {
 				return SignalResult.success(alertId, String.join(",", successChannels),
-						String.format("Partial success: %d/%d channels",
-								successChannels.size(), channels.size()));
+						String.format("Partial success: %d/%d channels", successChannels.size(), channels.size()));
 			}
 
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Error processing alert signal for {}: {}", alertId, e.getMessage(), e);
 			return SignalResult.failure(alertId, "UNKNOWN", e.getMessage(), e);
 		}
@@ -137,8 +139,8 @@ public class AlertSignalAdapter implements SignalAdapter {
 			long nowMs = System.currentTimeMillis();
 
 			if (nowMs - lastTriggeredMs < cooldownMs) {
-				log.debug("Alert {} in cooldown, last triggered {}ms ago, cooldown {}ms",
-						alert.getId(), nowMs - lastTriggeredMs, cooldownMs);
+				log.debug("Alert {} in cooldown, last triggered {}ms ago, cooldown {}ms", alert.getId(),
+						nowMs - lastTriggeredMs, cooldownMs);
 				return true;
 			}
 		}
@@ -170,8 +172,7 @@ public class AlertSignalAdapter implements SignalAdapter {
 		String userId = alert.getUserId();
 
 		// Record the signal (updates lastSignalType, lastSignalSymbol, lastTriggeredAt)
-		updateAlertDeploymentRepository.recordSignal(alertId, userId,
-				signal.getType().name(), signal.getSymbol());
+		updateAlertDeploymentRepository.recordSignal(alertId, userId, signal.getType().name(), signal.getSymbol());
 
 		// Increment daily trigger count
 		updateAlertDeploymentRepository.incrementDailyTriggerCount(alertId, userId);
@@ -184,8 +185,11 @@ public class AlertSignalAdapter implements SignalAdapter {
 	 * Interface for notification channel senders.
 	 */
 	public interface NotificationSender {
+
 		boolean supports(String channel);
+
 		void send(AlertDeployment alert, Signal signal);
+
 	}
 
 }

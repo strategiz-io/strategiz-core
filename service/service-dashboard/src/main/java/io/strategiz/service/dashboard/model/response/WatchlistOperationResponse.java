@@ -8,149 +8,149 @@ import java.util.Objects;
  */
 public class WatchlistOperationResponse {
 
-    private Boolean success;
-    private String operation; // CREATE, UPDATE, DELETE
-    private String id;
-    private String symbol;
-    private String message;
-    private String errorCode;
-    private LocalDateTime timestamp;
+	private Boolean success;
 
-    // Constructors
-    public WatchlistOperationResponse() {
-        this.timestamp = LocalDateTime.now();
-    }
+	private String operation; // CREATE, UPDATE, DELETE
 
-    public WatchlistOperationResponse(Boolean success, String operation, String message) {
-        this.success = success;
-        this.operation = operation;
-        this.message = message;
-        this.timestamp = LocalDateTime.now();
-    }
+	private String id;
 
-    public WatchlistOperationResponse(Boolean success, String operation, String id, String symbol, String message) {
-        this.success = success;
-        this.operation = operation;
-        this.id = id;
-        this.symbol = symbol;
-        this.message = message;
-        this.timestamp = LocalDateTime.now();
-    }
+	private String symbol;
 
-    // Static factory methods
-    public static WatchlistOperationResponse success(String operation, String message) {
-        return new WatchlistOperationResponse(true, operation, message);
-    }
+	private String message;
 
-    public static WatchlistOperationResponse success(String operation, String id, String symbol, String message) {
-        return new WatchlistOperationResponse(true, operation, id, symbol, message);
-    }
+	private String errorCode;
 
-    public static WatchlistOperationResponse failure(String operation, String message) {
-        return new WatchlistOperationResponse(false, operation, message);
-    }
+	private LocalDateTime timestamp;
 
-    public static WatchlistOperationResponse failure(String operation, String message, String errorCode) {
-        WatchlistOperationResponse response = new WatchlistOperationResponse(false, operation, message);
-        response.setErrorCode(errorCode);
-        return response;
-    }
+	// Constructors
+	public WatchlistOperationResponse() {
+		this.timestamp = LocalDateTime.now();
+	}
 
-    // Getters and Setters
-    public Boolean getSuccess() {
-        return success;
-    }
+	public WatchlistOperationResponse(Boolean success, String operation, String message) {
+		this.success = success;
+		this.operation = operation;
+		this.message = message;
+		this.timestamp = LocalDateTime.now();
+	}
 
-    public void setSuccess(Boolean success) {
-        this.success = success;
-    }
+	public WatchlistOperationResponse(Boolean success, String operation, String id, String symbol, String message) {
+		this.success = success;
+		this.operation = operation;
+		this.id = id;
+		this.symbol = symbol;
+		this.message = message;
+		this.timestamp = LocalDateTime.now();
+	}
 
-    public String getOperation() {
-        return operation;
-    }
+	// Static factory methods
+	public static WatchlistOperationResponse success(String operation, String message) {
+		return new WatchlistOperationResponse(true, operation, message);
+	}
 
-    public void setOperation(String operation) {
-        this.operation = operation;
-    }
+	public static WatchlistOperationResponse success(String operation, String id, String symbol, String message) {
+		return new WatchlistOperationResponse(true, operation, id, symbol, message);
+	}
 
-    public String getId() {
-        return id;
-    }
+	public static WatchlistOperationResponse failure(String operation, String message) {
+		return new WatchlistOperationResponse(false, operation, message);
+	}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public static WatchlistOperationResponse failure(String operation, String message, String errorCode) {
+		WatchlistOperationResponse response = new WatchlistOperationResponse(false, operation, message);
+		response.setErrorCode(errorCode);
+		return response;
+	}
 
-    public String getSymbol() {
-        return symbol;
-    }
+	// Getters and Setters
+	public Boolean getSuccess() {
+		return success;
+	}
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	public void setSuccess(Boolean success) {
+		this.success = success;
+	}
 
-    public String getMessage() {
-        return message;
-    }
+	public String getOperation() {
+		return operation;
+	}
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	public void setOperation(String operation) {
+		this.operation = operation;
+	}
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    // Convenience methods
-    public boolean isSuccess() {
-        return Boolean.TRUE.equals(success);
-    }
+	public String getMessage() {
+		return message;
+	}
 
-    public boolean isFailure() {
-        return !isSuccess();
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WatchlistOperationResponse that = (WatchlistOperationResponse) o;
-        return Objects.equals(success, that.success) &&
-                Objects.equals(operation, that.operation) &&
-                Objects.equals(id, that.id) &&
-                Objects.equals(symbol, that.symbol) &&
-                Objects.equals(message, that.message) &&
-                Objects.equals(errorCode, that.errorCode) &&
-                Objects.equals(timestamp, that.timestamp);
-    }
+	public String getErrorCode() {
+		return errorCode;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(success, operation, id, symbol, message, errorCode, timestamp);
-    }
+	public void setErrorCode(String errorCode) {
+		this.errorCode = errorCode;
+	}
 
-    @Override
-    public String toString() {
-        return "WatchlistOperationResponse{" +
-                "success=" + success +
-                ", operation='" + operation + '\'' +
-                ", id='" + id + '\'' +
-                ", symbol='" + symbol + '\'' +
-                ", message='" + message + '\'' +
-                ", errorCode='" + errorCode + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
-    }
-} 
+	public LocalDateTime getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(LocalDateTime timestamp) {
+		this.timestamp = timestamp;
+	}
+
+	// Convenience methods
+	public boolean isSuccess() {
+		return Boolean.TRUE.equals(success);
+	}
+
+	public boolean isFailure() {
+		return !isSuccess();
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		WatchlistOperationResponse that = (WatchlistOperationResponse) o;
+		return Objects.equals(success, that.success) && Objects.equals(operation, that.operation)
+				&& Objects.equals(id, that.id) && Objects.equals(symbol, that.symbol)
+				&& Objects.equals(message, that.message) && Objects.equals(errorCode, that.errorCode)
+				&& Objects.equals(timestamp, that.timestamp);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(success, operation, id, symbol, message, errorCode, timestamp);
+	}
+
+	@Override
+	public String toString() {
+		return "WatchlistOperationResponse{" + "success=" + success + ", operation='" + operation + '\'' + ", id='" + id
+				+ '\'' + ", symbol='" + symbol + '\'' + ", message='" + message + '\'' + ", errorCode='" + errorCode
+				+ '\'' + ", timestamp=" + timestamp + '}';
+	}
+
+}

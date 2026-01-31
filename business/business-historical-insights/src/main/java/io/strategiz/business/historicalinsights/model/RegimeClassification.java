@@ -1,8 +1,9 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Market regime classification based on trend strength, volatility, and mean-reversion analysis.
- * Different regimes require different trading strategies for optimal performance.
+ * Market regime classification based on trend strength, volatility, and mean-reversion
+ * analysis. Different regimes require different trading strategies for optimal
+ * performance.
  */
 public class RegimeClassification {
 
@@ -203,13 +204,14 @@ public class RegimeClassification {
 	 */
 	public String toPromptSummary() {
 		StringBuilder sb = new StringBuilder();
-		sb.append(String.format("## MARKET REGIME: %s (%.0f%% confidence)\n", regime.getDisplayName(),
-				confidence * 100));
+		sb.append(
+				String.format("## MARKET REGIME: %s (%.0f%% confidence)\n", regime.getDisplayName(), confidence * 100));
 		sb.append(String.format("→ IMPLICATION: %s\n", recommendedStrategy));
 		sb.append(String.format("→ RECOMMENDED INDICATORS: %s\n", recommendedIndicators));
 
 		if (isMeanReverting) {
-			sb.append("→ IMPLICATION: Market shows mean-reverting behavior - oscillator strategies likely profitable\n");
+			sb.append(
+					"→ IMPLICATION: Market shows mean-reverting behavior - oscillator strategies likely profitable\n");
 		}
 		else {
 			sb.append("→ IMPLICATION: Market shows trending behavior - momentum strategies recommended\n");

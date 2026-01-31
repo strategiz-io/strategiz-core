@@ -20,9 +20,8 @@ import io.strategiz.service.console.accessibility.model.ScanTarget;
 import io.strategiz.service.console.accessibility.service.AccessibilityMetricsService;
 
 /**
- * REST controller for accessibility metrics and WCAG compliance data. Provides
- * endpoints for admin console accessibility dashboard at
- * console.strategiz.io/accessibility.
+ * REST controller for accessibility metrics and WCAG compliance data. Provides endpoints
+ * for admin console accessibility dashboard at console.strategiz.io/accessibility.
  *
  * All endpoints require admin authentication unless otherwise noted.
  */
@@ -38,15 +37,14 @@ public class AdminAccessibilityController extends BaseController {
 	}
 
 	/**
-	 * Get overall accessibility overview for dashboard. Returns grade, WCAG
-	 * compliance %, violations by severity, and Lighthouse scores.
-	 * @param appId optional filter by app (web, auth, console). If null, returns
-	 * latest across all apps.
+	 * Get overall accessibility overview for dashboard. Returns grade, WCAG compliance %,
+	 * violations by severity, and Lighthouse scores.
+	 * @param appId optional filter by app (web, auth, console). If null, returns latest
+	 * across all apps.
 	 * @return accessibility overview with aggregated metrics
 	 */
 	@GetMapping("/overview")
-	public ResponseEntity<AccessibilityOverview> getOverview(
-			@RequestParam(required = false) String appId) {
+	public ResponseEntity<AccessibilityOverview> getOverview(@RequestParam(required = false) String appId) {
 		AccessibilityOverview overview = accessibilityMetricsService.getAccessibilityOverview(appId);
 		return ResponseEntity.ok(overview);
 	}
@@ -60,34 +58,29 @@ public class AdminAccessibilityController extends BaseController {
 	 * @return list of violations with total count
 	 */
 	@GetMapping("/axe/violations")
-	public ResponseEntity<AxeViolationList> getViolations(
-			@RequestParam(defaultValue = "50") int limit,
-			@RequestParam(required = false) String severity,
-			@RequestParam(required = false) String appId) {
+	public ResponseEntity<AxeViolationList> getViolations(@RequestParam(defaultValue = "50") int limit,
+			@RequestParam(required = false) String severity, @RequestParam(required = false) String appId) {
 		AxeViolationList violations = accessibilityMetricsService.getViolations(limit, severity, appId);
 		return ResponseEntity.ok(violations);
 	}
 
 	/**
-	 * Get Lighthouse scores for accessibility, performance, SEO, and best
-	 * practices.
+	 * Get Lighthouse scores for accessibility, performance, SEO, and best practices.
 	 * @param appId optional filter by app
 	 * @return Lighthouse result with per-category scores
 	 */
 	@GetMapping("/lighthouse/scores")
-	public ResponseEntity<LighthouseResult> getLighthouseScores(
-			@RequestParam(required = false) String appId) {
+	public ResponseEntity<LighthouseResult> getLighthouseScores(@RequestParam(required = false) String appId) {
 		LighthouseResult result = accessibilityMetricsService.getLighthouseScores(appId);
 		return ResponseEntity.ok(result);
 	}
 
 	/**
-	 * Cache accessibility analysis results from CI/CD pipeline. This endpoint is
-	 * called by GitHub Actions after running axe-core and Lighthouse scans.
+	 * Cache accessibility analysis results from CI/CD pipeline. This endpoint is called
+	 * by GitHub Actions after running axe-core and Lighthouse scans.
 	 *
-	 * Authentication: Requires Bearer token from Vault (secret/strategiz/ci-cd)
-	 * Validated by CiCdAccessibilityAuthFilter.
-	 *
+	 * Authentication: Requires Bearer token from Vault (secret/strategiz/ci-cd) Validated
+	 * by CiCdAccessibilityAuthFilter.
 	 * @param metrics the analysis results to cache
 	 * @return 200 OK if cached successfully
 	 */
@@ -104,16 +97,15 @@ public class AdminAccessibilityController extends BaseController {
 	 * @return list of cached metrics ordered by scan time (newest first)
 	 */
 	@GetMapping("/cache/history")
-	public ResponseEntity<List<CachedAccessibilityMetrics>> getHistory(
-			@RequestParam(defaultValue = "10") int limit,
+	public ResponseEntity<List<CachedAccessibilityMetrics>> getHistory(@RequestParam(defaultValue = "10") int limit,
 			@RequestParam(required = false) String appId) {
 		List<CachedAccessibilityMetrics> history = accessibilityMetricsService.getHistory(limit, appId);
 		return ResponseEntity.ok(history);
 	}
 
 	/**
-	 * Get list of available scan targets. Returns all pages/URLs that can be
-	 * scanned for accessibility.
+	 * Get list of available scan targets. Returns all pages/URLs that can be scanned for
+	 * accessibility.
 	 * @return list of scan targets with appId and URL
 	 */
 	@GetMapping("/targets")

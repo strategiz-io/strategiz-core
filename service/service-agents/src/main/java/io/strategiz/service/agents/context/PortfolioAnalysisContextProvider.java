@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Provides enhanced portfolio analysis context for the Portfolio Agent. Combines portfolio data with
- * benchmarks and market context.
+ * Provides enhanced portfolio analysis context for the Portfolio Agent. Combines
+ * portfolio data with benchmarks and market context.
  */
 @Component
 public class PortfolioAnalysisContextProvider {

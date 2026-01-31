@@ -4,158 +4,159 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 public class WatchlistItem {
-    private String id;
-    private String symbol;
-    private String name;
-    private String type;
-    private BigDecimal price;
-    private BigDecimal change;
-    private BigDecimal changePercent;
-    private boolean positiveChange;
-    private String chartDataUrl;
-    private Long volume;
 
-    // Constructors
-    public WatchlistItem() {}
+	private String id;
 
-    public WatchlistItem(String id, String symbol, String name, String type, BigDecimal price,
-                       BigDecimal change, BigDecimal changePercent, boolean positiveChange, String chartDataUrl, Long volume) {
-        this.id = id;
-        this.symbol = symbol;
-        this.name = name;
-        this.type = type;
-        this.price = price;
-        this.change = change;
-        this.changePercent = changePercent;
-        this.positiveChange = positiveChange;
-        this.chartDataUrl = chartDataUrl;
-        this.volume = volume;
-    }
+	private String symbol;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	private String name;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private String type;
 
-    public String getSymbol() {
-        return symbol;
-    }
+	private BigDecimal price;
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	private BigDecimal change;
 
-    public String getName() {
-        return name;
-    }
+	private BigDecimal changePercent;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private boolean positiveChange;
 
-    public String getType() {
-        return type;
-    }
+	private String chartDataUrl;
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	private Long volume;
 
-    public BigDecimal getPrice() {
-        return price;
-    }
+	// Constructors
+	public WatchlistItem() {
+	}
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
+	public WatchlistItem(String id, String symbol, String name, String type, BigDecimal price, BigDecimal change,
+			BigDecimal changePercent, boolean positiveChange, String chartDataUrl, Long volume) {
+		this.id = id;
+		this.symbol = symbol;
+		this.name = name;
+		this.type = type;
+		this.price = price;
+		this.change = change;
+		this.changePercent = changePercent;
+		this.positiveChange = positiveChange;
+		this.chartDataUrl = chartDataUrl;
+		this.volume = volume;
+	}
 
-    public void setCurrentPrice(BigDecimal price) {
-        this.price = price;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public BigDecimal getChange() {
-        return change;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setChange(BigDecimal change) {
-        this.change = change;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public BigDecimal getChangePercent() {
-        return changePercent;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public void setChangePercent(BigDecimal changePercent) {
-        this.changePercent = changePercent;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setPriceChangePercentage24h(BigDecimal priceChangePercentage24h) {
-        this.changePercent = priceChangePercentage24h;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public boolean isPositiveChange() {
-        return positiveChange;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setPositiveChange(boolean positiveChange) {
-        this.positiveChange = positiveChange;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public String getChartDataUrl() {
-        return chartDataUrl;
-    }
+	public BigDecimal getPrice() {
+		return price;
+	}
 
-    public void setChartDataUrl(String chartDataUrl) {
-        this.chartDataUrl = chartDataUrl;
-    }
+	public void setPrice(BigDecimal price) {
+		this.price = price;
+	}
 
-    public Long getVolume() {
-        return volume;
-    }
+	public void setCurrentPrice(BigDecimal price) {
+		this.price = price;
+	}
 
-    public void setVolume(Long volume) {
-        this.volume = volume;
-    }
+	public BigDecimal getChange() {
+		return change;
+	}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WatchlistItem that = (WatchlistItem) o;
-        return positiveChange == that.positiveChange &&
-                Objects.equals(id, that.id) &&
-                Objects.equals(symbol, that.symbol) &&
-                Objects.equals(name, that.name) &&
-                Objects.equals(type, that.type) &&
-                Objects.equals(price, that.price) &&
-                Objects.equals(change, that.change) &&
-                Objects.equals(changePercent, that.changePercent) &&
-                Objects.equals(chartDataUrl, that.chartDataUrl) &&
-                Objects.equals(volume, that.volume);
-    }
+	public void setChange(BigDecimal change) {
+		this.change = change;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, symbol, name, type, price, change, changePercent, positiveChange, chartDataUrl, volume);
-    }
+	public BigDecimal getChangePercent() {
+		return changePercent;
+	}
 
-    @Override
-    public String toString() {
-        return "WatchlistItem{" +
-                "id='" + id + '\'' +
-                ", symbol='" + symbol + '\'' +
-                ", name='" + name + '\'' +
-                ", type='" + type + '\'' +
-                ", price=" + price +
-                ", change=" + change +
-                ", changePercent=" + changePercent +
-                ", positiveChange=" + positiveChange +
-                ", chartDataUrl='" + chartDataUrl + '\'' +
-                ", volume=" + volume +
-                '}';
-    }
+	public void setChangePercent(BigDecimal changePercent) {
+		this.changePercent = changePercent;
+	}
+
+	public void setPriceChangePercentage24h(BigDecimal priceChangePercentage24h) {
+		this.changePercent = priceChangePercentage24h;
+	}
+
+	public boolean isPositiveChange() {
+		return positiveChange;
+	}
+
+	public void setPositiveChange(boolean positiveChange) {
+		this.positiveChange = positiveChange;
+	}
+
+	public String getChartDataUrl() {
+		return chartDataUrl;
+	}
+
+	public void setChartDataUrl(String chartDataUrl) {
+		this.chartDataUrl = chartDataUrl;
+	}
+
+	public Long getVolume() {
+		return volume;
+	}
+
+	public void setVolume(Long volume) {
+		this.volume = volume;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		WatchlistItem that = (WatchlistItem) o;
+		return positiveChange == that.positiveChange && Objects.equals(id, that.id)
+				&& Objects.equals(symbol, that.symbol) && Objects.equals(name, that.name)
+				&& Objects.equals(type, that.type) && Objects.equals(price, that.price)
+				&& Objects.equals(change, that.change) && Objects.equals(changePercent, that.changePercent)
+				&& Objects.equals(chartDataUrl, that.chartDataUrl) && Objects.equals(volume, that.volume);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, symbol, name, type, price, change, changePercent, positiveChange, chartDataUrl, volume);
+	}
+
+	@Override
+	public String toString() {
+		return "WatchlistItem{" + "id='" + id + '\'' + ", symbol='" + symbol + '\'' + ", name='" + name + '\''
+				+ ", type='" + type + '\'' + ", price=" + price + ", change=" + change + ", changePercent="
+				+ changePercent + ", positiveChange=" + positiveChange + ", chartDataUrl='" + chartDataUrl + '\''
+				+ ", volume=" + volume + '}';
+	}
+
 }

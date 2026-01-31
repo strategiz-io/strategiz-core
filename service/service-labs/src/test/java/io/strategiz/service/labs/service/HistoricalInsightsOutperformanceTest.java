@@ -27,19 +27,16 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Comprehensive integration tests validating that AI-generated strategies
- * outperform buy-and-hold across many different symbols and market conditions.
+ * Comprehensive integration tests validating that AI-generated strategies outperform
+ * buy-and-hold across many different symbols and market conditions.
  *
  * KEY REQUIREMENT: All tests ONLY PASS if the strategy outperforms buy-and-hold.
  *
- * Test coverage:
- * - Large-cap stocks (AAPL, MSFT, GOOGL, AMZN, META, NVDA, etc.)
- * - ETFs (SPY, QQQ, IWM, DIA, VTI, etc.)
- * - Volatile stocks (TSLA, AMD, SHOP, SQ, etc.)
- * - Crypto (BTC, ETH, SOL, etc.)
- * - International stocks (BABA, TSM, NIO, etc.)
- * - Sector-specific tests (Tech, Finance, Healthcare, Energy)
- * - Different market regimes (Trending, Sideways, Volatile)
+ * Test coverage: - Large-cap stocks (AAPL, MSFT, GOOGL, AMZN, META, NVDA, etc.) - ETFs
+ * (SPY, QQQ, IWM, DIA, VTI, etc.) - Volatile stocks (TSLA, AMD, SHOP, SQ, etc.) - Crypto
+ * (BTC, ETH, SOL, etc.) - International stocks (BABA, TSM, NIO, etc.) - Sector-specific
+ * tests (Tech, Finance, Healthcare, Energy) - Different market regimes (Trending,
+ * Sideways, Volatile)
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -72,14 +69,7 @@ class HistoricalInsightsOutperformanceTest {
 	class LargeCapTechTests {
 
 		@ParameterizedTest(name = "{0} - Strategy must beat {1}% buy-and-hold")
-		@CsvSource({
-			"AAPL, 75.0",
-			"MSFT, 85.0",
-			"GOOGL, 45.0",
-			"AMZN, 35.0",
-			"META, 120.0",
-			"NVDA, 200.0"
-		})
+		@CsvSource({ "AAPL, 75.0", "MSFT, 85.0", "GOOGL, 45.0", "AMZN, 35.0", "META, 120.0", "NVDA, 200.0" })
 		@DisplayName("Should outperform buy-and-hold for each tech stock")
 		void shouldOutperformBuyAndHold(String symbol, double buyHoldReturn) {
 			setupTrendingMarketMock(symbol, buyHoldReturn);
@@ -92,12 +82,11 @@ class HistoricalInsightsOutperformanceTest {
 			double strategyReturn = result.getBestStrategy().getTotalReturn();
 			double outperformance = result.getOutperformance();
 
-			System.out.printf("%s: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n",
-					symbol, strategyReturn, buyHoldReturn, outperformance);
+			System.out.printf("%s: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n", symbol, strategyReturn,
+					buyHoldReturn, outperformance);
 
-			assertTrue(strategyReturn > buyHoldReturn,
-					String.format("%s: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%)",
-							symbol, strategyReturn, buyHoldReturn));
+			assertTrue(strategyReturn > buyHoldReturn, String.format(
+					"%s: Strategy (%.2f%%) must beat buy-and-hold (%.2f%%)", symbol, strategyReturn, buyHoldReturn));
 			assertTrue(outperformance > 0,
 					String.format("%s: Outperformance must be positive, was %.2f%%", symbol, outperformance));
 		}
@@ -129,6 +118,7 @@ class HistoricalInsightsOutperformanceTest {
 			assertTrue(result.getBestStrategy().getTotalReturn() > 200.0,
 					"Strategy must beat NVDA's 200% buy-and-hold return");
 		}
+
 	}
 
 	// ========================================================================
@@ -140,14 +130,7 @@ class HistoricalInsightsOutperformanceTest {
 	class ETFTests {
 
 		@ParameterizedTest(name = "{0} ETF - Must beat {1}% buy-and-hold")
-		@CsvSource({
-			"SPY, 45.0",
-			"QQQ, 65.0",
-			"IWM, 25.0",
-			"DIA, 35.0",
-			"VTI, 40.0",
-			"VOO, 42.0"
-		})
+		@CsvSource({ "SPY, 45.0", "QQQ, 65.0", "IWM, 25.0", "DIA, 35.0", "VTI, 40.0", "VOO, 42.0" })
 		@DisplayName("Should outperform major ETFs")
 		void shouldOutperformETFs(String symbol, double buyHoldReturn) {
 			setupModerateMarketMock(symbol, buyHoldReturn);
@@ -155,8 +138,7 @@ class HistoricalInsightsOutperformanceTest {
 			OptimizationResult result = optimizationEngine.optimize(symbol, "1D", "3y", "test-user");
 
 			assertNotNull(result.getBestStrategy(), "Must find strategy for " + symbol);
-			assertTrue(result.getOutperformance() > 0,
-					String.format("%s: Must outperform buy-and-hold", symbol));
+			assertTrue(result.getOutperformance() > 0, String.format("%s: Must outperform buy-and-hold", symbol));
 
 			System.out.printf("%s ETF: Outperformance = %.2f%%%n", symbol, result.getOutperformance());
 		}
@@ -170,8 +152,7 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "Must outperform buy-and-hold");
-			assertTrue(result.getBestStrategy().getSharpeRatio() > 0.5,
-					"Sharpe ratio should be > 0.5");
+			assertTrue(result.getBestStrategy().getSharpeRatio() > 0.5, "Sharpe ratio should be > 0.5");
 		}
 
 		@Test
@@ -185,15 +166,17 @@ class HistoricalInsightsOutperformanceTest {
 			assertTrue(result.getOutperformance() > 0, "Must outperform buy-and-hold");
 
 			// Verify trend-following strategy types are in top 3
-			long trendFollowingCount = result.getTopStrategies().stream()
-					.limit(3)
-					.filter(s -> s.getStrategyType() == StrategyType.MACD_TREND_FOLLOWING ||
-							s.getStrategyType() == StrategyType.MA_CROSSOVER_EMA ||
-							s.getStrategyType() == StrategyType.MA_CROSSOVER_SMA)
-					.count();
+			long trendFollowingCount = result.getTopStrategies()
+				.stream()
+				.limit(3)
+				.filter(s -> s.getStrategyType() == StrategyType.MACD_TREND_FOLLOWING
+						|| s.getStrategyType() == StrategyType.MA_CROSSOVER_EMA
+						|| s.getStrategyType() == StrategyType.MA_CROSSOVER_SMA)
+				.count();
 
 			System.out.printf("QQQ: %d trend-following strategies in top 3%n", trendFollowingCount);
 		}
+
 	}
 
 	// ========================================================================
@@ -205,7 +188,7 @@ class HistoricalInsightsOutperformanceTest {
 	class VolatileStockTests {
 
 		@ParameterizedTest(name = "{0} volatile stock")
-		@ValueSource(strings = {"TSLA", "AMD", "SHOP", "SQ", "COIN", "RIVN", "LCID"})
+		@ValueSource(strings = { "TSLA", "AMD", "SHOP", "SQ", "COIN", "RIVN", "LCID" })
 		@DisplayName("Should outperform volatile stocks")
 		void shouldOutperformVolatileStocks(String symbol) {
 			double buyHoldReturn = -10.0 + random.nextDouble() * 80.0; // -10% to 70%
@@ -217,8 +200,8 @@ class HistoricalInsightsOutperformanceTest {
 			assertTrue(result.getOutperformance() > 0,
 					String.format("%s: Strategy must beat buy-and-hold (%.2f%%)", symbol, buyHoldReturn));
 
-			System.out.printf("%s (volatile): Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n",
-					symbol, result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
+			System.out.printf("%s (volatile): Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n", symbol,
+					result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
 		}
 
 		@Test
@@ -230,8 +213,7 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "Must outperform buy-and-hold");
-			assertTrue(result.getBestStrategy().getMaxDrawdown() < 50.0,
-					"Should limit drawdown below 50%");
+			assertTrue(result.getBestStrategy().getMaxDrawdown() < 50.0, "Should limit drawdown below 50%");
 		}
 
 		@Test
@@ -243,9 +225,9 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "AMD strategy must outperform");
-			assertTrue(result.getBestStrategy().getTotalTrades() >= 10,
-					"Should generate meaningful number of trades");
+			assertTrue(result.getBestStrategy().getTotalTrades() >= 10, "Should generate meaningful number of trades");
 		}
+
 	}
 
 	// ========================================================================
@@ -257,14 +239,7 @@ class HistoricalInsightsOutperformanceTest {
 	class CryptoTests {
 
 		@ParameterizedTest(name = "{0} crypto - Must beat {1}% buy-and-hold")
-		@CsvSource({
-			"BTC, 150.0",
-			"ETH, 200.0",
-			"SOL, 400.0",
-			"DOGE, 50.0",
-			"ADA, -20.0",
-			"XRP, 30.0"
-		})
+		@CsvSource({ "BTC, 150.0", "ETH, 200.0", "SOL, 400.0", "DOGE, 50.0", "ADA, -20.0", "XRP, 30.0" })
 		@DisplayName("Should outperform cryptocurrencies")
 		void shouldOutperformCrypto(String symbol, double buyHoldReturn) {
 			setupCryptoMarketMock(symbol, buyHoldReturn);
@@ -275,8 +250,8 @@ class HistoricalInsightsOutperformanceTest {
 			assertTrue(result.getOutperformance() > 0,
 					String.format("%s crypto: Must outperform (BH=%.2f%%)", symbol, buyHoldReturn));
 
-			System.out.printf("%s CRYPTO: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n",
-					symbol, result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
+			System.out.printf("%s CRYPTO: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n", symbol,
+					result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
 		}
 
 		@Test
@@ -304,8 +279,7 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "Must outperform ETH buy-and-hold");
-			assertTrue(result.getBestStrategy().getWinRate() > 0.40,
-					"Win rate should be above 40%");
+			assertTrue(result.getBestStrategy().getWinRate() > 0.40, "Win rate should be above 40%");
 		}
 
 		@Test
@@ -316,9 +290,9 @@ class HistoricalInsightsOutperformanceTest {
 			OptimizationResult result = optimizationEngine.optimize("SOL", "1D", "3y", "test-user");
 
 			assertNotNull(result.getBestStrategy());
-			assertTrue(result.getOutperformance() > 0,
-					"Strategy must beat even 400% buy-and-hold");
+			assertTrue(result.getOutperformance() > 0, "Strategy must beat even 400% buy-and-hold");
 		}
+
 	}
 
 	// ========================================================================
@@ -330,19 +304,13 @@ class HistoricalInsightsOutperformanceTest {
 	class InternationalStockTests {
 
 		@ParameterizedTest(name = "{0} international stock")
-		@CsvSource({
-			"BABA, -30.0",
-			"TSM, 80.0",
-			"NIO, -50.0",
-			"PDD, 15.0",
-			"JD, -25.0",
-			"ASML, 90.0"
-		})
+		@CsvSource({ "BABA, -30.0", "TSM, 80.0", "NIO, -50.0", "PDD, 15.0", "JD, -25.0", "ASML, 90.0" })
 		@DisplayName("Should outperform international stocks")
 		void shouldOutperformInternational(String symbol, double buyHoldReturn) {
 			if (buyHoldReturn < 0) {
 				setupDowntrendMarketMock(symbol, buyHoldReturn);
-			} else {
+			}
+			else {
 				setupTrendingMarketMock(symbol, buyHoldReturn);
 			}
 
@@ -352,8 +320,8 @@ class HistoricalInsightsOutperformanceTest {
 			assertTrue(result.getOutperformance() > 0,
 					String.format("%s: Must outperform buy-and-hold (%.2f%%)", symbol, buyHoldReturn));
 
-			System.out.printf("%s INTL: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n",
-					symbol, result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
+			System.out.printf("%s INTL: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n", symbol,
+					result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
 		}
 
 		@Test
@@ -378,9 +346,9 @@ class HistoricalInsightsOutperformanceTest {
 
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0, "Must outperform");
-			assertTrue(result.getBestStrategy().getProfitFactor() > 1.2,
-					"Profit factor should be > 1.2");
+			assertTrue(result.getBestStrategy().getProfitFactor() > 1.2, "Profit factor should be > 1.2");
 		}
+
 	}
 
 	// ========================================================================
@@ -394,7 +362,7 @@ class HistoricalInsightsOutperformanceTest {
 		@Test
 		@DisplayName("Technology sector stocks must all outperform")
 		void techSectorMustOutperform() {
-			String[] techStocks = {"AAPL", "MSFT", "GOOGL", "META", "NVDA", "CRM", "ADBE", "INTC"};
+			String[] techStocks = { "AAPL", "MSFT", "GOOGL", "META", "NVDA", "CRM", "ADBE", "INTC" };
 			int outperformCount = 0;
 
 			for (String symbol : techStocks) {
@@ -410,18 +378,17 @@ class HistoricalInsightsOutperformanceTest {
 			}
 
 			double outperformRate = (double) outperformCount / techStocks.length;
-			System.out.printf("Tech Sector: %d/%d outperformed (%.0f%%)%n",
-					outperformCount, techStocks.length, outperformRate * 100);
+			System.out.printf("Tech Sector: %d/%d outperformed (%.0f%%)%n", outperformCount, techStocks.length,
+					outperformRate * 100);
 
-			assertTrue(outperformRate >= 0.875,
-					String.format("At least 87.5%% of tech stocks must outperform, actual: %.0f%%",
-							outperformRate * 100));
+			assertTrue(outperformRate >= 0.875, String
+				.format("At least 87.5%% of tech stocks must outperform, actual: %.0f%%", outperformRate * 100));
 		}
 
 		@Test
 		@DisplayName("Finance sector stocks must outperform")
 		void financeSectorMustOutperform() {
-			String[] financeStocks = {"JPM", "BAC", "GS", "MS", "WFC", "C", "BLK", "SCHW"};
+			String[] financeStocks = { "JPM", "BAC", "GS", "MS", "WFC", "C", "BLK", "SCHW" };
 			int outperformCount = 0;
 
 			for (String symbol : financeStocks) {
@@ -435,14 +402,13 @@ class HistoricalInsightsOutperformanceTest {
 				}
 			}
 
-			assertTrue(outperformCount >= 6,
-					"At least 6/8 finance stocks must outperform");
+			assertTrue(outperformCount >= 6, "At least 6/8 finance stocks must outperform");
 		}
 
 		@Test
 		@DisplayName("Healthcare sector stocks must outperform")
 		void healthcareSectorMustOutperform() {
-			String[] healthStocks = {"JNJ", "UNH", "PFE", "ABBV", "MRK", "LLY", "TMO", "ABT"};
+			String[] healthStocks = { "JNJ", "UNH", "PFE", "ABBV", "MRK", "LLY", "TMO", "ABT" };
 			int outperformCount = 0;
 
 			for (String symbol : healthStocks) {
@@ -456,14 +422,13 @@ class HistoricalInsightsOutperformanceTest {
 				}
 			}
 
-			assertTrue(outperformCount >= 6,
-					"At least 6/8 healthcare stocks must outperform");
+			assertTrue(outperformCount >= 6, "At least 6/8 healthcare stocks must outperform");
 		}
 
 		@Test
 		@DisplayName("Energy sector stocks must outperform")
 		void energySectorMustOutperform() {
-			String[] energyStocks = {"XOM", "CVX", "COP", "SLB", "EOG", "OXY"};
+			String[] energyStocks = { "XOM", "CVX", "COP", "SLB", "EOG", "OXY" };
 			int outperformCount = 0;
 
 			for (String symbol : energyStocks) {
@@ -477,9 +442,9 @@ class HistoricalInsightsOutperformanceTest {
 				}
 			}
 
-			assertTrue(outperformCount >= 5,
-					"At least 5/6 energy stocks must outperform");
+			assertTrue(outperformCount >= 5, "At least 5/6 energy stocks must outperform");
 		}
+
 	}
 
 	// ========================================================================
@@ -493,7 +458,7 @@ class HistoricalInsightsOutperformanceTest {
 		@Test
 		@DisplayName("Sideways market - Mean reversion must outperform")
 		void sidewaysMarketMustOutperform() {
-			String[] symbols = {"SPY", "IWM", "DIA", "XLF", "XLE"};
+			String[] symbols = { "SPY", "IWM", "DIA", "XLF", "XLE" };
 
 			for (String symbol : symbols) {
 				setupSidewaysMarketMock(symbol, 5.0);
@@ -504,16 +469,15 @@ class HistoricalInsightsOutperformanceTest {
 				assertTrue(result.getOutperformance() > 0,
 						String.format("%s sideways: Must outperform 5%% buy-hold", symbol));
 
-				System.out.printf("%s SIDEWAYS: Outperformance = %.2f%%, Best = %s%n",
-						symbol, result.getOutperformance(),
-						result.getBestStrategy().getStrategyType().getDisplayName());
+				System.out.printf("%s SIDEWAYS: Outperformance = %.2f%%, Best = %s%n", symbol,
+						result.getOutperformance(), result.getBestStrategy().getStrategyType().getDisplayName());
 			}
 		}
 
 		@Test
 		@DisplayName("Strong uptrend - Trend following must outperform")
 		void strongUptrendMustOutperform() {
-			String[] symbols = {"AAPL", "MSFT", "NVDA", "QQQ", "SPY"};
+			String[] symbols = { "AAPL", "MSFT", "NVDA", "QQQ", "SPY" };
 
 			for (String symbol : symbols) {
 				double buyHold = 60.0 + random.nextDouble() * 80.0;
@@ -530,7 +494,7 @@ class HistoricalInsightsOutperformanceTest {
 		@Test
 		@DisplayName("Downtrend - Strategy must lose less than buy-hold")
 		void downtrendMustLoseLess() {
-			String[] symbols = {"BABA", "NIO", "PYPL", "ZM", "PTON"};
+			String[] symbols = { "BABA", "NIO", "PYPL", "ZM", "PTON" };
 
 			for (String symbol : symbols) {
 				double buyHold = -20.0 - random.nextDouble() * 40.0; // -20% to -60%
@@ -543,15 +507,15 @@ class HistoricalInsightsOutperformanceTest {
 						String.format("%s downtrend: Strategy must lose less than %.2f%%", symbol, buyHold));
 				assertTrue(result.getOutperformance() > 0, "Outperformance must be positive");
 
-				System.out.printf("%s DOWNTREND: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n",
-						symbol, result.getBestStrategy().getTotalReturn(), buyHold, result.getOutperformance());
+				System.out.printf("%s DOWNTREND: Strategy=%.2f%%, BuyHold=%.2f%%, Outperformance=%.2f%%%n", symbol,
+						result.getBestStrategy().getTotalReturn(), buyHold, result.getOutperformance());
 			}
 		}
 
 		@Test
 		@DisplayName("High volatility regime - Must outperform with controlled risk")
 		void highVolatilityMustOutperform() {
-			String[] symbols = {"TSLA", "COIN", "MSTR", "ARKK"};
+			String[] symbols = { "TSLA", "COIN", "MSTR", "ARKK" };
 
 			for (String symbol : symbols) {
 				double buyHold = -15.0 + random.nextDouble() * 100.0;
@@ -561,10 +525,10 @@ class HistoricalInsightsOutperformanceTest {
 
 				assertNotNull(result.getBestStrategy());
 				assertTrue(result.getOutperformance() > 0, symbol + " must outperform");
-				assertTrue(result.getBestStrategy().getMaxDrawdown() < 60.0,
-						symbol + " drawdown should be controlled");
+				assertTrue(result.getBestStrategy().getMaxDrawdown() < 60.0, symbol + " drawdown should be controlled");
 			}
 		}
+
 	}
 
 	// ========================================================================
@@ -579,21 +543,20 @@ class HistoricalInsightsOutperformanceTest {
 		@DisplayName("At least 90% of diverse symbols must outperform")
 		void ninetyPercentMustOutperform() {
 			String[] diverseSymbols = {
-				// Tech
-				"AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA",
-				// Finance
-				"JPM", "BAC", "GS",
-				// Healthcare
-				"JNJ", "UNH", "PFE",
-				// ETFs
-				"SPY", "QQQ", "IWM",
-				// Volatile
-				"TSLA", "AMD",
-				// Crypto
-				"BTC", "ETH",
-				// International
-				"TSM", "ASML"
-			};
+					// Tech
+					"AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA",
+					// Finance
+					"JPM", "BAC", "GS",
+					// Healthcare
+					"JNJ", "UNH", "PFE",
+					// ETFs
+					"SPY", "QQQ", "IWM",
+					// Volatile
+					"TSLA", "AMD",
+					// Crypto
+					"BTC", "ETH",
+					// International
+					"TSM", "ASML" };
 
 			int outperformCount = 0;
 			int total = diverseSymbols.length;
@@ -603,9 +566,11 @@ class HistoricalInsightsOutperformanceTest {
 
 				if (symbol.equals("BTC") || symbol.equals("ETH")) {
 					setupCryptoMarketMock(symbol, buyHold);
-				} else if (symbol.equals("TSLA") || symbol.equals("AMD")) {
+				}
+				else if (symbol.equals("TSLA") || symbol.equals("AMD")) {
 					setupVolatileMarketMock(symbol, buyHold);
-				} else {
+				}
+				else {
 					setupTrendingMarketMock(symbol, buyHold);
 				}
 
@@ -626,7 +591,7 @@ class HistoricalInsightsOutperformanceTest {
 		@Test
 		@DisplayName("Average outperformance must be at least 15%")
 		void averageOutperformanceMustBe15Percent() {
-			String[] symbols = {"AAPL", "MSFT", "GOOGL", "SPY", "QQQ", "NVDA", "AMD", "TSLA", "BTC", "ETH"};
+			String[] symbols = { "AAPL", "MSFT", "GOOGL", "SPY", "QQQ", "NVDA", "AMD", "TSLA", "BTC", "ETH" };
 			double totalOutperformance = 0;
 			int validCount = 0;
 
@@ -635,9 +600,11 @@ class HistoricalInsightsOutperformanceTest {
 
 				if (symbol.equals("BTC") || symbol.equals("ETH")) {
 					setupCryptoMarketMock(symbol, buyHold * 2);
-				} else if (symbol.equals("TSLA") || symbol.equals("AMD")) {
+				}
+				else if (symbol.equals("TSLA") || symbol.equals("AMD")) {
 					setupVolatileMarketMock(symbol, buyHold);
-				} else {
+				}
+				else {
 					setupTrendingMarketMock(symbol, buyHold);
 				}
 
@@ -659,7 +626,7 @@ class HistoricalInsightsOutperformanceTest {
 		@Test
 		@DisplayName("All strategies must have positive profit factor")
 		void allStrategiesMustHavePositiveProfitFactor() {
-			String[] symbols = {"AAPL", "MSFT", "SPY", "QQQ", "GOOGL"};
+			String[] symbols = { "AAPL", "MSFT", "SPY", "QQQ", "GOOGL" };
 
 			for (String symbol : symbols) {
 				setupTrendingMarketMock(symbol, 50.0);
@@ -667,22 +634,23 @@ class HistoricalInsightsOutperformanceTest {
 				OptimizationResult result = optimizationEngine.optimize(symbol, "1D", "3y", "test-user");
 
 				assertNotNull(result.getBestStrategy());
-				assertTrue(result.getBestStrategy().getProfitFactor() > 1.0,
-						symbol + " must have profit factor > 1.0");
+				assertTrue(result.getBestStrategy().getProfitFactor() > 1.0, symbol + " must have profit factor > 1.0");
 			}
 		}
 
 		@Test
 		@DisplayName("All strategies must have win rate above 40%")
 		void allStrategiesMustHaveReasonableWinRate() {
-			String[] symbols = {"AAPL", "MSFT", "SPY", "QQQ", "TSLA", "BTC"};
+			String[] symbols = { "AAPL", "MSFT", "SPY", "QQQ", "TSLA", "BTC" };
 
 			for (String symbol : symbols) {
 				if (symbol.equals("BTC")) {
 					setupCryptoMarketMock(symbol, 100.0);
-				} else if (symbol.equals("TSLA")) {
+				}
+				else if (symbol.equals("TSLA")) {
 					setupVolatileMarketMock(symbol, 30.0);
-				} else {
+				}
+				else {
 					setupTrendingMarketMock(symbol, 60.0);
 				}
 
@@ -690,10 +658,11 @@ class HistoricalInsightsOutperformanceTest {
 
 				assertNotNull(result.getBestStrategy());
 				assertTrue(result.getBestStrategy().getWinRate() > 0.40,
-						String.format("%s win rate must be > 40%%, actual: %.1f%%",
-								symbol, result.getBestStrategy().getWinRate() * 100));
+						String.format("%s win rate must be > 40%%, actual: %.1f%%", symbol,
+								result.getBestStrategy().getWinRate() * 100));
 			}
 		}
+
 	}
 
 	// ========================================================================
@@ -712,10 +681,8 @@ class HistoricalInsightsOutperformanceTest {
 			OptimizationResult result = optimizationEngine.optimize("SPY", "1D", "3y", "test-user");
 
 			assertNotNull(result.getBestStrategy());
-			assertTrue(result.getOutperformance() > 0,
-					"Must outperform even 2% buy-and-hold");
-			assertTrue(result.getBestStrategy().getTotalReturn() > 2.0,
-					"Strategy must beat 2% buy-and-hold");
+			assertTrue(result.getOutperformance() > 0, "Must outperform even 2% buy-and-hold");
+			assertTrue(result.getBestStrategy().getTotalReturn() > 2.0, "Strategy must beat 2% buy-and-hold");
 		}
 
 		@Test
@@ -726,8 +693,7 @@ class HistoricalInsightsOutperformanceTest {
 			OptimizationResult result = optimizationEngine.optimize("BABA", "1D", "3y", "test-user");
 
 			assertNotNull(result.getBestStrategy());
-			assertTrue(result.getBestStrategy().getTotalReturn() > -50.0,
-					"Strategy must lose less than 50%");
+			assertTrue(result.getBestStrategy().getTotalReturn() > -50.0, "Strategy must lose less than 50%");
 			assertTrue(result.getOutperformance() > 0, "Outperformance must be positive");
 		}
 
@@ -739,14 +705,13 @@ class HistoricalInsightsOutperformanceTest {
 			OptimizationResult result = optimizationEngine.optimize("NVDA", "1D", "3y", "test-user");
 
 			assertNotNull(result.getBestStrategy());
-			assertTrue(result.getOutperformance() > 0,
-					"Must outperform even 300% buy-and-hold");
+			assertTrue(result.getOutperformance() > 0, "Must outperform even 300% buy-and-hold");
 		}
 
 		@Test
 		@DisplayName("Multiple timeframes must all outperform")
 		void multipleTimeframesMustOutperform() {
-			String[] timeframes = {"1D", "4h", "1h"};
+			String[] timeframes = { "1D", "4h", "1h" };
 
 			for (String timeframe : timeframes) {
 				setupTrendingMarketMock("AAPL", 60.0);
@@ -754,10 +719,10 @@ class HistoricalInsightsOutperformanceTest {
 				OptimizationResult result = optimizationEngine.optimize("AAPL", timeframe, "1y", "test-user");
 
 				assertNotNull(result.getBestStrategy());
-				assertTrue(result.getOutperformance() > 0,
-						"Must outperform on " + timeframe + " timeframe");
+				assertTrue(result.getOutperformance() > 0, "Must outperform on " + timeframe + " timeframe");
 			}
 		}
+
 	}
 
 	// ========================================================================
@@ -765,59 +730,66 @@ class HistoricalInsightsOutperformanceTest {
 	// ========================================================================
 
 	private void setupTrendingMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "TRENDING");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "TRENDING");
+			});
 	}
 
 	private void setupModerateMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "MODERATE");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "MODERATE");
+			});
 	}
 
 	private void setupSidewaysMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "SIDEWAYS");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "SIDEWAYS");
+			});
 	}
 
 	private void setupVolatileMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "VOLATILE");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "VOLATILE");
+			});
 	}
 
 	private void setupDowntrendMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "DOWNTREND");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "DOWNTREND");
+			});
 	}
 
 	private void setupCryptoMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "CRYPTO");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "CRYPTO");
+			});
 	}
 
 	private void setupHighGrowthMarketMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn, "HIGH_GROWTH");
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn, "HIGH_GROWTH");
+			});
 	}
 
 	private ExecuteStrategyResponse createMockResponse(String code, double buyHoldReturn, String regime) {
@@ -856,14 +828,16 @@ class HistoricalInsightsOutperformanceTest {
 			case "HIGH_GROWTH":
 				if (code.contains("MACD") || code.contains("EMA") || code.contains("SMA")) {
 					base = 25 + random.nextDouble() * 35; // 25-60%
-				} else {
+				}
+				else {
 					base = 15 + random.nextDouble() * 25; // 15-40%
 				}
 				break;
 			case "SIDEWAYS":
 				if (code.contains("RSI") || code.contains("Bollinger") || code.contains("Stochastic")) {
 					base = 30 + random.nextDouble() * 40; // 30-70%
-				} else {
+				}
+				else {
 					base = 10 + random.nextDouble() * 20; // 10-30%
 				}
 				break;
@@ -871,7 +845,8 @@ class HistoricalInsightsOutperformanceTest {
 			case "CRYPTO":
 				if (code.contains("Swing") || code.contains("Breakout") || code.contains("ADX")) {
 					base = 35 + random.nextDouble() * 45; // 35-80%
-				} else {
+				}
+				else {
 					base = 20 + random.nextDouble() * 35; // 20-55%
 				}
 				break;
@@ -890,7 +865,8 @@ class HistoricalInsightsOutperformanceTest {
 		double base = 48.0;
 		if (regime.equals("SIDEWAYS") && (code.contains("RSI") || code.contains("Bollinger"))) {
 			base = 58.0;
-		} else if (regime.equals("TRENDING") && (code.contains("MACD") || code.contains("EMA"))) {
+		}
+		else if (regime.equals("TRENDING") && (code.contains("MACD") || code.contains("EMA"))) {
 			base = 55.0;
 		}
 		return base + random.nextDouble() * 15;
@@ -900,7 +876,8 @@ class HistoricalInsightsOutperformanceTest {
 		double base = 15.0;
 		if (regime.equals("VOLATILE") || regime.equals("CRYPTO")) {
 			base = 25.0;
-		} else if (regime.equals("DOWNTREND")) {
+		}
+		else if (regime.equals("DOWNTREND")) {
 			base = 20.0;
 		}
 		return base + random.nextDouble() * 15;
@@ -910,7 +887,8 @@ class HistoricalInsightsOutperformanceTest {
 		double base = 0.9;
 		if (regime.equals("SIDEWAYS")) {
 			base = 1.2;
-		} else if (regime.equals("TRENDING")) {
+		}
+		else if (regime.equals("TRENDING")) {
 			base = 1.1;
 		}
 		return base + random.nextDouble() * 0.8;
@@ -920,9 +898,11 @@ class HistoricalInsightsOutperformanceTest {
 		double base = 1.3;
 		if (regime.equals("SIDEWAYS") && (code.contains("RSI") || code.contains("Bollinger"))) {
 			base = 1.6;
-		} else if (regime.equals("TRENDING") && (code.contains("MACD") || code.contains("EMA"))) {
+		}
+		else if (regime.equals("TRENDING") && (code.contains("MACD") || code.contains("EMA"))) {
 			base = 1.5;
 		}
 		return base + random.nextDouble() * 0.7;
 	}
+
 }

@@ -10,13 +10,13 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class KrakenClientConfig {
 
-    /**
-     * Create RestTemplate bean for Kraken API requests
-     * 
-     * @return RestTemplate instance
-     */
-    @Bean
-    public RestTemplate krakenRestTemplate() {
-        return new RestTemplate();
-    }
-} 
+	/**
+	 * Create RestTemplate bean for Kraken API requests
+	 * @return RestTemplate instance
+	 */
+	@Bean
+	public RestTemplate krakenRestTemplate() {
+		return new RestTemplate();
+	}
+
+}

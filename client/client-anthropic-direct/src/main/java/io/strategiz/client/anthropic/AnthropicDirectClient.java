@@ -66,7 +66,8 @@ public class AnthropicDirectClient implements LLMProvider {
 	public AnthropicDirectClient(AnthropicDirectConfig config) {
 		this.config = config;
 		this.objectMapper = new ObjectMapper();
-		this.webClient = WebClient.builder().baseUrl(config.getApiUrl())
+		this.webClient = WebClient.builder()
+			.baseUrl(config.getApiUrl())
 			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.defaultHeader("x-api-key", config.getApiKey())
 			.defaultHeader("anthropic-version", API_VERSION)
@@ -95,16 +96,16 @@ public class AnthropicDirectClient implements LLMProvider {
 				.uri("/v1/messages")
 				.bodyValue(requestBody)
 				.retrieve()
-				.onStatus(status -> status.isError(),
-						response -> response.bodyToMono(String.class)
-							.flatMap(errorBody -> Mono.error(new RuntimeException(
-									"Anthropic API error: " + response.statusCode() + " - " + errorBody))))
+				.onStatus(status -> status.isError(), response -> response.bodyToMono(String.class)
+					.flatMap(errorBody -> Mono.error(
+							new RuntimeException("Anthropic API error: " + response.statusCode() + " - " + errorBody))))
 				.bodyToMono(String.class)
 				.timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
 				.map(responseBody -> parseResponse(responseBody, model))
 				.doOnSuccess(response -> logger.debug("Received response from Anthropic API"))
 				.doOnError(error -> logger.error("Error calling Anthropic API", error))
-				.onErrorResume(error -> Mono.just(LLMResponse.error("Failed to call Anthropic: " + error.getMessage())));
+				.onErrorResume(
+						error -> Mono.just(LLMResponse.error("Failed to call Anthropic: " + error.getMessage())));
 		}
 		catch (Exception e) {
 			logger.error("Error preparing Anthropic request", e);

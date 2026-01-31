@@ -40,22 +40,17 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Comprehensive Integration Tests for Live Strategies Batch Processing.
  *
- * These tests run against REAL infrastructure:
- * - Firestore (strategiz-io project)
- * - TimescaleDB (market data)
- * - gRPC execution service (optional)
+ * These tests run against REAL infrastructure: - Firestore (strategiz-io project) -
+ * TimescaleDB (market data) - gRPC execution service (optional)
  *
- * Prerequisites (one-time setup):
- * 1. gcloud auth application-default login
- * 2. vault server -dev (in separate terminal)
+ * Prerequisites (one-time setup): 1. gcloud auth application-default login 2. vault
+ * server -dev (in separate terminal)
  *
- * Run with:
- *   export VAULT_ADDR=http://localhost:8200
- *   export VAULT_TOKEN=root
- *   mvn test -Dtest=LiveStrategiesIntegrationTest -pl batch/batch-live-strategies
+ * Run with: export VAULT_ADDR=http://localhost:8200 export VAULT_TOKEN=root mvn test
+ * -Dtest=LiveStrategiesIntegrationTest -pl batch/batch-live-strategies
  */
 @SpringBootTest(classes = LiveStrategiesTestApplication.class)
-@ActiveProfiles({"integration", "scheduler"})
+@ActiveProfiles({ "integration", "scheduler" })
 @Tag("integration")
 @EnabledIfEnvironmentVariable(named = "VAULT_TOKEN", matches = ".+")
 class LiveStrategiesIntegrationTest {
@@ -63,74 +58,79 @@ class LiveStrategiesIntegrationTest {
 	private static final Logger log = LoggerFactory.getLogger(LiveStrategiesIntegrationTest.class);
 
 	private static final String TEST_USER_ID = "test-user-" + UUID.randomUUID();
+
 	private static final String TEST_STRATEGY_PREFIX = "test-strategy-";
+
 	private static final String TEST_ALERT_PREFIX = "test-alert-";
+
 	private static final String TEST_BOT_PREFIX = "test-bot-";
 
 	// Sample strategy codes
 	private static final String RSI_STRATEGY_CODE = """
-		import pandas as pd
+			import pandas as pd
 
-		def strategy(data):
-		    close = data['close']
-		    delta = close.diff()
-		    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-		    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-		    rs = gain / loss
-		    rsi = 100 - (100 / (1 + rs))
+			def strategy(data):
+			    close = data['close']
+			    delta = close.diff()
+			    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+			    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+			    rs = gain / loss
+			    rsi = 100 - (100 / (1 + rs))
 
-		    if rsi.iloc[-1] < 30:
-		        return 'BUY'
-		    elif rsi.iloc[-1] > 70:
-		        return 'SELL'
-		    return 'HOLD'
-		""";
+			    if rsi.iloc[-1] < 30:
+			        return 'BUY'
+			    elif rsi.iloc[-1] > 70:
+			        return 'SELL'
+			    return 'HOLD'
+			""";
 
 	private static final String MACD_STRATEGY_CODE = """
-		import pandas as pd
+			import pandas as pd
 
-		def strategy(data):
-		    close = data['close']
-		    ema12 = close.ewm(span=12).mean()
-		    ema26 = close.ewm(span=26).mean()
-		    macd = ema12 - ema26
-		    signal = macd.ewm(span=9).mean()
+			def strategy(data):
+			    close = data['close']
+			    ema12 = close.ewm(span=12).mean()
+			    ema26 = close.ewm(span=26).mean()
+			    macd = ema12 - ema26
+			    signal = macd.ewm(span=9).mean()
 
-		    if macd.iloc[-1] > signal.iloc[-1] and macd.iloc[-2] <= signal.iloc[-2]:
-		        return 'BUY'
-		    elif macd.iloc[-1] < signal.iloc[-1] and macd.iloc[-2] >= signal.iloc[-2]:
-		        return 'SELL'
-		    return 'HOLD'
-		""";
+			    if macd.iloc[-1] > signal.iloc[-1] and macd.iloc[-2] <= signal.iloc[-2]:
+			        return 'BUY'
+			    elif macd.iloc[-1] < signal.iloc[-1] and macd.iloc[-2] >= signal.iloc[-2]:
+			        return 'SELL'
+			    return 'HOLD'
+			""";
 
 	private static final String PAIRS_TRADING_CODE = """
-		import pandas as pd
-		import numpy as np
+			import pandas as pd
+			import numpy as np
 
-		def strategy(data):
-		    # Pairs trading on two symbols
-		    symbols = list(data.keys()) if isinstance(data, dict) else ['AAPL']
-		    if len(symbols) < 2:
-		        return 'HOLD'
+			def strategy(data):
+			    # Pairs trading on two symbols
+			    symbols = list(data.keys()) if isinstance(data, dict) else ['AAPL']
+			    if len(symbols) < 2:
+			        return 'HOLD'
 
-		    # Calculate spread
-		    price1 = data[symbols[0]]['close'] if isinstance(data, dict) else data['close']
-		    price2 = data[symbols[1]]['close'] if isinstance(data, dict) else data['close']
+			    # Calculate spread
+			    price1 = data[symbols[0]]['close'] if isinstance(data, dict) else data['close']
+			    price2 = data[symbols[1]]['close'] if isinstance(data, dict) else data['close']
 
-		    spread = price1 - price2
-		    mean_spread = spread.rolling(window=20).mean()
-		    std_spread = spread.rolling(window=20).std()
-		    z_score = (spread - mean_spread) / std_spread
+			    spread = price1 - price2
+			    mean_spread = spread.rolling(window=20).mean()
+			    std_spread = spread.rolling(window=20).std()
+			    z_score = (spread - mean_spread) / std_spread
 
-		    if z_score.iloc[-1] < -2:
-		        return 'BUY'
-		    elif z_score.iloc[-1] > 2:
-		        return 'SELL'
-		    return 'HOLD'
-		""";
+			    if z_score.iloc[-1] < -2:
+			        return 'BUY'
+			    elif z_score.iloc[-1] > 2:
+			        return 'SELL'
+			    return 'HOLD'
+			""";
 
 	private static final String SIMPLE_BUY_CODE = "def strategy(data):\n    return 'BUY'";
+
 	private static final String SIMPLE_SELL_CODE = "def strategy(data):\n    return 'SELL'";
+
 	private static final String SIMPLE_HOLD_CODE = "def strategy(data):\n    return 'HOLD'";
 
 	@Autowired
@@ -165,7 +165,9 @@ class LiveStrategiesIntegrationTest {
 
 	// Track created entities for cleanup
 	private final List<String> createdStrategyIds = new ArrayList<>();
+
 	private final List<String> createdAlertIds = new ArrayList<>();
+
 	private final List<String> createdBotIds = new ArrayList<>();
 
 	@BeforeEach
@@ -231,8 +233,8 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(30, ChronoUnit.DAYS);
 
-			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1D");
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange("AAPL", startDate, endDate,
+					"1D");
 
 			log.info("Found {} bars for AAPL in last 30 days", bars.size());
 
@@ -259,8 +261,8 @@ class LiveStrategiesIntegrationTest {
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
 			for (String symbol : symbols) {
-				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-						symbol, startDate, endDate, "1D");
+				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol, startDate, endDate,
+						"1D");
 
 				log.info("{}: {} bars in last 7 days", symbol, bars.size());
 				assertTrue(bars.size() >= 3, "Should have at least 3 trading days for " + symbol);
@@ -273,8 +275,8 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(365, ChronoUnit.DAYS);
 
-			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1D");
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange("AAPL", startDate, endDate,
+					"1D");
 
 			log.info("Found {} bars for AAPL in last 365 days", bars.size());
 			assertTrue(bars.size() >= 200, "Should have at least 200 trading days for 1-year lookback");
@@ -286,13 +288,14 @@ class LiveStrategiesIntegrationTest {
 			Instant endDate = Instant.now();
 			Instant startDate = endDate.minus(7, ChronoUnit.DAYS);
 
-			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(
-					"AAPL", startDate, endDate, "1h");
+			List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange("AAPL", startDate, endDate,
+					"1h");
 
 			log.info("Found {} hourly bars for AAPL in last 7 days", bars.size());
 			// Market hours: 9:30 AM - 4:00 PM ET = 6.5 hours per day, ~5 trading days
 			assertTrue(bars.size() >= 20, "Should have at least 20 hourly bars");
 		}
+
 	}
 
 	// ========================================================================
@@ -424,6 +427,7 @@ class LiveStrategiesIntegrationTest {
 			assertFalse(loaded.get().getSimulatedMode());
 			assertEquals(5000.0, loaded.get().getMaxPositionSize());
 		}
+
 	}
 
 	// ========================================================================
@@ -450,8 +454,7 @@ class LiveStrategiesIntegrationTest {
 
 			log.info("Found {} active PRO tier alerts", activeAlerts.size());
 
-			boolean foundTestAlert = activeAlerts.stream()
-					.anyMatch(a -> a.getId().equals(alertId));
+			boolean foundTestAlert = activeAlerts.stream().anyMatch(a -> a.getId().equals(alertId));
 
 			assertTrue(foundTestAlert, "Test alert should be found in active PRO alerts");
 		}
@@ -471,8 +474,7 @@ class LiveStrategiesIntegrationTest {
 
 			List<AlertDeployment> activeAlerts = readAlertRepository.findActiveAlertsByTier("STARTER");
 
-			boolean foundTestAlert = activeAlerts.stream()
-					.anyMatch(a -> a.getId().equals(alertId));
+			boolean foundTestAlert = activeAlerts.stream().anyMatch(a -> a.getId().equals(alertId));
 
 			assertTrue(foundTestAlert, "Test alert should be found in active STARTER alerts");
 		}
@@ -492,8 +494,7 @@ class LiveStrategiesIntegrationTest {
 
 			List<BotDeployment> activeBots = readBotRepository.findActiveBotsByTier("PRO");
 
-			boolean foundTestBot = activeBots.stream()
-					.anyMatch(b -> b.getId().equals(botId));
+			boolean foundTestBot = activeBots.stream().anyMatch(b -> b.getId().equals(botId));
 
 			assertTrue(foundTestBot, "Test bot should be found in active PRO bots");
 		}
@@ -514,11 +515,11 @@ class LiveStrategiesIntegrationTest {
 
 			List<AlertDeployment> activeAlerts = readAlertRepository.findActiveAlertsByTier("PRO");
 
-			boolean foundTestAlert = activeAlerts.stream()
-					.anyMatch(a -> a.getId().equals(alertId));
+			boolean foundTestAlert = activeAlerts.stream().anyMatch(a -> a.getId().equals(alertId));
 
 			assertFalse(foundTestAlert, "Paused alert should NOT be in active alerts");
 		}
+
 	}
 
 	// ========================================================================
@@ -551,17 +552,16 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			// Execute
 			log.info("Processing single symbol alert...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
-			log.info("Result: success={}, signals={}, alerts={}, bots={}, errors={}",
-					result.isSuccess(), result.signalsGenerated(),
-					result.alertsTriggered(), result.botsTriggered(), result.errors());
+			log.info("Result: success={}, signals={}, alerts={}, bots={}, errors={}", result.isSuccess(),
+					result.signalsGenerated(), result.alertsTriggered(), result.botsTriggered(), result.errors());
 
 			assertTrue(result.isSuccess(), "Processing should succeed");
 			assertEquals(1, result.symbolSetsProcessed());
@@ -591,9 +591,9 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing pairs trading alert (AAPL, AMZN)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -624,9 +624,9 @@ class LiveStrategiesIntegrationTest {
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing single symbol bot (AMD)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -666,9 +666,9 @@ class LiveStrategiesIntegrationTest {
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing mixed alerts and bots on AAPL...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -719,9 +719,9 @@ class LiveStrategiesIntegrationTest {
 			group3.addAlert(alertId3);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group1, group2, group3))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group1, group2, group3))
+				.build();
 
 			log.info("Processing 3 symbol sets (AAPL, AMZN, COST)...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -752,9 +752,9 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing HOLD strategy...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -775,17 +775,17 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(fakeAlertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing batch with missing deployment...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			// Should complete without exception
-			assertTrue(result.isSuccess() || result.errors() > 0,
-					"Should handle missing deployment gracefully");
+			assertTrue(result.isSuccess() || result.errors() > 0, "Should handle missing deployment gracefully");
 		}
+
 	}
 
 	// ========================================================================
@@ -817,9 +817,9 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1") // PRO tier
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1") // PRO tier
+				.symbolSets(List.of(group))
+				.build();
 
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
@@ -848,9 +848,9 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER2") // STARTER tier
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER2") // STARTER tier
+				.symbolSets(List.of(group))
+				.build();
 
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
@@ -879,14 +879,15 @@ class LiveStrategiesIntegrationTest {
 			group.addAlert(alertId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER3") // FREE tier
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER3") // FREE tier
+				.symbolSets(List.of(group))
+				.build();
 
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			assertTrue(result.isSuccess());
 		}
+
 	}
 
 	// ========================================================================
@@ -919,9 +920,9 @@ class LiveStrategiesIntegrationTest {
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing PAPER trading bot...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
@@ -955,15 +956,16 @@ class LiveStrategiesIntegrationTest {
 			group.addBot(botId);
 
 			DeploymentBatchMessage message = DeploymentBatchMessage.builder()
-					.tier("TIER1")
-					.symbolSets(List.of(group))
-					.build();
+				.tier("TIER1")
+				.symbolSets(List.of(group))
+				.build();
 
 			log.info("Processing LIVE trading bot with risk params...");
 			SymbolSetProcessorJob.ProcessingResult result = symbolSetProcessorJob.process(message);
 
 			assertTrue(result.isSuccess());
 		}
+
 	}
 
 	// ========================================================================
@@ -996,7 +998,8 @@ class LiveStrategiesIntegrationTest {
 		return alert;
 	}
 
-	private BotDeployment createTestBot(String botId, String strategyId, List<String> symbols, String tier, String environment) {
+	private BotDeployment createTestBot(String botId, String strategyId, List<String> symbols, String tier,
+			String environment) {
 		BotDeployment bot = new BotDeployment();
 		bot._initAudit(TEST_USER_ID);
 		bot.setId(botId);

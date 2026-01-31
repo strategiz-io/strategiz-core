@@ -7,10 +7,12 @@ import io.strategiz.data.device.model.DeviceIdentity;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks device trust indicators for VPN, proxy, Tor, and bot detection.
- * These indicators are collected during device fingerprinting.
+ * Checks device trust indicators for VPN, proxy, Tor, and bot detection. These indicators
+ * are collected during device fingerprinting.
  *
- * <p>Scoring: VPN/proxy/Tor/bot detected = up to +15</p>
+ * <p>
+ * Scoring: VPN/proxy/Tor/bot detected = up to +15
+ * </p>
  */
 @Component
 public class IpReputationProvider implements RiskSignalProvider {

@@ -32,20 +32,24 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Business logic for device trust verification and authentication.
  *
- * <p>Device trust acts as a silent "something you have" factor following
- * NIST SP 800-63B guidelines. When a user returns on a recognized/trusted device:</p>
+ * <p>
+ * Device trust acts as a silent "something you have" factor following NIST SP 800-63B
+ * guidelines. When a user returns on a recognized/trusted device:
+ * </p>
  * <ul>
- *   <li>With MFA configured: device trust replaces one MFA factor (one-click sign-in)</li>
- *   <li>Without MFA: device trust enables one-click sign-in (ACR 1)</li>
- *   <li>New/unknown device: full authentication required as normal</li>
+ * <li>With MFA configured: device trust replaces one MFA factor (one-click sign-in)</li>
+ * <li>Without MFA: device trust enables one-click sign-in (ACR 1)</li>
+ * <li>New/unknown device: full authentication required as normal</li>
  * </ul>
  *
- * <p>Trust levels based on score and last verification:</p>
+ * <p>
+ * Trust levels based on score and last verification:
+ * </p>
  * <ul>
- *   <li>HIGH (score 90+): 90-day trust duration</li>
- *   <li>TRUSTED (score 80-89): 30-day trust duration</li>
- *   <li>RECOGNIZED (score 70-79): 7-day trust duration</li>
- *   <li>UNKNOWN (score &lt; 70): no trust granted</li>
+ * <li>HIGH (score 90+): 90-day trust duration</li>
+ * <li>TRUSTED (score 80-89): 30-day trust duration</li>
+ * <li>RECOGNIZED (score 70-79): 7-day trust duration</li>
+ * <li>UNKNOWN (score &lt; 70): no trust granted</li>
  * </ul>
  */
 @Component
@@ -172,7 +176,7 @@ public class DeviceTrustBusiness {
 	 * @param deviceId the device ID
 	 * @param challengeId the challenge ID from generateChallenge
 	 * @param signedChallenge the challenge signed with the device's private key
-	 *     (Base64-encoded)
+	 * (Base64-encoded)
 	 * @param ipAddress the client IP address
 	 * @param userAgent the client user agent
 	 * @return AuthResult with tokens if verification succeeds
@@ -226,8 +230,8 @@ public class DeviceTrustBusiness {
 		}
 
 		// Run risk assessment before granting device trust
-		RiskContext riskContext = new RiskContext(device.getUserId(), deviceId, ipAddress,
-				device.getIpLocation(), Instant.now(), device);
+		RiskContext riskContext = new RiskContext(device.getUserId(), deviceId, ipAddress, device.getIpLocation(),
+				Instant.now(), device);
 		RiskAssessmentResult riskResult = riskAssessmentBusiness.assess(riskContext);
 
 		if (riskResult.riskLevel() == RiskLevel.CRITICAL) {

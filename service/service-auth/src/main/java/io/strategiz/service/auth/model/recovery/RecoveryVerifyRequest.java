@@ -8,9 +8,6 @@ import jakarta.validation.constraints.Size;
  *
  * @param code the verification code
  */
-public record RecoveryVerifyRequest(
-        @NotBlank(message = "Code is required")
-        @Size(min = 6, max = 6, message = "Code must be 6 digits")
-        String code
-) {
+public record RecoveryVerifyRequest(@NotBlank(message = "Code is required") @Size(min = 6, max = 6,
+		message = "Code must be 6 digits") String code) {
 }

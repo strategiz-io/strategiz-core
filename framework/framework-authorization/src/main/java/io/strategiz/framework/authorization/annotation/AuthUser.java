@@ -9,7 +9,8 @@ import java.lang.annotation.Target;
 /**
  * Annotation to inject the authenticated user into a controller method parameter.
  *
- * <p>Usage example:
+ * <p>
+ * Usage example:
  *
  * <pre>
  * &#64;GetMapping("/profile")
@@ -37,12 +38,11 @@ import java.lang.annotation.Target;
 @Documented
 public @interface AuthUser {
 
-  /**
-   * Whether authentication is required. If true (default) and no user is authenticated,
-   * throws 401. If false, the parameter will be null when not authenticated.
-   *
-   * @return true if authentication is required
-   */
-  boolean required() default true;
+	/**
+	 * Whether authentication is required. If true (default) and no user is authenticated,
+	 * throws 401. If false, the parameter will be null when not authenticated.
+	 * @return true if authentication is required
+	 */
+	boolean required() default true;
 
 }

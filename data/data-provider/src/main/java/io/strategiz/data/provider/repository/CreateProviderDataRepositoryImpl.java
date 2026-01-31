@@ -12,40 +12,44 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class CreateProviderDataRepositoryImpl implements CreateProviderDataRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(CreateProviderDataRepositoryImpl.class);
-    private final ProviderDataBaseRepository baseRepository;
+	private static final Logger log = LoggerFactory.getLogger(CreateProviderDataRepositoryImpl.class);
 
-    @Autowired
-    public CreateProviderDataRepositoryImpl(ProviderDataBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
+	private final ProviderDataBaseRepository baseRepository;
 
-    @Override
-    public ProviderDataEntity createProviderData(String userId, String providerId, ProviderDataEntity data) {
-        log.info("CreateProviderDataRepository: Creating provider data - userId={}, providerId={}", userId, providerId);
+	@Autowired
+	public CreateProviderDataRepositoryImpl(ProviderDataBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-        // Set the provider ID in the entity
-        data.setProviderId(providerId);
+	@Override
+	public ProviderDataEntity createProviderData(String userId, String providerId, ProviderDataEntity data) {
+		log.info("CreateProviderDataRepository: Creating provider data - userId={}, providerId={}", userId, providerId);
 
-        // Use providerId as document ID for easy lookup
-        ProviderDataEntity saved = baseRepository.saveWithProviderId(data, userId, providerId);
+		// Set the provider ID in the entity
+		data.setProviderId(providerId);
 
-        log.info("CreateProviderDataRepository: Successfully created provider data at users/{}/provider_data/{}", userId, providerId);
-        return saved;
-    }
+		// Use providerId as document ID for easy lookup
+		ProviderDataEntity saved = baseRepository.saveWithProviderId(data, userId, providerId);
 
-    @Override
-    public ProviderDataEntity createOrReplaceProviderData(String userId, String providerId, ProviderDataEntity data) {
-        log.info("CreateProviderDataRepository: Saving provider data - userId={}, providerId={}, holdings count={}",
-            userId, providerId, data.getHoldings() != null ? data.getHoldings().size() : 0);
+		log.info("CreateProviderDataRepository: Successfully created provider data at users/{}/provider_data/{}",
+				userId, providerId);
+		return saved;
+	}
 
-        // Set the provider ID in the entity
-        data.setProviderId(providerId);
+	@Override
+	public ProviderDataEntity createOrReplaceProviderData(String userId, String providerId, ProviderDataEntity data) {
+		log.info("CreateProviderDataRepository: Saving provider data - userId={}, providerId={}, holdings count={}",
+				userId, providerId, data.getHoldings() != null ? data.getHoldings().size() : 0);
 
-        // This will overwrite if exists or create if not
-        ProviderDataEntity saved = baseRepository.saveWithProviderId(data, userId, providerId);
+		// Set the provider ID in the entity
+		data.setProviderId(providerId);
 
-        log.info("CreateProviderDataRepository: Successfully saved provider data at users/{}/provider_data/{}", userId, providerId);
-        return saved;
-    }
+		// This will overwrite if exists or create if not
+		ProviderDataEntity saved = baseRepository.saveWithProviderId(data, userId, providerId);
+
+		log.info("CreateProviderDataRepository: Successfully saved provider data at users/{}/provider_data/{}", userId,
+				providerId);
+		return saved;
+	}
+
 }

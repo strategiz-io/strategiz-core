@@ -9,98 +9,94 @@ import jakarta.validation.constraints.Size;
  */
 public class CreateWatchlistItemRequest {
 
-    @NotBlank(message = "Symbol is required")
-    @Size(max = 20, message = "Symbol must be 20 characters or less")
-    private String symbol;
+	@NotBlank(message = "Symbol is required")
+	@Size(max = 20, message = "Symbol must be 20 characters or less")
+	private String symbol;
 
-    @Size(max = 200, message = "Name must be 200 characters or less")
-    private String name;
+	@Size(max = 200, message = "Name must be 200 characters or less")
+	private String name;
 
-    @NotBlank(message = "Asset type is required")
-    @Size(max = 50, message = "Type must be 50 characters or less")
-    private String type; // CRYPTO, STOCK, ETF, etc.
+	@NotBlank(message = "Asset type is required")
+	@Size(max = 50, message = "Type must be 50 characters or less")
+	private String type; // CRYPTO, STOCK, ETF, etc.
 
-    @Size(max = 100, message = "Exchange must be 100 characters or less")
-    private String exchange;
+	@Size(max = 100, message = "Exchange must be 100 characters or less")
+	private String exchange;
 
-    private Integer sortOrder;
+	private Integer sortOrder;
 
-    private Boolean alertEnabled = false;
+	private Boolean alertEnabled = false;
 
-    // Constructors
-    public CreateWatchlistItemRequest() {
-    }
+	// Constructors
+	public CreateWatchlistItemRequest() {
+	}
 
-    public CreateWatchlistItemRequest(String symbol, String type) {
-        this.symbol = symbol;
-        this.type = type;
-    }
+	public CreateWatchlistItemRequest(String symbol, String type) {
+		this.symbol = symbol;
+		this.type = type;
+	}
 
-    public CreateWatchlistItemRequest(String symbol, String name, String type, String exchange) {
-        this.symbol = symbol;
-        this.name = name;
-        this.type = type;
-        this.exchange = exchange;
-    }
+	public CreateWatchlistItemRequest(String symbol, String name, String type, String exchange) {
+		this.symbol = symbol;
+		this.name = name;
+		this.type = type;
+		this.exchange = exchange;
+	}
 
-    // Getters and Setters
-    public String getSymbol() {
-        return symbol;
-    }
+	// Getters and Setters
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public String getType() {
-        return type;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public String getExchange() {
-        return exchange;
-    }
+	public String getExchange() {
+		return exchange;
+	}
 
-    public void setExchange(String exchange) {
-        this.exchange = exchange;
-    }
+	public void setExchange(String exchange) {
+		this.exchange = exchange;
+	}
 
-    public Integer getSortOrder() {
-        return sortOrder;
-    }
+	public Integer getSortOrder() {
+		return sortOrder;
+	}
 
-    public void setSortOrder(Integer sortOrder) {
-        this.sortOrder = sortOrder;
-    }
+	public void setSortOrder(Integer sortOrder) {
+		this.sortOrder = sortOrder;
+	}
 
-    public Boolean getAlertEnabled() {
-        return alertEnabled;
-    }
+	public Boolean getAlertEnabled() {
+		return alertEnabled;
+	}
 
-    public void setAlertEnabled(Boolean alertEnabled) {
-        this.alertEnabled = alertEnabled;
-    }
+	public void setAlertEnabled(Boolean alertEnabled) {
+		this.alertEnabled = alertEnabled;
+	}
 
-    @Override
-    public String toString() {
-        return "CreateWatchlistItemRequest{" +
-                "symbol='" + symbol + '\'' +
-                ", name='" + name + '\'' +
-                ", type='" + type + '\'' +
-                ", exchange='" + exchange + '\'' +
-                ", sortOrder=" + sortOrder +
-                ", alertEnabled=" + alertEnabled +
-                '}';
-    }
-} 
+	@Override
+	public String toString() {
+		return "CreateWatchlistItemRequest{" + "symbol='" + symbol + '\'' + ", name='" + name + '\'' + ", type='" + type
+				+ '\'' + ", exchange='" + exchange + '\'' + ", sortOrder=" + sortOrder + ", alertEnabled="
+				+ alertEnabled + '}';
+	}
+
+}

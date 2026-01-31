@@ -21,236 +21,240 @@ import java.util.Optional;
 /**
  * Service for managing strategy comments.
  *
- * Key rules:
- * - Only published (public) strategies can have comments
- * - Any authenticated user can comment
- * - Users can only edit/delete their own comments
+ * Key rules: - Only published (public) strategies can have comments - Any authenticated
+ * user can comment - Users can only edit/delete their own comments
  */
 @Service
 public class StrategyCommentService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-marketplace";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-marketplace";
+	}
 
-    private static final String MODULE_NAME = "service-marketplace";
+	private static final String MODULE_NAME = "service-marketplace";
 
-    private final CreateStrategyCommentRepository createCommentRepo;
-    private final ReadStrategyCommentRepository readCommentRepo;
-    private final UpdateStrategyCommentRepository updateCommentRepo;
-    private final DeleteStrategyCommentRepository deleteCommentRepo;
-    private final ReadStrategyRepository readStrategyRepo;
-    private final UpdateStrategyRepository updateStrategyRepo;
-    private final UserRepository userRepository;
+	private final CreateStrategyCommentRepository createCommentRepo;
 
-    @Autowired
-    public StrategyCommentService(
-            CreateStrategyCommentRepository createCommentRepo,
-            ReadStrategyCommentRepository readCommentRepo,
-            UpdateStrategyCommentRepository updateCommentRepo,
-            DeleteStrategyCommentRepository deleteCommentRepo,
-            ReadStrategyRepository readStrategyRepo,
-            UpdateStrategyRepository updateStrategyRepo,
-            UserRepository userRepository) {
-        this.createCommentRepo = createCommentRepo;
-        this.readCommentRepo = readCommentRepo;
-        this.updateCommentRepo = updateCommentRepo;
-        this.deleteCommentRepo = deleteCommentRepo;
-        this.readStrategyRepo = readStrategyRepo;
-        this.updateStrategyRepo = updateStrategyRepo;
-        this.userRepository = userRepository;
-    }
+	private final ReadStrategyCommentRepository readCommentRepo;
 
-    /**
-     * Add a comment to a strategy.
-     * Only works for published (public) strategies.
-     */
-    public StrategyCommentEntity addComment(String strategyId, String userId, String content) {
-        // Validate strategy exists and is published
-        Strategy strategy = validateStrategyIsPublished(strategyId);
+	private final UpdateStrategyCommentRepository updateCommentRepo;
 
-        // Get user info for denormalization
-        String userName = null;
-        String userPhotoURL = null;
-        try {
-            userRepository.findById(userId).ifPresent(user -> {
-                // Can't assign to local variables from lambda, so we'll set after
-            });
-            var userOpt = userRepository.findById(userId);
-            if (userOpt.isPresent()) {
-                userName = userOpt.get().getProfile().getName();
-                userPhotoURL = userOpt.get().getProfile().getPhotoURL();
-            }
-        } catch (Exception e) {
-            log.warn("Could not fetch user info for comment denormalization", e);
-        }
+	private final DeleteStrategyCommentRepository deleteCommentRepo;
 
-        // Create comment
-        StrategyCommentEntity comment = new StrategyCommentEntity(strategyId, userId, content);
-        comment.setUserName(userName);
-        comment.setUserPhotoURL(userPhotoURL);
+	private final ReadStrategyRepository readStrategyRepo;
 
-        StrategyCommentEntity created = createCommentRepo.create(comment, userId);
+	private final UpdateStrategyRepository updateStrategyRepo;
 
-        // Increment strategy comment count
-        strategy.incrementComments();
-        updateStrategyRepo.update(strategy.getId(), userId, strategy);
+	private final UserRepository userRepository;
 
-        log.info("User {} added comment {} to strategy {}", userId, created.getId(), strategyId);
-        return created;
-    }
+	@Autowired
+	public StrategyCommentService(CreateStrategyCommentRepository createCommentRepo,
+			ReadStrategyCommentRepository readCommentRepo, UpdateStrategyCommentRepository updateCommentRepo,
+			DeleteStrategyCommentRepository deleteCommentRepo, ReadStrategyRepository readStrategyRepo,
+			UpdateStrategyRepository updateStrategyRepo, UserRepository userRepository) {
+		this.createCommentRepo = createCommentRepo;
+		this.readCommentRepo = readCommentRepo;
+		this.updateCommentRepo = updateCommentRepo;
+		this.deleteCommentRepo = deleteCommentRepo;
+		this.readStrategyRepo = readStrategyRepo;
+		this.updateStrategyRepo = updateStrategyRepo;
+		this.userRepository = userRepository;
+	}
 
-    /**
-     * Add a reply to an existing comment.
-     */
-    public StrategyCommentEntity addReply(String strategyId, String parentCommentId, String userId, String content) {
-        // Validate strategy exists and is published
-        Strategy strategy = validateStrategyIsPublished(strategyId);
+	/**
+	 * Add a comment to a strategy. Only works for published (public) strategies.
+	 */
+	public StrategyCommentEntity addComment(String strategyId, String userId, String content) {
+		// Validate strategy exists and is published
+		Strategy strategy = validateStrategyIsPublished(strategyId);
 
-        // Validate parent comment exists
-        StrategyCommentEntity parentComment = readCommentRepo.findById(parentCommentId)
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
+		// Get user info for denormalization
+		String userName = null;
+		String userPhotoURL = null;
+		try {
+			userRepository.findById(userId).ifPresent(user -> {
+				// Can't assign to local variables from lambda, so we'll set after
+			});
+			var userOpt = userRepository.findById(userId);
+			if (userOpt.isPresent()) {
+				userName = userOpt.get().getProfile().getName();
+				userPhotoURL = userOpt.get().getProfile().getPhotoURL();
+			}
+		}
+		catch (Exception e) {
+			log.warn("Could not fetch user info for comment denormalization", e);
+		}
 
-        // Ensure parent belongs to same strategy
-        if (!parentComment.getStrategyId().equals(strategyId)) {
-            throw new StrategizException(MarketplaceErrorDetails.INVALID_OPERATION, MODULE_NAME);
-        }
+		// Create comment
+		StrategyCommentEntity comment = new StrategyCommentEntity(strategyId, userId, content);
+		comment.setUserName(userName);
+		comment.setUserPhotoURL(userPhotoURL);
 
-        // Get user info
-        String userName = null;
-        String userPhotoURL = null;
-        var userOpt = userRepository.findById(userId);
-        if (userOpt.isPresent()) {
-            userName = userOpt.get().getProfile().getName();
-            userPhotoURL = userOpt.get().getProfile().getPhotoURL();
-        }
+		StrategyCommentEntity created = createCommentRepo.create(comment, userId);
 
-        // Create reply
-        StrategyCommentEntity reply = new StrategyCommentEntity(strategyId, userId, content, parentCommentId);
-        reply.setUserName(userName);
-        reply.setUserPhotoURL(userPhotoURL);
+		// Increment strategy comment count
+		strategy.incrementComments();
+		updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
-        StrategyCommentEntity created = createCommentRepo.createReply(reply, parentCommentId, userId);
+		log.info("User {} added comment {} to strategy {}", userId, created.getId(), strategyId);
+		return created;
+	}
 
-        // Increment parent's reply count
-        updateCommentRepo.incrementReplies(parentCommentId, userId);
+	/**
+	 * Add a reply to an existing comment.
+	 */
+	public StrategyCommentEntity addReply(String strategyId, String parentCommentId, String userId, String content) {
+		// Validate strategy exists and is published
+		Strategy strategy = validateStrategyIsPublished(strategyId);
 
-        // Increment strategy comment count
-        strategy.incrementComments();
-        updateStrategyRepo.update(strategy.getId(), userId, strategy);
+		// Validate parent comment exists
+		StrategyCommentEntity parentComment = readCommentRepo.findById(parentCommentId)
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
 
-        log.info("User {} added reply {} to comment {} on strategy {}", userId, created.getId(), parentCommentId, strategyId);
-        return created;
-    }
+		// Ensure parent belongs to same strategy
+		if (!parentComment.getStrategyId().equals(strategyId)) {
+			throw new StrategizException(MarketplaceErrorDetails.INVALID_OPERATION, MODULE_NAME);
+		}
 
-    /**
-     * Get comments for a strategy.
-     */
-    public List<StrategyCommentEntity> getComments(String strategyId, int limit) {
-        // Validate strategy exists (doesn't need to be published to view existing comments)
-        readStrategyRepo.findById(strategyId)
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
+		// Get user info
+		String userName = null;
+		String userPhotoURL = null;
+		var userOpt = userRepository.findById(userId);
+		if (userOpt.isPresent()) {
+			userName = userOpt.get().getProfile().getName();
+			userPhotoURL = userOpt.get().getProfile().getPhotoURL();
+		}
 
-        return readCommentRepo.findTopLevelByStrategyId(strategyId, limit);
-    }
+		// Create reply
+		StrategyCommentEntity reply = new StrategyCommentEntity(strategyId, userId, content, parentCommentId);
+		reply.setUserName(userName);
+		reply.setUserPhotoURL(userPhotoURL);
 
-    /**
-     * Get replies to a comment.
-     */
-    public List<StrategyCommentEntity> getReplies(String commentId) {
-        return readCommentRepo.findReplies(commentId);
-    }
+		StrategyCommentEntity created = createCommentRepo.createReply(reply, parentCommentId, userId);
 
-    /**
-     * Edit a comment (owner only).
-     */
-    public StrategyCommentEntity editComment(String commentId, String userId, String newContent) {
-        StrategyCommentEntity comment = readCommentRepo.findById(commentId)
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
+		// Increment parent's reply count
+		updateCommentRepo.incrementReplies(parentCommentId, userId);
 
-        // Only owner can edit
-        if (!comment.getUserId().equals(userId)) {
-            throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, MODULE_NAME);
-        }
+		// Increment strategy comment count
+		strategy.incrementComments();
+		updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
-        comment.setContent(newContent);
-        comment.markAsEdited();
+		log.info("User {} added reply {} to comment {} on strategy {}", userId, created.getId(), parentCommentId,
+				strategyId);
+		return created;
+	}
 
-        log.info("User {} edited comment {}", userId, commentId);
-        return updateCommentRepo.update(comment, userId);
-    }
+	/**
+	 * Get comments for a strategy.
+	 */
+	public List<StrategyCommentEntity> getComments(String strategyId, int limit) {
+		// Validate strategy exists (doesn't need to be published to view existing
+		// comments)
+		readStrategyRepo.findById(strategyId)
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-    /**
-     * Delete a comment (owner or strategy owner only).
-     */
-    public void deleteComment(String commentId, String userId) {
-        StrategyCommentEntity comment = readCommentRepo.findById(commentId)
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
+		return readCommentRepo.findTopLevelByStrategyId(strategyId, limit);
+	}
 
-        // Get strategy to check ownership
-        Strategy strategy = readStrategyRepo.findById(comment.getStrategyId())
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
+	/**
+	 * Get replies to a comment.
+	 */
+	public List<StrategyCommentEntity> getReplies(String commentId) {
+		return readCommentRepo.findReplies(commentId);
+	}
 
-        // Allow delete if user is comment owner OR strategy owner
-        if (!comment.getUserId().equals(userId) && !strategy.getOwnerId().equals(userId)) {
-            throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_DELETE, MODULE_NAME);
-        }
+	/**
+	 * Edit a comment (owner only).
+	 */
+	public StrategyCommentEntity editComment(String commentId, String userId, String newContent) {
+		StrategyCommentEntity comment = readCommentRepo.findById(commentId)
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
 
-        // If this is a parent comment, we don't delete replies (they become orphaned but still visible)
-        deleteCommentRepo.delete(commentId, userId);
+		// Only owner can edit
+		if (!comment.getUserId().equals(userId)) {
+			throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_UPDATE, MODULE_NAME);
+		}
 
-        // Decrement strategy comment count
-        strategy.decrementComments();
-        updateStrategyRepo.update(strategy.getId(), userId, strategy);
+		comment.setContent(newContent);
+		comment.markAsEdited();
 
-        // If this was a reply, decrement parent's reply count
-        if (comment.isReply()) {
-            updateCommentRepo.decrementReplies(comment.getParentCommentId(), userId);
-        }
+		log.info("User {} edited comment {}", userId, commentId);
+		return updateCommentRepo.update(comment, userId);
+	}
 
-        log.info("User {} deleted comment {} from strategy {}", userId, commentId, comment.getStrategyId());
-    }
+	/**
+	 * Delete a comment (owner or strategy owner only).
+	 */
+	public void deleteComment(String commentId, String userId) {
+		StrategyCommentEntity comment = readCommentRepo.findById(commentId)
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME));
 
-    /**
-     * Like a comment.
-     */
-    public void likeComment(String commentId, String userId) {
-        if (!readCommentRepo.existsById(commentId)) {
-            throw new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME);
-        }
-        updateCommentRepo.incrementLikes(commentId, userId);
-        log.debug("User {} liked comment {}", userId, commentId);
-    }
+		// Get strategy to check ownership
+		Strategy strategy = readStrategyRepo.findById(comment.getStrategyId())
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
 
-    /**
-     * Unlike a comment.
-     */
-    public void unlikeComment(String commentId, String userId) {
-        if (!readCommentRepo.existsById(commentId)) {
-            throw new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME);
-        }
-        updateCommentRepo.decrementLikes(commentId, userId);
-        log.debug("User {} unliked comment {}", userId, commentId);
-    }
+		// Allow delete if user is comment owner OR strategy owner
+		if (!comment.getUserId().equals(userId) && !strategy.getOwnerId().equals(userId)) {
+			throw new StrategizException(MarketplaceErrorDetails.UNAUTHORIZED_DELETE, MODULE_NAME);
+		}
 
-    /**
-     * Get comment count for a strategy.
-     */
-    public int getCommentCount(String strategyId) {
-        return readCommentRepo.countByStrategyId(strategyId);
-    }
+		// If this is a parent comment, we don't delete replies (they become orphaned but
+		// still visible)
+		deleteCommentRepo.delete(commentId, userId);
 
-    // Private helper methods
+		// Decrement strategy comment count
+		strategy.decrementComments();
+		updateStrategyRepo.update(strategy.getId(), userId, strategy);
 
-    private Strategy validateStrategyIsPublished(String strategyId) {
-        Strategy strategy = readStrategyRepo.findById(strategyId)
-                .orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
+		// If this was a reply, decrement parent's reply count
+		if (comment.isReply()) {
+			updateCommentRepo.decrementReplies(comment.getParentCommentId(), userId);
+		}
 
-        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
-            throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
-        }
+		log.info("User {} deleted comment {} from strategy {}", userId, commentId, comment.getStrategyId());
+	}
 
-        return strategy;
-    }
+	/**
+	 * Like a comment.
+	 */
+	public void likeComment(String commentId, String userId) {
+		if (!readCommentRepo.existsById(commentId)) {
+			throw new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME);
+		}
+		updateCommentRepo.incrementLikes(commentId, userId);
+		log.debug("User {} liked comment {}", userId, commentId);
+	}
+
+	/**
+	 * Unlike a comment.
+	 */
+	public void unlikeComment(String commentId, String userId) {
+		if (!readCommentRepo.existsById(commentId)) {
+			throw new StrategizException(MarketplaceErrorDetails.COMMENT_NOT_FOUND, MODULE_NAME);
+		}
+		updateCommentRepo.decrementLikes(commentId, userId);
+		log.debug("User {} unliked comment {}", userId, commentId);
+	}
+
+	/**
+	 * Get comment count for a strategy.
+	 */
+	public int getCommentCount(String strategyId) {
+		return readCommentRepo.countByStrategyId(strategyId);
+	}
+
+	// Private helper methods
+
+	private Strategy validateStrategyIsPublished(String strategyId) {
+		Strategy strategy = readStrategyRepo.findById(strategyId)
+			.orElseThrow(() -> new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_FOUND, MODULE_NAME));
+
+		if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
+			throw new StrategizException(MarketplaceErrorDetails.STRATEGY_NOT_PUBLISHED, MODULE_NAME);
+		}
+
+		return strategy;
+	}
+
 }

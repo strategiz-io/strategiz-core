@@ -16,8 +16,8 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
- * Strategy Optimization Engine that tests ~200 strategy combinations with various parameters,
- * ranks them by TOTAL RETURN (not win rate), and returns the best performer.
+ * Strategy Optimization Engine that tests ~200 strategy combinations with various
+ * parameters, ranks them by TOTAL RETURN (not win rate), and returns the best performer.
  *
  * This replaces the old deterministic strategy generation which only tested 4 indicators
  * with fixed parameters and ranked by win rate.
@@ -46,8 +46,8 @@ public class StrategyOptimizationEngine {
 	}
 
 	/**
-	 * Main optimization method. Generates all parameter combinations, runs backtests in parallel,
-	 * and returns the best strategy by total return.
+	 * Main optimization method. Generates all parameter combinations, runs backtests in
+	 * parallel, and returns the best strategy by total return.
 	 * @param symbol The trading symbol (e.g., "AAPL", "BTC")
 	 * @param timeframe The chart timeframe (e.g., "1D", "1h")
 	 * @param period The backtest period (e.g., "3y", "5y")
@@ -66,7 +66,8 @@ public class StrategyOptimizationEngine {
 		log.info("Generated {} strategy combinations to test", combinations.size());
 
 		// Run backtests in parallel
-		List<StrategyTestResult> results = runParallelBacktests(combinations, symbol, timeframe, effectivePeriod, userId);
+		List<StrategyTestResult> results = runParallelBacktests(combinations, symbol, timeframe, effectivePeriod,
+				userId);
 
 		// Filter successful results and sort by total return (descending)
 		List<StrategyTestResult> successfulResults = results.stream()
@@ -114,13 +115,12 @@ public class StrategyOptimizationEngine {
 		// Set execution stats
 		long totalTime = System.currentTimeMillis() - startTime;
 		optimizationResult.setTotalExecutionTimeMs(totalTime);
-		optimizationResult.setAvgExecutionTimePerStrategy(
-				combinations.isEmpty() ? 0 : (double) totalTime / combinations.size());
+		optimizationResult
+			.setAvgExecutionTimePerStrategy(combinations.isEmpty() ? 0 : (double) totalTime / combinations.size());
 
 		log.info("Optimization complete in {}ms. Best strategy: {} with {:.2f}% return", totalTime,
 				optimizationResult.getBestStrategy() != null
-						? optimizationResult.getBestStrategy().getStrategyType().getDisplayName()
-						: "NONE",
+						? optimizationResult.getBestStrategy().getStrategyType().getDisplayName() : "NONE",
 				optimizationResult.getBestStrategy() != null ? optimizationResult.getBestStrategy().getTotalReturn()
 						: 0.0);
 
@@ -128,7 +128,8 @@ public class StrategyOptimizationEngine {
 	}
 
 	/**
-	 * Generates all parameter combinations for all strategy types. Total: ~200 combinations.
+	 * Generates all parameter combinations for all strategy types. Total: ~200
+	 * combinations.
 	 */
 	private List<StrategyTestResult> generateAllCombinations() {
 		List<StrategyTestResult> combinations = new ArrayList<>();
@@ -141,9 +142,8 @@ public class StrategyOptimizationEngine {
 			for (int oversold : rsiOversold) {
 				for (int overbought : rsiOverbought) {
 					if (overbought > oversold + 30) { // Ensure valid range
-						combinations.add(new StrategyTestResult(StrategyType.RSI_MEAN_REVERSION,
-								Map.of("period", period, "oversold", oversold, "overbought", overbought,
-										"atr_multiplier", 2.0)));
+						combinations.add(new StrategyTestResult(StrategyType.RSI_MEAN_REVERSION, Map.of("period",
+								period, "oversold", oversold, "overbought", overbought, "atr_multiplier", 2.0)));
 					}
 				}
 			}
@@ -211,9 +211,8 @@ public class StrategyOptimizationEngine {
 		for (int k : stochK) {
 			for (int d : stochD) {
 				for (int[] levels : stochLevels) {
-					combinations.add(new StrategyTestResult(StrategyType.STOCHASTIC,
-							Map.of("k_period", k, "d_period", d, "oversold", levels[0], "overbought", levels[1],
-									"atr_multiplier", 2.0)));
+					combinations.add(new StrategyTestResult(StrategyType.STOCHASTIC, Map.of("k_period", k, "d_period",
+							d, "oversold", levels[0], "overbought", levels[1], "atr_multiplier", 2.0)));
 				}
 			}
 		}
@@ -224,9 +223,8 @@ public class StrategyOptimizationEngine {
 		for (int buy : buyThresh) {
 			for (int sell : sellThresh) {
 				if (sell > buy) {
-					combinations.add(new StrategyTestResult(StrategyType.SWING_TRADING,
-							Map.of("buy_threshold", buy, "sell_threshold", sell, "lookback", 20, "atr_multiplier",
-									2.0)));
+					combinations.add(new StrategyTestResult(StrategyType.SWING_TRADING, Map.of("buy_threshold", buy,
+							"sell_threshold", sell, "lookback", 20, "atr_multiplier", 2.0)));
 				}
 			}
 		}
@@ -267,9 +265,8 @@ public class StrategyOptimizationEngine {
 		for (int lookback : breakoutLookbacks) {
 			for (double buffer : breakoutBuffers) {
 				for (double trail : breakoutTrails) {
-					combinations.add(new StrategyTestResult(StrategyType.BREAKOUT_MOMENTUM,
-							Map.of("lookback", lookback, "breakout_buffer", buffer, "trail_percent", trail,
-									"atr_multiplier", 2.5)));
+					combinations.add(new StrategyTestResult(StrategyType.BREAKOUT_MOMENTUM, Map.of("lookback", lookback,
+							"breakout_buffer", buffer, "trail_percent", trail, "atr_multiplier", 2.5)));
 				}
 			}
 		}
@@ -284,12 +281,14 @@ public class StrategyOptimizationEngine {
 	private List<StrategyTestResult> runParallelBacktests(List<StrategyTestResult> combinations, String symbol,
 			String timeframe, String period, String userId) {
 
-		List<CompletableFuture<StrategyTestResult>> futures = combinations.stream().map(combo -> CompletableFuture
-			.supplyAsync(() -> runSingleBacktest(combo, symbol, timeframe, period, userId), EXECUTOR)
-			.exceptionally(ex -> {
-				log.warn("Backtest failed for {}: {}", combo.getStrategyType(), ex.getMessage());
-				return StrategyTestResult.failed(combo.getStrategyType(), combo.getParameters(), ex.getMessage());
-			})).collect(Collectors.toList());
+		List<CompletableFuture<StrategyTestResult>> futures = combinations.stream()
+			.map(combo -> CompletableFuture
+				.supplyAsync(() -> runSingleBacktest(combo, symbol, timeframe, period, userId), EXECUTOR)
+				.exceptionally(ex -> {
+					log.warn("Backtest failed for {}: {}", combo.getStrategyType(), ex.getMessage());
+					return StrategyTestResult.failed(combo.getStrategyType(), combo.getParameters(), ex.getMessage());
+				}))
+			.collect(Collectors.toList());
 
 		// Wait for all to complete
 		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();

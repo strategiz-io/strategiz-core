@@ -24,9 +24,9 @@ import io.strategiz.service.console.quality.model.QualityOverview;
 import io.strategiz.service.console.quality.model.ViolationList;
 
 /**
- * Service for aggregating quality metrics from multiple sources. Combines
- * framework compliance metrics (ComplianceScanner) with static analysis metrics
- * (SonarQube) to provide overall quality dashboard.
+ * Service for aggregating quality metrics from multiple sources. Combines framework
+ * compliance metrics (ComplianceScanner) with static analysis metrics (SonarQube) to
+ * provide overall quality dashboard.
  */
 @Service
 public class QualityMetricsService {

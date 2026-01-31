@@ -5,192 +5,204 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * OAuth authentication method domain model
- * This is a business domain object for OAuth-based authentication
+ * OAuth authentication method domain model This is a business domain object for
+ * OAuth-based authentication
  */
 public class OAuthAuthenticationMethod {
-    
-    private String id;
-    private String userId;
-    private String type;
-    private String name;
-    private String provider; // google, facebook, github, etc.
-    private String providerId; // Provider-specific user ID
-    private String email; // Email from OAuth provider
-    private Boolean verified = false;
-    private boolean enabled = true;
-    private Instant createdAt;
-    private Instant updatedAt;
-    private Instant lastUsedAt;
-    private Map<String, Object> metadata;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public OAuthAuthenticationMethod() {
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.metadata = new HashMap<>();
-    }
+	private String userId;
 
-    public OAuthAuthenticationMethod(String provider, String providerId, String email) {
-        this();
-        this.provider = provider;
-        this.providerId = providerId;
-        this.email = email;
-        this.type = "OAUTH_" + provider.toUpperCase();
-        this.name = provider + " OAuth";
-        this.verified = true; // OAuth accounts are verified by default
-    }
+	private String type;
 
-    // === CONVENIENCE METHODS ===
+	private String name;
 
-    public boolean isVerified() {
-        return Boolean.TRUE.equals(verified);
-    }
+	private String provider; // google, facebook, github, etc.
 
-    public boolean isConfigured() {
-        return provider != null && !provider.trim().isEmpty() && 
-               providerId != null && !providerId.trim().isEmpty() &&
-               isVerified();
-    }
+	private String providerId; // Provider-specific user ID
 
-    public boolean isActive() {
-        return enabled && isVerified();
-    }
+	private String email; // Email from OAuth provider
 
-    public void setProviderEmail(String providerEmail) {
-        this.email = providerEmail;
-        this.updatedAt = Instant.now();
-    }
+	private Boolean verified = false;
 
-    public void setMethodName(String methodName) {
-        this.name = methodName;
-        this.updatedAt = Instant.now();
-    }
+	private boolean enabled = true;
 
-    public String getAuthenticationMethodType() {
-        return "OAUTH_" + (provider != null ? provider.toUpperCase() : "UNKNOWN");
-    }
+	private Instant createdAt;
 
-    public Map<String, Object> getTypeSpecificData() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("provider", provider);
-        data.put("email", email);
-        data.put("verified", verified);
-        data.put("hasProviderId", providerId != null && !providerId.trim().isEmpty());
-        return data;
-    }
+	private Instant updatedAt;
 
-    // === GETTERS AND SETTERS ===
+	private Instant lastUsedAt;
 
-    public String getId() {
-        return id;
-    }
+	private Map<String, Object> metadata;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	// === CONSTRUCTORS ===
 
-    public String getUserId() {
-        return userId;
-    }
+	public OAuthAuthenticationMethod() {
+		this.createdAt = Instant.now();
+		this.updatedAt = Instant.now();
+		this.metadata = new HashMap<>();
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public OAuthAuthenticationMethod(String provider, String providerId, String email) {
+		this();
+		this.provider = provider;
+		this.providerId = providerId;
+		this.email = email;
+		this.type = "OAUTH_" + provider.toUpperCase();
+		this.name = provider + " OAuth";
+		this.verified = true; // OAuth accounts are verified by default
+	}
 
-    public String getType() {
-        return type;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	public boolean isVerified() {
+		return Boolean.TRUE.equals(verified);
+	}
 
-    public String getName() {
-        return name;
-    }
+	public boolean isConfigured() {
+		return provider != null && !provider.trim().isEmpty() && providerId != null && !providerId.trim().isEmpty()
+				&& isVerified();
+	}
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	public boolean isActive() {
+		return enabled && isVerified();
+	}
 
-    public String getProvider() {
-        return provider;
-    }
+	public void setProviderEmail(String providerEmail) {
+		this.email = providerEmail;
+		this.updatedAt = Instant.now();
+	}
 
-    public void setProvider(String provider) {
-        this.provider = provider;
-        if (provider != null) {
-            setType("OAUTH_" + provider.toUpperCase());
-            setName(provider + " OAuth");
-        }
-    }
+	public void setMethodName(String methodName) {
+		this.name = methodName;
+		this.updatedAt = Instant.now();
+	}
 
-    public String getProviderId() {
-        return providerId;
-    }
+	public String getAuthenticationMethodType() {
+		return "OAUTH_" + (provider != null ? provider.toUpperCase() : "UNKNOWN");
+	}
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	public Map<String, Object> getTypeSpecificData() {
+		Map<String, Object> data = new HashMap<>();
+		data.put("provider", provider);
+		data.put("email", email);
+		data.put("verified", verified);
+		data.put("hasProviderId", providerId != null && !providerId.trim().isEmpty());
+		return data;
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public Boolean getVerified() {
-        return verified;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+	public String getType() {
+		return type;
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public void setType(String type) {
+		this.type = type;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	public String getProvider() {
+		return provider;
+	}
 
-    public Instant getLastUsedAt() {
-        return lastUsedAt;
-    }
+	public void setProvider(String provider) {
+		this.provider = provider;
+		if (provider != null) {
+			setType("OAUTH_" + provider.toUpperCase());
+			setName(provider + " OAuth");
+		}
+	}
 
-    public void setLastUsedAt(Instant lastUsedAt) {
-        this.lastUsedAt = lastUsedAt;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public Map<String, Object> getMetadata() {
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
-        return metadata;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public Boolean getVerified() {
+		return verified;
+	}
+
+	public void setVerified(Boolean verified) {
+		this.verified = verified;
+	}
+
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(Instant updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	public Instant getLastUsedAt() {
+		return lastUsedAt;
+	}
+
+	public void setLastUsedAt(Instant lastUsedAt) {
+		this.lastUsedAt = lastUsedAt;
+	}
+
+	public Map<String, Object> getMetadata() {
+		if (metadata == null) {
+			metadata = new HashMap<>();
+		}
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
 }

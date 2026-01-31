@@ -9,8 +9,5 @@ import jakarta.validation.constraints.NotBlank;
  * @param email the email address associated with the account
  */
 public record RecoveryInitiateRequest(
-        @NotBlank(message = "Email is required")
-        @Email(message = "Invalid email format")
-        String email
-) {
+		@NotBlank(message = "Email is required") @Email(message = "Invalid email format") String email) {
 }

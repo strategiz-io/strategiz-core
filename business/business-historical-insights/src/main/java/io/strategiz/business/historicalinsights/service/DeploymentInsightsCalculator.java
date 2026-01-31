@@ -12,11 +12,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Calculator service for generating deployment insights including:
- * - Position sizing recommendations using Kelly criterion
- * - Drawdown risk analysis
- * - Consecutive loss analysis
- * - Alert vs Bot deployment mode recommendations
+ * Calculator service for generating deployment insights including: - Position sizing
+ * recommendations using Kelly criterion - Drawdown risk analysis - Consecutive loss
+ * analysis - Alert vs Bot deployment mode recommendations
  */
 @Service
 public class DeploymentInsightsCalculator {
@@ -71,8 +69,8 @@ public class DeploymentInsightsCalculator {
 	}
 
 	/**
-	 * Calculate Kelly criterion and recommended portfolio allocation.
-	 * Kelly Formula: f* = (p * b - q) / b where p=winRate, b=avgWin/avgLoss, q=(1-p)
+	 * Calculate Kelly criterion and recommended portfolio allocation. Kelly Formula: f* =
+	 * (p * b - q) / b where p=winRate, b=avgWin/avgLoss, q=(1-p)
 	 */
 	private void calculatePositionSizing(DeploymentInsights insights, StrategyTestResult result) {
 		double winRate = result.getWinRate(); // 0.0 - 1.0
@@ -220,12 +218,14 @@ public class DeploymentInsightsCalculator {
 				break;
 			case HIGH:
 				sb.append("significant capital can be at risk during adverse market conditions. ");
-				sb.append(String.format("A %.1f%% gain is needed to recover - this requires strong conviction.", recovery));
+				sb.append(String.format("A %.1f%% gain is needed to recover - this requires strong conviction.",
+						recovery));
 				break;
 			case EXTREME:
 				sb.append("more than a third of capital could be lost during the worst periods. ");
-				sb.append(String.format("Recovery requires a %.1f%% gain, which could take years. Consider reducing "
-						+ "allocation.", recovery));
+				sb.append(String.format(
+						"Recovery requires a %.1f%% gain, which could take years. Consider reducing " + "allocation.",
+						recovery));
 				break;
 		}
 
@@ -272,7 +272,8 @@ public class DeploymentInsightsCalculator {
 	/**
 	 * Generate explanation for consecutive loss analysis.
 	 */
-	private String generateConsecutiveLossExplanation(int maxLosses, double worstPercent, double prob5, double winRate) {
+	private String generateConsecutiveLossExplanation(int maxLosses, double worstPercent, double prob5,
+			double winRate) {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(String.format("The strategy experienced up to %d consecutive losing trades", maxLosses));
@@ -282,10 +283,8 @@ public class DeploymentInsightsCalculator {
 		sb.append(". ");
 
 		if (prob5 > 10) {
-			sb.append(String.format(
-					"With a %.1f%% win rate, there's a %.1f%% chance of 5 losses in a row - " + "prepare mentally for "
-							+ "these drawdowns.",
-					winRate * 100, prob5));
+			sb.append(String.format("With a %.1f%% win rate, there's a %.1f%% chance of 5 losses in a row - "
+					+ "prepare mentally for " + "these drawdowns.", winRate * 100, prob5));
 		}
 		else if (prob5 > 1) {
 			sb.append(String.format("There's a %.1f%% probability of experiencing 5 consecutive losses.", prob5));
@@ -314,7 +313,8 @@ public class DeploymentInsightsCalculator {
 			sharpeInterpretation = String.format("Good (%.2f) - Generates meaningful return per unit of risk", sharpe);
 		}
 		else if (sharpe >= 0.5) {
-			sharpeInterpretation = String.format("Moderate (%.2f) - Consider improvements to reduce volatility", sharpe);
+			sharpeInterpretation = String.format("Moderate (%.2f) - Consider improvements to reduce volatility",
+					sharpe);
 		}
 		else {
 			sharpeInterpretation = String.format("Poor (%.2f) - Returns don't adequately compensate for risk", sharpe);
@@ -395,31 +395,27 @@ public class DeploymentInsightsCalculator {
 
 		if (tradesPerYear >= HIGH_FREQUENCY_THRESHOLD) {
 			recommendedMode = DeploymentMode.BOT;
-			rationale = String.format(
-					"With ~%d trades/year, manual execution is impractical. Bot mode ensures consistent "
-							+ "execution and eliminates emotional decisions.",
-					tradesPerYear);
+			rationale = String
+				.format("With ~%d trades/year, manual execution is impractical. Bot mode ensures consistent "
+						+ "execution and eliminates emotional decisions.", tradesPerYear);
 		}
 		else if (tradesPerYear >= MEDIUM_FREQUENCY_THRESHOLD) {
 			recommendedMode = DeploymentMode.BOT;
-			rationale = String.format(
-					"At %d trades/year, bot mode is recommended for faster execution and 24/7 monitoring. "
-							+ "Alert mode is viable if you prefer manual control.",
-					tradesPerYear);
+			rationale = String
+				.format("At %d trades/year, bot mode is recommended for faster execution and 24/7 monitoring. "
+						+ "Alert mode is viable if you prefer manual control.", tradesPerYear);
 		}
 		else if (tradesPerYear >= LOW_FREQUENCY_THRESHOLD) {
 			recommendedMode = DeploymentMode.ALERT;
-			rationale = String.format(
-					"With %d trades/year, alert mode allows you to review each signal before executing. "
-							+ "This is ideal for learning and building confidence.",
-					tradesPerYear);
+			rationale = String
+				.format("With %d trades/year, alert mode allows you to review each signal before executing. "
+						+ "This is ideal for learning and building confidence.", tradesPerYear);
 		}
 		else {
 			recommendedMode = DeploymentMode.ALERT;
-			rationale = String.format(
-					"Position trading with ~%d trades/year is well-suited for alert mode. You have time to "
-							+ "analyze each opportunity thoroughly.",
-					tradesPerYear);
+			rationale = String
+				.format("Position trading with ~%d trades/year is well-suited for alert mode. You have time to "
+						+ "analyze each opportunity thoroughly.", tradesPerYear);
 		}
 
 		insights.setRecommendedDeploymentMode(recommendedMode);
@@ -439,16 +435,15 @@ public class DeploymentInsightsCalculator {
 
 		// Alert limitations
 		insights.setAlertLimitations(Arrays.asList("Execution depends on your availability",
-				"Stop loss must be set manually each time",
-				"Take profit must be set manually each time",
-				"Not practical for 500+ trades per year",
-				"May miss overnight or after-hours signals"));
+				"Stop loss must be set manually each time", "Take profit must be set manually each time",
+				"Not practical for 500+ trades per year", "May miss overnight or after-hours signals"));
 
 		// Bot advantages
 		insights.setBotAdvantages(Arrays.asList("Instant execution - millisecond response time",
 				"Automatic position sizing based on your rules", "Auto-set stop loss per strategy parameters",
 				"Auto-set take profit per strategy parameters", "Auto-pause if max daily loss is reached",
-				"24/7 trading - never miss a signal", "Paper trading mode for safe testing", "Eliminates emotional decisions"));
+				"24/7 trading - never miss a signal", "Paper trading mode for safe testing",
+				"Eliminates emotional decisions"));
 
 		// Bot limitations
 		insights.setBotLimitations(

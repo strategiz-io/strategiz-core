@@ -5,64 +5,64 @@ package io.strategiz.service.waitlist.model.response;
  */
 public class WaitlistJoinResponse {
 
-    private boolean success;
-    private boolean alreadyJoined;
-    private String message;
+	private boolean success;
 
-    // Constructors
-    public WaitlistJoinResponse() {
-    }
+	private boolean alreadyJoined;
 
-    public WaitlistJoinResponse(boolean success, boolean alreadyJoined, String message) {
-        this.success = success;
-        this.alreadyJoined = alreadyJoined;
-        this.message = message;
-    }
+	private String message;
 
-    // Factory methods
-    public static WaitlistJoinResponse success() {
-        return new WaitlistJoinResponse(true, false, "Welcome! Check your email for confirmation.");
-    }
+	// Constructors
+	public WaitlistJoinResponse() {
+	}
 
-    public static WaitlistJoinResponse alreadyJoined() {
-        return new WaitlistJoinResponse(false, true, "You're already on the waitlist!");
-    }
+	public WaitlistJoinResponse(boolean success, boolean alreadyJoined, String message) {
+		this.success = success;
+		this.alreadyJoined = alreadyJoined;
+		this.message = message;
+	}
 
-    public static WaitlistJoinResponse error(String message) {
-        return new WaitlistJoinResponse(false, false, message);
-    }
+	// Factory methods
+	public static WaitlistJoinResponse success() {
+		return new WaitlistJoinResponse(true, false, "Welcome! Check your email for confirmation.");
+	}
 
-    // Getters and Setters
-    public boolean isSuccess() {
-        return success;
-    }
+	public static WaitlistJoinResponse alreadyJoined() {
+		return new WaitlistJoinResponse(false, true, "You're already on the waitlist!");
+	}
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+	public static WaitlistJoinResponse error(String message) {
+		return new WaitlistJoinResponse(false, false, message);
+	}
 
-    public boolean isAlreadyJoined() {
-        return alreadyJoined;
-    }
+	// Getters and Setters
+	public boolean isSuccess() {
+		return success;
+	}
 
-    public void setAlreadyJoined(boolean alreadyJoined) {
-        this.alreadyJoined = alreadyJoined;
-    }
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
 
-    public String getMessage() {
-        return message;
-    }
+	public boolean isAlreadyJoined() {
+		return alreadyJoined;
+	}
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	public void setAlreadyJoined(boolean alreadyJoined) {
+		this.alreadyJoined = alreadyJoined;
+	}
 
-    @Override
-    public String toString() {
-        return "WaitlistJoinResponse{" +
-                "success=" + success +
-                ", alreadyJoined=" + alreadyJoined +
-                ", message='" + message + '\'' +
-                '}';
-    }
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
+	}
+
+	@Override
+	public String toString() {
+		return "WaitlistJoinResponse{" + "success=" + success + ", alreadyJoined=" + alreadyJoined + ", message='"
+				+ message + '\'' + '}';
+	}
+
 }

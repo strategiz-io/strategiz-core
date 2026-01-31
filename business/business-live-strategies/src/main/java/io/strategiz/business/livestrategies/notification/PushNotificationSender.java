@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 import java.text.DecimalFormat;
 
 /**
- * Push notification sender for strategy alerts. Uses Firebase Cloud Messaging to deliver push
- * notifications to mobile and web apps.
+ * Push notification sender for strategy alerts. Uses Firebase Cloud Messaging to deliver
+ * push notifications to mobile and web apps.
  */
 @Component
 @ConditionalOnBean(PushProvider.class)

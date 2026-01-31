@@ -6,12 +6,13 @@ import org.springframework.context.annotation.Import;
 import io.strategiz.data.social.config.DataSocialConfig;
 
 /**
- * Configuration for the Social Service.
- * Imports DataSocialConfig for repository beans.
+ * Configuration for the Social Service. Imports DataSocialConfig for repository beans.
  */
 @Configuration
-@Import({DataSocialConfig.class})
+@Import({ DataSocialConfig.class })
 @ComponentScan(basePackages = "io.strategiz.service.social")
 public class ServiceSocialConfig {
-    // Configuration is handled by annotations
+
+	// Configuration is handled by annotations
+
 }

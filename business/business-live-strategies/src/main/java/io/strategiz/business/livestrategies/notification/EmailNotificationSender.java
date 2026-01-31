@@ -17,8 +17,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Email notification sender for strategy alerts. Uses SendGrid to deliver email notifications
- * when alerts are triggered.
+ * Email notification sender for strategy alerts. Uses SendGrid to deliver email
+ * notifications when alerts are triggered.
  */
 @Component
 @ConditionalOnBean(EmailProvider.class)
@@ -79,12 +79,7 @@ public class EmailNotificationSender implements NotificationSender {
 		String bodyHtml = buildHtmlBody(alert, signal, strategyName);
 		String bodyText = buildTextBody(alert, signal, strategyName);
 
-		return EmailMessage.builder()
-			.toEmail(toEmail)
-			.subject(subject)
-			.bodyHtml(bodyHtml)
-			.bodyText(bodyText)
-			.build();
+		return EmailMessage.builder().toEmail(toEmail).subject(subject).bodyHtml(bodyHtml).bodyText(bodyText).build();
 	}
 
 	/**
@@ -160,8 +155,9 @@ public class EmailNotificationSender implements NotificationSender {
 				  </div>
 				</body>
 				</html>
-				""".formatted(signalEmoji, signalColor, signalEmoji, signalColor, signal.getType(), signal.getSymbol(),
-				strategyName, formatPrice(signal.getPrice()), 85, strategyName, timestamp);
+				"""
+			.formatted(signalEmoji, signalColor, signalEmoji, signalColor, signal.getType(), signal.getSymbol(),
+					strategyName, formatPrice(signal.getPrice()), 85, strategyName, timestamp);
 	}
 
 	/**

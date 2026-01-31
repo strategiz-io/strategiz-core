@@ -21,9 +21,9 @@ import java.time.Duration;
  * Spring configuration for Financial Modeling Prep client.
  *
  * <p>
- * Provides: - RestTemplate configured with appropriate timeouts for FMP API - Rate limiter based
- * on API tier - FmpFundamentalsClient bean - Conditional activation based on
- * property: strategiz.fmp.enabled
+ * Provides: - RestTemplate configured with appropriate timeouts for FMP API - Rate
+ * limiter based on API tier - FmpFundamentalsClient bean - Conditional activation based
+ * on property: strategiz.fmp.enabled
  * </p>
  *
  * <p>
@@ -67,8 +67,8 @@ public class ClientFmpConfig {
 	/**
 	 * FMP Fundamentals Client bean.
 	 * <p>
-	 * Created as a @Bean instead of @Component to ensure proper dependency ordering.
-	 * The fmpRestTemplate and fmpRateLimiter beans must be created first.
+	 * Created as a @Bean instead of @Component to ensure proper dependency ordering. The
+	 * fmpRestTemplate and fmpRateLimiter beans must be created first.
 	 * </p>
 	 * @param config FMP configuration
 	 * @param fmpRestTemplate configured RestTemplate
@@ -85,8 +85,8 @@ public class ClientFmpConfig {
 	/**
 	 * FMP News Client bean.
 	 * <p>
-	 * Provides access to FMP news endpoints including stock news, general market news, forex news,
-	 * crypto news, and press releases.
+	 * Provides access to FMP news endpoints including stock news, general market news,
+	 * forex news, crypto news, and press releases.
 	 * </p>
 	 * @param config FMP configuration
 	 * @param fmpRestTemplate configured RestTemplate
@@ -103,8 +103,8 @@ public class ClientFmpConfig {
 	/**
 	 * FMP Quote Client bean.
 	 * <p>
-	 * Provides access to FMP quote endpoints for real-time prices, including index ETFs (SPY, QQQ,
-	 * IWM, DIA) and sector ETFs.
+	 * Provides access to FMP quote endpoints for real-time prices, including index ETFs
+	 * (SPY, QQQ, IWM, DIA) and sector ETFs.
 	 * </p>
 	 * @param config FMP configuration
 	 * @param fmpRestTemplate configured RestTemplate
@@ -121,7 +121,8 @@ public class ClientFmpConfig {
 	/**
 	 * FMP Technical Client bean.
 	 * <p>
-	 * Provides access to FMP technical indicator endpoints including RSI, SMA, EMA, and MACD.
+	 * Provides access to FMP technical indicator endpoints including RSI, SMA, EMA, and
+	 * MACD.
 	 * </p>
 	 * @param config FMP configuration
 	 * @param fmpRestTemplate configured RestTemplate

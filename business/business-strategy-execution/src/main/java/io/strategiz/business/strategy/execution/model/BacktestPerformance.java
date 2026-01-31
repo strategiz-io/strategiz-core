@@ -7,201 +7,220 @@ import java.util.List;
  */
 public class BacktestPerformance {
 
-    private double totalReturn;
-    private double totalPnL;
-    private double winRate;
-    private int totalTrades;
-    private int profitableTrades;
-    private int buyCount;
-    private int sellCount;
-    private double avgWin;
-    private double avgLoss;
-    private double profitFactor;
-    private double maxDrawdown;
-    private double sharpeRatio;
-    private List<BacktestTrade> trades;
-    private String lastTestedAt;
+	private double totalReturn;
 
-    // NEW: Actual backtest period tracking (not hardcoded)
-    private String testPeriod;           // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
-    private String backtestStartDate;    // ISO timestamp of first data point
-    private String backtestEndDate;      // ISO timestamp of last data point
-    private Integer backtestPeriodDays;  // Actual days tested
+	private double totalPnL;
 
-    // NEW: Buy-and-hold comparison metrics
-    private Double buyAndHoldReturn;         // $ return if just buying and holding
-    private Double buyAndHoldReturnPercent;  // % return if just buying and holding
-    private Double outperformance;           // Strategy return - Buy&Hold return (%)
+	private double winRate;
 
-    public BacktestPerformance() {
-    }
+	private int totalTrades;
 
-    // Getters and Setters
-    public double getTotalReturn() {
-        return totalReturn;
-    }
+	private int profitableTrades;
 
-    public void setTotalReturn(double totalReturn) {
-        this.totalReturn = totalReturn;
-    }
+	private int buyCount;
 
-    public double getTotalPnL() {
-        return totalPnL;
-    }
+	private int sellCount;
 
-    public void setTotalPnL(double totalPnL) {
-        this.totalPnL = totalPnL;
-    }
+	private double avgWin;
 
-    public double getWinRate() {
-        return winRate;
-    }
+	private double avgLoss;
 
-    public void setWinRate(double winRate) {
-        this.winRate = winRate;
-    }
+	private double profitFactor;
 
-    public int getTotalTrades() {
-        return totalTrades;
-    }
+	private double maxDrawdown;
 
-    public void setTotalTrades(int totalTrades) {
-        this.totalTrades = totalTrades;
-    }
+	private double sharpeRatio;
 
-    public int getProfitableTrades() {
-        return profitableTrades;
-    }
+	private List<BacktestTrade> trades;
 
-    public void setProfitableTrades(int profitableTrades) {
-        this.profitableTrades = profitableTrades;
-    }
+	private String lastTestedAt;
 
-    public int getBuyCount() {
-        return buyCount;
-    }
+	// NEW: Actual backtest period tracking (not hardcoded)
+	private String testPeriod; // Formatted period (e.g., "5.3Y", "18M", "Since Jan 2020")
 
-    public void setBuyCount(int buyCount) {
-        this.buyCount = buyCount;
-    }
+	private String backtestStartDate; // ISO timestamp of first data point
 
-    public int getSellCount() {
-        return sellCount;
-    }
+	private String backtestEndDate; // ISO timestamp of last data point
 
-    public void setSellCount(int sellCount) {
-        this.sellCount = sellCount;
-    }
+	private Integer backtestPeriodDays; // Actual days tested
 
-    public double getAvgWin() {
-        return avgWin;
-    }
+	// NEW: Buy-and-hold comparison metrics
+	private Double buyAndHoldReturn; // $ return if just buying and holding
 
-    public void setAvgWin(double avgWin) {
-        this.avgWin = avgWin;
-    }
+	private Double buyAndHoldReturnPercent; // % return if just buying and holding
 
-    public double getAvgLoss() {
-        return avgLoss;
-    }
+	private Double outperformance; // Strategy return - Buy&Hold return (%)
 
-    public void setAvgLoss(double avgLoss) {
-        this.avgLoss = avgLoss;
-    }
+	public BacktestPerformance() {
+	}
 
-    public double getProfitFactor() {
-        return profitFactor;
-    }
+	// Getters and Setters
+	public double getTotalReturn() {
+		return totalReturn;
+	}
 
-    public void setProfitFactor(double profitFactor) {
-        this.profitFactor = profitFactor;
-    }
+	public void setTotalReturn(double totalReturn) {
+		this.totalReturn = totalReturn;
+	}
 
-    public double getMaxDrawdown() {
-        return maxDrawdown;
-    }
+	public double getTotalPnL() {
+		return totalPnL;
+	}
 
-    public void setMaxDrawdown(double maxDrawdown) {
-        this.maxDrawdown = maxDrawdown;
-    }
+	public void setTotalPnL(double totalPnL) {
+		this.totalPnL = totalPnL;
+	}
 
-    public double getSharpeRatio() {
-        return sharpeRatio;
-    }
+	public double getWinRate() {
+		return winRate;
+	}
 
-    public void setSharpeRatio(double sharpeRatio) {
-        this.sharpeRatio = sharpeRatio;
-    }
+	public void setWinRate(double winRate) {
+		this.winRate = winRate;
+	}
 
-    public List<BacktestTrade> getTrades() {
-        return trades;
-    }
+	public int getTotalTrades() {
+		return totalTrades;
+	}
 
-    public void setTrades(List<BacktestTrade> trades) {
-        this.trades = trades;
-    }
+	public void setTotalTrades(int totalTrades) {
+		this.totalTrades = totalTrades;
+	}
 
-    public String getLastTestedAt() {
-        return lastTestedAt;
-    }
+	public int getProfitableTrades() {
+		return profitableTrades;
+	}
 
-    public void setLastTestedAt(String lastTestedAt) {
-        this.lastTestedAt = lastTestedAt;
-    }
+	public void setProfitableTrades(int profitableTrades) {
+		this.profitableTrades = profitableTrades;
+	}
 
-    public String getTestPeriod() {
-        return testPeriod;
-    }
+	public int getBuyCount() {
+		return buyCount;
+	}
 
-    public void setTestPeriod(String testPeriod) {
-        this.testPeriod = testPeriod;
-    }
+	public void setBuyCount(int buyCount) {
+		this.buyCount = buyCount;
+	}
 
-    public String getBacktestStartDate() {
-        return backtestStartDate;
-    }
+	public int getSellCount() {
+		return sellCount;
+	}
 
-    public void setBacktestStartDate(String backtestStartDate) {
-        this.backtestStartDate = backtestStartDate;
-    }
+	public void setSellCount(int sellCount) {
+		this.sellCount = sellCount;
+	}
 
-    public String getBacktestEndDate() {
-        return backtestEndDate;
-    }
+	public double getAvgWin() {
+		return avgWin;
+	}
 
-    public void setBacktestEndDate(String backtestEndDate) {
-        this.backtestEndDate = backtestEndDate;
-    }
+	public void setAvgWin(double avgWin) {
+		this.avgWin = avgWin;
+	}
 
-    public Integer getBacktestPeriodDays() {
-        return backtestPeriodDays;
-    }
+	public double getAvgLoss() {
+		return avgLoss;
+	}
 
-    public void setBacktestPeriodDays(Integer backtestPeriodDays) {
-        this.backtestPeriodDays = backtestPeriodDays;
-    }
+	public void setAvgLoss(double avgLoss) {
+		this.avgLoss = avgLoss;
+	}
 
-    public Double getBuyAndHoldReturn() {
-        return buyAndHoldReturn;
-    }
+	public double getProfitFactor() {
+		return profitFactor;
+	}
 
-    public void setBuyAndHoldReturn(Double buyAndHoldReturn) {
-        this.buyAndHoldReturn = buyAndHoldReturn;
-    }
+	public void setProfitFactor(double profitFactor) {
+		this.profitFactor = profitFactor;
+	}
 
-    public Double getBuyAndHoldReturnPercent() {
-        return buyAndHoldReturnPercent;
-    }
+	public double getMaxDrawdown() {
+		return maxDrawdown;
+	}
 
-    public void setBuyAndHoldReturnPercent(Double buyAndHoldReturnPercent) {
-        this.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
-    }
+	public void setMaxDrawdown(double maxDrawdown) {
+		this.maxDrawdown = maxDrawdown;
+	}
 
-    public Double getOutperformance() {
-        return outperformance;
-    }
+	public double getSharpeRatio() {
+		return sharpeRatio;
+	}
 
-    public void setOutperformance(Double outperformance) {
-        this.outperformance = outperformance;
-    }
+	public void setSharpeRatio(double sharpeRatio) {
+		this.sharpeRatio = sharpeRatio;
+	}
+
+	public List<BacktestTrade> getTrades() {
+		return trades;
+	}
+
+	public void setTrades(List<BacktestTrade> trades) {
+		this.trades = trades;
+	}
+
+	public String getLastTestedAt() {
+		return lastTestedAt;
+	}
+
+	public void setLastTestedAt(String lastTestedAt) {
+		this.lastTestedAt = lastTestedAt;
+	}
+
+	public String getTestPeriod() {
+		return testPeriod;
+	}
+
+	public void setTestPeriod(String testPeriod) {
+		this.testPeriod = testPeriod;
+	}
+
+	public String getBacktestStartDate() {
+		return backtestStartDate;
+	}
+
+	public void setBacktestStartDate(String backtestStartDate) {
+		this.backtestStartDate = backtestStartDate;
+	}
+
+	public String getBacktestEndDate() {
+		return backtestEndDate;
+	}
+
+	public void setBacktestEndDate(String backtestEndDate) {
+		this.backtestEndDate = backtestEndDate;
+	}
+
+	public Integer getBacktestPeriodDays() {
+		return backtestPeriodDays;
+	}
+
+	public void setBacktestPeriodDays(Integer backtestPeriodDays) {
+		this.backtestPeriodDays = backtestPeriodDays;
+	}
+
+	public Double getBuyAndHoldReturn() {
+		return buyAndHoldReturn;
+	}
+
+	public void setBuyAndHoldReturn(Double buyAndHoldReturn) {
+		this.buyAndHoldReturn = buyAndHoldReturn;
+	}
+
+	public Double getBuyAndHoldReturnPercent() {
+		return buyAndHoldReturnPercent;
+	}
+
+	public void setBuyAndHoldReturnPercent(Double buyAndHoldReturnPercent) {
+		this.buyAndHoldReturnPercent = buyAndHoldReturnPercent;
+	}
+
+	public Double getOutperformance() {
+		return outperformance;
+	}
+
+	public void setOutperformance(Double outperformance) {
+		this.outperformance = outperformance;
+	}
+
 }

@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Configuration;
 import java.io.IOException;
 
 /**
- * Configuration for admin API key authentication.
- * Protects /api/admin/* endpoints with an API key stored in Vault.
+ * Configuration for admin API key authentication. Protects /api/admin/* endpoints with an
+ * API key stored in Vault.
  *
  * Usage: Include header X-Admin-Key: <admin-api-key>
  *
@@ -28,94 +28,99 @@ import java.io.IOException;
 @Configuration
 public class AdminApiKeyConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(AdminApiKeyConfig.class);
-    private static final String ADMIN_KEY_HEADER = "X-Admin-Key";
+	private static final Logger log = LoggerFactory.getLogger(AdminApiKeyConfig.class);
 
-    private final SecretManager secretManager;
-    private String adminApiKey;
+	private static final String ADMIN_KEY_HEADER = "X-Admin-Key";
 
-    @Value("${admin.api-key.enabled:true}")
-    private boolean adminApiKeyEnabled;
+	private final SecretManager secretManager;
 
-    @Autowired
-    public AdminApiKeyConfig(@Qualifier("vaultSecretService") SecretManager secretManager) {
-        this.secretManager = secretManager;
-        loadAdminApiKey();
-    }
+	private String adminApiKey;
 
-    private void loadAdminApiKey() {
-        try {
-            // Read from secret/strategiz/admin path
-            this.adminApiKey = secretManager.readSecret("admin.api-key");
-            if (adminApiKey != null && !adminApiKey.isEmpty()) {
-                log.info("Loaded admin API key from Vault");
-            } else {
-                log.warn("Admin API key not found in Vault at 'admin.api-key' - admin endpoints will be unprotected!");
-            }
-        } catch (Exception e) {
-            log.error("Failed to load admin API key from Vault: {}", e.getMessage());
-        }
-    }
+	@Value("${admin.api-key.enabled:true}")
+	private boolean adminApiKeyEnabled;
 
-    @Bean
-    public FilterRegistrationBean<AdminApiKeyFilter> adminApiKeyFilter() {
-        FilterRegistrationBean<AdminApiKeyFilter> registrationBean = new FilterRegistrationBean<>();
-        registrationBean.setFilter(new AdminApiKeyFilter());
-        registrationBean.addUrlPatterns("/api/admin/*");
-        registrationBean.setOrder(1);
-        return registrationBean;
-    }
+	@Autowired
+	public AdminApiKeyConfig(@Qualifier("vaultSecretService") SecretManager secretManager) {
+		this.secretManager = secretManager;
+		loadAdminApiKey();
+	}
 
-    /**
-     * Filter that validates admin API key on /api/admin/* endpoints.
-     */
-    private class AdminApiKeyFilter implements Filter {
+	private void loadAdminApiKey() {
+		try {
+			// Read from secret/strategiz/admin path
+			this.adminApiKey = secretManager.readSecret("admin.api-key");
+			if (adminApiKey != null && !adminApiKey.isEmpty()) {
+				log.info("Loaded admin API key from Vault");
+			}
+			else {
+				log.warn("Admin API key not found in Vault at 'admin.api-key' - admin endpoints will be unprotected!");
+			}
+		}
+		catch (Exception e) {
+			log.error("Failed to load admin API key from Vault: {}", e.getMessage());
+		}
+	}
 
-        @Override
-        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-                throws IOException, ServletException {
+	@Bean
+	public FilterRegistrationBean<AdminApiKeyFilter> adminApiKeyFilter() {
+		FilterRegistrationBean<AdminApiKeyFilter> registrationBean = new FilterRegistrationBean<>();
+		registrationBean.setFilter(new AdminApiKeyFilter());
+		registrationBean.addUrlPatterns("/api/admin/*");
+		registrationBean.setOrder(1);
+		return registrationBean;
+	}
 
-            HttpServletRequest httpRequest = (HttpServletRequest) request;
-            HttpServletResponse httpResponse = (HttpServletResponse) response;
+	/**
+	 * Filter that validates admin API key on /api/admin/* endpoints.
+	 */
+	private class AdminApiKeyFilter implements Filter {
 
-            // Skip filter if admin API key is disabled
-            if (!adminApiKeyEnabled) {
-                log.warn("Admin API key check DISABLED - allowing request to {}", httpRequest.getRequestURI());
-                chain.doFilter(request, response);
-                return;
-            }
+		@Override
+		public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+				throws IOException, ServletException {
 
-            // Skip filter if no admin key configured (for backward compatibility)
-            if (adminApiKey == null || adminApiKey.isEmpty()) {
-                log.warn("Admin API key not configured - allowing request to {}", httpRequest.getRequestURI());
-                chain.doFilter(request, response);
-                return;
-            }
+			HttpServletRequest httpRequest = (HttpServletRequest) request;
+			HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-            // Check for admin key header
-            String providedKey = httpRequest.getHeader(ADMIN_KEY_HEADER);
+			// Skip filter if admin API key is disabled
+			if (!adminApiKeyEnabled) {
+				log.warn("Admin API key check DISABLED - allowing request to {}", httpRequest.getRequestURI());
+				chain.doFilter(request, response);
+				return;
+			}
 
-            if (providedKey == null || providedKey.isEmpty()) {
-                log.warn("Admin API request without key from {}: {}",
-                        httpRequest.getRemoteAddr(), httpRequest.getRequestURI());
-                httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                httpResponse.setContentType("application/json");
-                httpResponse.getWriter().write("{\"error\":\"Missing X-Admin-Key header\"}");
-                return;
-            }
+			// Skip filter if no admin key configured (for backward compatibility)
+			if (adminApiKey == null || adminApiKey.isEmpty()) {
+				log.warn("Admin API key not configured - allowing request to {}", httpRequest.getRequestURI());
+				chain.doFilter(request, response);
+				return;
+			}
 
-            if (!adminApiKey.equals(providedKey)) {
-                log.warn("Invalid admin API key from {}: {}",
-                        httpRequest.getRemoteAddr(), httpRequest.getRequestURI());
-                httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                httpResponse.setContentType("application/json");
-                httpResponse.getWriter().write("{\"error\":\"Invalid admin API key\"}");
-                return;
-            }
+			// Check for admin key header
+			String providedKey = httpRequest.getHeader(ADMIN_KEY_HEADER);
 
-            // Valid key - proceed
-            log.debug("Valid admin API key for request: {}", httpRequest.getRequestURI());
-            chain.doFilter(request, response);
-        }
-    }
+			if (providedKey == null || providedKey.isEmpty()) {
+				log.warn("Admin API request without key from {}: {}", httpRequest.getRemoteAddr(),
+						httpRequest.getRequestURI());
+				httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+				httpResponse.setContentType("application/json");
+				httpResponse.getWriter().write("{\"error\":\"Missing X-Admin-Key header\"}");
+				return;
+			}
+
+			if (!adminApiKey.equals(providedKey)) {
+				log.warn("Invalid admin API key from {}: {}", httpRequest.getRemoteAddr(), httpRequest.getRequestURI());
+				httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+				httpResponse.setContentType("application/json");
+				httpResponse.getWriter().write("{\"error\":\"Invalid admin API key\"}");
+				return;
+			}
+
+			// Valid key - proceed
+			log.debug("Valid admin API key for request: {}", httpRequest.getRequestURI());
+			chain.doFilter(request, response);
+		}
+
+	}
+
 }

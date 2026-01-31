@@ -6,72 +6,75 @@ import io.strategiz.service.profile.constants.ProfileConstants;
  * Response DTO for profile update operations
  */
 public class UpdateProfileResponse {
-    private String userId;
-    private String message;
-    private boolean success;
-    private long updatedAt;
 
-    // Default constructor
-    public UpdateProfileResponse() {
-    }
+	private String userId;
 
-    // Constructor
-    public UpdateProfileResponse(String userId, String message, boolean success, long updatedAt) {
-        this.userId = userId;
-        this.message = message;
-        this.success = success;
-        this.updatedAt = updatedAt;
-    }
+	private String message;
 
-    // Static factory methods for common responses
-    public static UpdateProfileResponse success(String userId, String message) {
-        return new UpdateProfileResponse(userId, message, ProfileConstants.Defaults.IS_ACTIVE, System.currentTimeMillis());
-    }
+	private boolean success;
 
-    public static UpdateProfileResponse failure(String userId, String message) {
-        return new UpdateProfileResponse(userId, message, !ProfileConstants.Defaults.IS_ACTIVE, System.currentTimeMillis());
-    }
+	private long updatedAt;
 
-    // Getters and setters
-    public String getUserId() {
-        return userId;
-    }
+	// Default constructor
+	public UpdateProfileResponse() {
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	// Constructor
+	public UpdateProfileResponse(String userId, String message, boolean success, long updatedAt) {
+		this.userId = userId;
+		this.message = message;
+		this.success = success;
+		this.updatedAt = updatedAt;
+	}
 
-    public String getMessage() {
-        return message;
-    }
+	// Static factory methods for common responses
+	public static UpdateProfileResponse success(String userId, String message) {
+		return new UpdateProfileResponse(userId, message, ProfileConstants.Defaults.IS_ACTIVE,
+				System.currentTimeMillis());
+	}
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	public static UpdateProfileResponse failure(String userId, String message) {
+		return new UpdateProfileResponse(userId, message, !ProfileConstants.Defaults.IS_ACTIVE,
+				System.currentTimeMillis());
+	}
 
-    public boolean isSuccess() {
-        return success;
-    }
+	// Getters and setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public long getUpdatedAt() {
-        return updatedAt;
-    }
+	public String getMessage() {
+		return message;
+	}
 
-    public void setUpdatedAt(long updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    @Override
-    public String toString() {
-        return "UpdateProfileResponse{" +
-                "userId='" + userId + '\'' +
-                ", message='" + message + '\'' +
-                ", success=" + success +
-                ", updatedAt=" + updatedAt +
-                '}';
-    }
-} 
+	public boolean isSuccess() {
+		return success;
+	}
+
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
+
+	public long getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(long updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	@Override
+	public String toString() {
+		return "UpdateProfileResponse{" + "userId='" + userId + '\'' + ", message='" + message + '\'' + ", success="
+				+ success + ", updatedAt=" + updatedAt + '}';
+	}
+
+}

@@ -5,28 +5,29 @@ package io.strategiz.data.auth.entity;
  */
 public enum RecoveryStatus {
 
-    /**
-     * Recovery initiated, waiting for email verification
-     */
-    PENDING_EMAIL,
+	/**
+	 * Recovery initiated, waiting for email verification
+	 */
+	PENDING_EMAIL,
 
-    /**
-     * Email verified, waiting for SMS verification (if MFA enabled)
-     */
-    PENDING_SMS,
+	/**
+	 * Email verified, waiting for SMS verification (if MFA enabled)
+	 */
+	PENDING_SMS,
 
-    /**
-     * Recovery completed successfully
-     */
-    COMPLETED,
+	/**
+	 * Recovery completed successfully
+	 */
+	COMPLETED,
 
-    /**
-     * Recovery request expired (30 minutes)
-     */
-    EXPIRED,
+	/**
+	 * Recovery request expired (30 minutes)
+	 */
+	EXPIRED,
 
-    /**
-     * Recovery request cancelled by user
-     */
-    CANCELLED
+	/**
+	 * Recovery request cancelled by user
+	 */
+	CANCELLED
+
 }

@@ -5,11 +5,11 @@ import java.time.Instant;
 /**
  * Interface for entities that maintain circuit breaker state.
  *
- * Implement this interface on entities that need circuit breaker protection,
- * such as AlertDeployment, BotDeployment, or API client state objects.
+ * Implement this interface on entities that need circuit breaker protection, such as
+ * AlertDeployment, BotDeployment, or API client state objects.
  *
- * The state is persisted with the entity (e.g., in Firestore), allowing
- * circuit breaker state to survive restarts and be shared across instances.
+ * The state is persisted with the entity (e.g., in Firestore), allowing circuit breaker
+ * state to survive restarts and be shared across instances.
  */
 public interface CircuitBreakerState {
 

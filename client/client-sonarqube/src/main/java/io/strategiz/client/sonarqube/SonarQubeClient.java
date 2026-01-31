@@ -17,8 +17,8 @@ import io.strategiz.client.sonarqube.config.SonarQubeConfig;
 import io.strategiz.client.sonarqube.model.SonarQubeMetrics;
 
 /**
- * HTTP client for SonarQube API. Fetches code quality metrics from self-hosted
- * SonarQube instance.
+ * HTTP client for SonarQube API. Fetches code quality metrics from self-hosted SonarQube
+ * instance.
  *
  * SonarQube API documentation: https://next.sonarqube.com/sonarqube/web_api
  */

@@ -22,8 +22,8 @@ import java.util.concurrent.ExecutionException;
  *
  * Collection path: service_accounts/{id}
  *
- * Provides CRUD operations for service accounts used in machine-to-machine
- * authentication for CI/CD pipelines and integration testing.
+ * Provides CRUD operations for service accounts used in machine-to-machine authentication
+ * for CI/CD pipelines and integration testing.
  */
 @Repository
 public class ServiceAccountRepositoryImpl implements ServiceAccountRepository {

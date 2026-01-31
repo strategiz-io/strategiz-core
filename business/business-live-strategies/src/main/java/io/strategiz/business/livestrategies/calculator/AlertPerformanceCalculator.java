@@ -12,18 +12,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Calculator for alert live performance metrics.
- * Analyzes signal history to compute real-time performance statistics.
+ * Calculator for alert live performance metrics. Analyzes signal history to compute
+ * real-time performance statistics.
  */
 @Component
 public class AlertPerformanceCalculator {
 
 	/**
 	 * Calculate live performance from signal history
-	 *
-	 * @param alertId              The alert deployment ID
-	 * @param signalHistory        List of all signals triggered by this alert
-	 * @param deploymentStartDate  When the alert was deployed
+	 * @param alertId The alert deployment ID
+	 * @param signalHistory List of all signals triggered by this alert
+	 * @param deploymentStartDate When the alert was deployed
 	 * @return Calculated live performance metrics
 	 */
 	public AlertLivePerformance calculatePerformance(String alertId, List<AlertDeploymentHistory> signalHistory,
@@ -38,8 +37,7 @@ public class AlertPerformanceCalculator {
 		if (!signalHistory.isEmpty()) {
 			Timestamp lastTimestamp = signalHistory.get(signalHistory.size() - 1).getTimestamp();
 			if (lastTimestamp != null) {
-				perf.setLastSignalDate(
-						Instant.ofEpochSecond(lastTimestamp.getSeconds(), lastTimestamp.getNanos()));
+				perf.setLastSignalDate(Instant.ofEpochSecond(lastTimestamp.getSeconds(), lastTimestamp.getNanos()));
 			}
 		}
 

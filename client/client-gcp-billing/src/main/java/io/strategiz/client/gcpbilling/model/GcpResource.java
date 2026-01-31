@@ -14,24 +14,10 @@ import java.time.Instant;
  * @param estimatedMonthlyCost Estimated monthly cost based on usage patterns
  * @param labels Resource labels for categorization
  */
-public record GcpResource(
-        String resourceType,
-        String resourceName,
-        String region,
-        String status,
-        Instant createdAt,
-        BigDecimal estimatedMonthlyCost,
-        java.util.Map<String, String> labels
-) {
-    public static GcpResource empty() {
-        return new GcpResource(
-                "Unknown",
-                "Unknown",
-                "Unknown",
-                "UNKNOWN",
-                Instant.now(),
-                BigDecimal.ZERO,
-                java.util.Collections.emptyMap()
-        );
-    }
+public record GcpResource(String resourceType, String resourceName, String region, String status, Instant createdAt,
+		BigDecimal estimatedMonthlyCost, java.util.Map<String, String> labels) {
+	public static GcpResource empty() {
+		return new GcpResource("Unknown", "Unknown", "Unknown", "UNKNOWN", Instant.now(), BigDecimal.ZERO,
+				java.util.Collections.emptyMap());
+	}
 }

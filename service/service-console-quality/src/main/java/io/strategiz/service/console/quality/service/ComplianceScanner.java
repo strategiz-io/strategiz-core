@@ -21,10 +21,9 @@ import io.strategiz.service.console.quality.model.ComplianceViolation.ViolationS
 import io.strategiz.service.console.quality.model.ComplianceViolation.ViolationType;
 
 /**
- * Scans codebase for framework compliance violations. Analyzes Java source files
- * to detect: - Raw exception usage (IllegalArgumentException, RuntimeException,
- * etc.) - Services not extending BaseService - Controllers not extending
- * BaseController
+ * Scans codebase for framework compliance violations. Analyzes Java source files to
+ * detect: - Raw exception usage (IllegalArgumentException, RuntimeException, etc.) -
+ * Services not extending BaseService - Controllers not extending BaseController
  */
 @Service
 public class ComplianceScanner {
@@ -167,8 +166,7 @@ public class ComplianceScanner {
 	}
 
 	/**
-	 * Scan for controller pattern violations (controllers not extending
-	 * BaseController).
+	 * Scan for controller pattern violations (controllers not extending BaseController).
 	 * @return list of controller pattern violations
 	 */
 	public List<ComplianceViolation> scanControllerPattern() {

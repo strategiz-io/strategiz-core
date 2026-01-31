@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * ClickHouseDB usage metrics stored at infrastructure/usage/clickhouse/{date}
- * Documents usage statistics for capacity planning and monitoring.
+ * ClickHouseDB usage metrics stored at infrastructure/usage/clickhouse/{date} Documents
+ * usage statistics for capacity planning and monitoring.
  */
 @Collection("clickhouse")
 public class ClickHouseUsageEntity extends BaseEntity {

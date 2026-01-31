@@ -41,24 +41,31 @@ import io.strategiz.service.base.BaseService;
 @Service
 public class AIStrategyService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "unknown";
-    }
+	@Override
+	protected String getModuleName() {
+		return "unknown";
+	}
+
 	private final LLMRouter llmRouter;
 
 	private final ObjectMapper objectMapper;
 
 	// Optional - only available when ClickHouse is enabled
 	private final HistoricalInsightsService historicalInsightsService;
+
 	private final HistoricalInsightsCacheService cacheService;
+
 	private final StrategyExecutionService executionService;
+
 	private final StrategyOptimizationEngine optimizationEngine;
 
 	// PineScript conversion cache (in-memory, 24h TTL, max 500 entries)
 	private static final int PINESCRIPT_CACHE_MAX_SIZE = 500;
+
 	private static final long PINESCRIPT_CACHE_TTL_MS = 24 * 60 * 60 * 1000L; // 24 hours
+
 	private final ConcurrentHashMap<String, PineScriptCacheEntry> pineScriptCache = new ConcurrentHashMap<>();
+
 	private volatile long lastCacheCleanup = System.currentTimeMillis();
 
 	private record PineScriptCacheEntry(String pineScriptCode, long createdAt) {
@@ -68,10 +75,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	@Autowired
-	public AIStrategyService(LLMRouter llmRouter,
-			Optional<HistoricalInsightsService> historicalInsightsService,
-			HistoricalInsightsCacheService cacheService,
-			StrategyExecutionService executionService,
+	public AIStrategyService(LLMRouter llmRouter, Optional<HistoricalInsightsService> historicalInsightsService,
+			HistoricalInsightsCacheService cacheService, StrategyExecutionService executionService,
 			StrategyOptimizationEngine optimizationEngine) {
 		this.llmRouter = llmRouter;
 		this.objectMapper = new ObjectMapper();
@@ -85,20 +90,19 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Generate a new strategy from a natural language prompt.
-	 * For Autonomous AI mode (useHistoricalInsights=true), validates that the strategy
-	 * beats buy-and-hold by at least 15% before returning it to the user.
+	 * Generate a new strategy from a natural language prompt. For Autonomous AI mode
+	 * (useHistoricalInsights=true), validates that the strategy beats buy-and-hold by at
+	 * least 15% before returning it to the user.
 	 */
 	public AIStrategyResponse generateStrategy(AIStrategyRequest request) {
 		String promptPreview = (request.getPrompt() != null && !request.getPrompt().isEmpty())
-				? request.getPrompt().substring(0, Math.min(50, request.getPrompt().length()))
-				: "[Autonomous Mode]";
+				? request.getPrompt().substring(0, Math.min(50, request.getPrompt().length())) : "[Autonomous Mode]";
 		log.info("Generating strategy from prompt: {}", promptPreview);
 
 		// Check which autonomous mode we're using
 		AIStrategyRequest.AutonomousMode autonomousMode = request.getAutonomousMode();
-		log.info("DEBUG: Raw autonomousMode from request: {} (class: {})",
-				autonomousMode, autonomousMode != null ? autonomousMode.getClass().getName() : "null");
+		log.info("DEBUG: Raw autonomousMode from request: {} (class: {})", autonomousMode,
+				autonomousMode != null ? autonomousMode.getClass().getName() : "null");
 		log.info("DEBUG: useHistoricalInsights: {}", request.getUseHistoricalInsights());
 		log.info("DEBUG: Is AUTONOMOUS? {} (expected enum: {})",
 				autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS,
@@ -124,7 +128,8 @@ public class AIStrategyService extends BaseService {
 			}
 
 			// AUTONOMOUS MODE (Deterministic): Pure math, no LLM
-			log.info("DEBUG: Checking AUTONOMOUS mode - autonomousMode={}, isAUTONOMOUS={}, useHistoricalInsights={}, insightsNotNull={}",
+			log.info(
+					"DEBUG: Checking AUTONOMOUS mode - autonomousMode={}, isAUTONOMOUS={}, useHistoricalInsights={}, insightsNotNull={}",
 					autonomousMode, autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS,
 					request.getUseHistoricalInsights(), insights != null);
 			if (autonomousMode == AIStrategyRequest.AutonomousMode.AUTONOMOUS
@@ -137,7 +142,8 @@ public class AIStrategyService extends BaseService {
 			log.info("DEBUG: Skipped AUTONOMOUS mode, falling through to AUTONOMOUS/LLM");
 
 			// AUTONOMOUS MODE: Use turning points to generate strategy
-			// Instead of asking LLM to use the dates (which it ignores), we generate the code directly
+			// Instead of asking LLM to use the dates (which it ignores), we generate the
+			// code directly
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights()) && insights != null
 					&& insights.getTurningPoints() != null && !insights.getTurningPoints().isEmpty()) {
 				log.info("AUTONOMOUS MODE: Generating strategy from turning points (bypassing LLM code generation)");
@@ -180,8 +186,7 @@ public class AIStrategyService extends BaseService {
 				log.info("Step 2/6: Preparing strategy generation parameters");
 
 				// Build conversation history
-				List<LLMMessage> history = buildConversationHistory(systemPrompt,
-						request.getConversationHistory());
+				List<LLMMessage> history = buildConversationHistory(systemPrompt, request.getConversationHistory());
 
 				// Use model from request, or default
 				// For Autonomous AI mode, only allow verified models that work well
@@ -200,7 +205,8 @@ public class AIStrategyService extends BaseService {
 
 				log.info("Step 3/6: Generating strategy with AI model: {}", model);
 
-				// For Autonomous AI mode, if no prompt provided, use autonomous generation prompt
+				// For Autonomous AI mode, if no prompt provided, use autonomous
+				// generation prompt
 				String userPrompt = request.getPrompt();
 				if (Boolean.TRUE.equals(request.getUseHistoricalInsights())
 						&& (userPrompt == null || userPrompt.trim().isEmpty())) {
@@ -235,17 +241,19 @@ public class AIStrategyService extends BaseService {
 						response.setHistoricalInsightsUsed(true);
 						response.setHistoricalInsights(insights);
 						response.setWarning(String.format(
-							"Strategy validated: %.1f%% better than buy-and-hold (validated attempt %d/%d)",
-							outperformance, attempt, maxAttempts));
+								"Strategy validated: %.1f%% better than buy-and-hold (validated attempt %d/%d)",
+								outperformance, attempt, maxAttempts));
 						return response;
-					} else {
+					}
+					else {
 						log.warn("❌ Strategy failed validation. Outperformance: {:.2f}% (target: 15%)", outperformance);
 						if (outperformance > bestOutperformance) {
 							bestOutperformance = outperformance;
 							bestResponse = response;
 						}
 					}
-				} else if (!requiresValidation) {
+				}
+				else if (!requiresValidation) {
 					// No validation required, return immediately
 					if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
 						response.setHistoricalInsightsUsed(true);
@@ -259,32 +267,33 @@ public class AIStrategyService extends BaseService {
 
 			// If we get here, all attempts failed validation
 			log.error("All {} attempts failed to generate a strategy beating buy-and-hold by 15%. Best: {:.2f}%",
-				maxAttempts, bestOutperformance);
+					maxAttempts, bestOutperformance);
 
 			// CRITICAL: Do NOT return a strategy that doesn't beat buy-and-hold by 15%
-			// User explicitly wants at least 15% outperformance - returning a loser is unacceptable
+			// User explicitly wants at least 15% outperformance - returning a loser is
+			// unacceptable
 			if (bestResponse != null && bestOutperformance >= 0.0) {
 				// Only return if it at least matches buy-and-hold (0% outperformance)
-				bestResponse.setWarning(String.format(
-					"⚠️ Strategy did not meet 15%% outperformance target after %d attempts. " +
-					"Best achieved: %.1f%% vs buy-and-hold. Consider trying again or using a different approach.",
-					maxAttempts, bestOutperformance));
+				bestResponse
+					.setWarning(String.format("⚠️ Strategy did not meet 15%% outperformance target after %d attempts. "
+							+ "Best achieved: %.1f%% vs buy-and-hold. Consider trying again or using a different approach.",
+							maxAttempts, bestOutperformance));
 				bestResponse.setHistoricalInsightsUsed(true);
 				bestResponse.setHistoricalInsights(insights);
 				return bestResponse;
 			}
 
 			// If ALL strategies UNDERPERFORM buy-and-hold, don't return garbage
-			return AIStrategyResponse.error(String.format(
-				"Unable to generate a winning strategy after %d attempts. " +
-				"All generated strategies underperformed buy-and-hold (best: %.1f%%). " +
-				"This often happens in strong bull markets where buy-and-hold is very hard to beat. " +
-				"Try: 1) A different symbol, 2) Shorter timeframe, or 3) Accept that buy-and-hold may be optimal for this asset.",
-				maxAttempts, bestOutperformance));
+			return AIStrategyResponse.error(String.format("Unable to generate a winning strategy after %d attempts. "
+					+ "All generated strategies underperformed buy-and-hold (best: %.1f%%). "
+					+ "This often happens in strong bull markets where buy-and-hold is very hard to beat. "
+					+ "Try: 1) A different symbol, 2) Shorter timeframe, or 3) Accept that buy-and-hold may be optimal for this asset.",
+					maxAttempts, bestOutperformance));
 		}
 		catch (Exception e) {
 			log.error("Error generating strategy", e);
-			return AIStrategyResponse.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
+			return AIStrategyResponse
+				.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
 		}
 	}
 
@@ -334,7 +343,8 @@ public class AIStrategyService extends BaseService {
 		}
 		catch (Exception e) {
 			log.error("Error refining strategy", e);
-			return AIStrategyResponse.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
+			return AIStrategyResponse
+				.error("Our AI assistant is temporarily unavailable. Please try again in a moment.");
 		}
 	}
 
@@ -346,15 +356,16 @@ public class AIStrategyService extends BaseService {
 
 		try {
 			String prompt = AIStrategyPrompts.buildCodeToVisualPrompt(code, visualEditorSchema);
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
 				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
-			log.warn("LLM error occurred: {}", technicalError);
-			result.setError(sanitizeErrorMessage(technicalError));
+				log.warn("LLM error occurred: {}", technicalError);
+				result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -408,15 +419,16 @@ public class AIStrategyService extends BaseService {
 			}
 
 			String prompt = AIStrategyPrompts.buildExplainPrompt(request.getElementToExplain(), contextJson);
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
 				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
-			log.warn("LLM error occurred: {}", technicalError);
-			result.setError(sanitizeErrorMessage(technicalError));
+				log.warn("LLM error occurred: {}", technicalError);
+				result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -486,15 +498,16 @@ public class AIStrategyService extends BaseService {
 					bt.getTotalPnL(), bt.getWinRate(), bt.getTotalTrades(), bt.getProfitableTrades(), bt.getAvgWin(),
 					bt.getAvgLoss(), bt.getProfitFactor(), bt.getMaxDrawdown(), bt.getSharpeRatio());
 
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
 				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
-			log.warn("LLM error occurred: {}", technicalError);
-			result.setError(sanitizeErrorMessage(technicalError));
+				log.warn("LLM error occurred: {}", technicalError);
+				result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -544,15 +557,16 @@ public class AIStrategyService extends BaseService {
 
 		try {
 			String prompt = AIStrategyPrompts.buildIndicatorPreviewPrompt(partialPrompt);
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			AIStrategyResponse result = new AIStrategyResponse();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				result.setSuccess(false);
 				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
-			log.warn("LLM error occurred: {}", technicalError);
-			result.setError(sanitizeErrorMessage(technicalError));
+				log.warn("LLM error occurred: {}", technicalError);
+				result.setError(sanitizeErrorMessage(technicalError));
 				return result;
 			}
 
@@ -605,13 +619,13 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Optimize a backtested strategy using AI and historical insights.
-	 * Two modes: GENERATE_NEW (create brand new strategy) or ENHANCE_EXISTING (improve current strategy).
+	 * Optimize a backtested strategy using AI and historical insights. Two modes:
+	 * GENERATE_NEW (create brand new strategy) or ENHANCE_EXISTING (improve current
+	 * strategy).
 	 */
 	public AIStrategyResponse optimizeStrategy(AIStrategyRequest request) {
-		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ?
-				request.getOptimizationMode() :
-				AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
+		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ? request.getOptimizationMode()
+				: AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
 
 		log.info("Optimizing strategy with mode: {}", mode);
 
@@ -622,8 +636,8 @@ public class AIStrategyService extends BaseService {
 				log.info("Historical Insights enabled for optimization");
 				insights = getHistoricalInsights(request);
 				if (insights != null) {
-					log.info("Historical insights obtained for {}: {} volatility",
-							insights.getSymbol(), insights.getVolatilityRegime());
+					log.info("Historical insights obtained for {}: {} volatility", insights.getSymbol(),
+							insights.getVolatilityRegime());
 				}
 			}
 
@@ -632,24 +646,15 @@ public class AIStrategyService extends BaseService {
 			AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
 
 			if (mode == AIStrategyRequest.OptimizationMode.GENERATE_NEW) {
-				systemPrompt = AIStrategyPrompts.buildGenerateNewOptimizedPrompt(
-						bt.getTotalReturn(),
-						bt.getWinRate(),
-						bt.getSharpeRatio(),
-						bt.getMaxDrawdown(),
-						bt.getProfitFactor(),
-						bt.getTotalTrades(),
-						insights
-				);
+				systemPrompt = AIStrategyPrompts.buildGenerateNewOptimizedPrompt(bt.getTotalReturn(), bt.getWinRate(),
+						bt.getSharpeRatio(), bt.getMaxDrawdown(), bt.getProfitFactor(), bt.getTotalTrades(), insights);
 			}
 			else {
 				// ENHANCE_EXISTING
-				if (request.getContext() == null ||
-						request.getContext().getCurrentCode() == null ||
-						request.getContext().getCurrentVisualConfig() == null) {
-					return AIStrategyResponse.error(
-							"ENHANCE_EXISTING mode requires current strategy (code and visual config)"
-					);
+				if (request.getContext() == null || request.getContext().getCurrentCode() == null
+						|| request.getContext().getCurrentVisualConfig() == null) {
+					return AIStrategyResponse
+						.error("ENHANCE_EXISTING mode requires current strategy (code and visual config)");
 				}
 
 				// Serialize visual config to JSON string
@@ -662,42 +667,22 @@ public class AIStrategyService extends BaseService {
 					visualConfigJson = request.getContext().getCurrentVisualConfig().toString();
 				}
 
-				systemPrompt = AIStrategyPrompts.buildEnhanceExistingPrompt(
-						visualConfigJson,
-						request.getContext().getCurrentCode(),
-						bt.getTotalReturn(),
-						bt.getWinRate(),
-						bt.getSharpeRatio(),
-						bt.getMaxDrawdown(),
-						bt.getProfitFactor(),
-						bt.getTotalTrades(),
-						insights
-				);
+				systemPrompt = AIStrategyPrompts.buildEnhanceExistingPrompt(visualConfigJson,
+						request.getContext().getCurrentCode(), bt.getTotalReturn(), bt.getWinRate(),
+						bt.getSharpeRatio(), bt.getMaxDrawdown(), bt.getProfitFactor(), bt.getTotalTrades(), insights);
 			}
 
 			// 3. Build conversation history
-			List<LLMMessage> history = buildConversationHistory(
-					systemPrompt,
-					request.getConversationHistory()
-			);
+			List<LLMMessage> history = buildConversationHistory(systemPrompt, request.getConversationHistory());
 
 			// 4. Call LLM
-			String model = request.getModel() != null ?
-					request.getModel() :
-					llmRouter.getDefaultModel();
+			String model = request.getModel() != null ? request.getModel() : llmRouter.getDefaultModel();
 
 			log.info("Calling LLM for strategy optimization");
-			LLMResponse llmResponse = llmRouter.generateContent(
-					request.getPrompt(),
-					history,
-					model
-			).block();
+			LLMResponse llmResponse = llmRouter.generateContent(request.getPrompt(), history, model).block();
 
 			// 5. Parse response
-			AIStrategyResponse response = parseOptimizationResponse(
-					llmResponse,
-					request
-			);
+			AIStrategyResponse response = parseOptimizationResponse(llmResponse, request);
 
 			// 6. Include historical insights in response
 			if (Boolean.TRUE.equals(request.getUseHistoricalInsights())) {
@@ -711,16 +696,12 @@ public class AIStrategyService extends BaseService {
 		}
 		catch (InsufficientDataException e) {
 			log.warn("Insufficient historical data: {}", e.getMessage());
-			return AIStrategyResponse.error(
-					"Unable to optimize: insufficient historical market data. " +
-							"Try a different symbol or disable Historical Insights."
-			);
+			return AIStrategyResponse.error("Unable to optimize: insufficient historical market data. "
+					+ "Try a different symbol or disable Historical Insights.");
 		}
 		catch (Exception e) {
 			log.error("Error optimizing strategy", e);
-			return AIStrategyResponse.error(
-					"Strategy optimization failed. Please try again."
-			);
+			return AIStrategyResponse.error("Strategy optimization failed. Please try again.");
 		}
 	}
 
@@ -734,7 +715,8 @@ public class AIStrategyService extends BaseService {
 			String currentDate = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
 			String prompt = AIStrategyPrompts.buildBacktestQueryPrompt(query, currentDate);
 
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				log.error("Error response from LLM: {}", llmResponse != null ? llmResponse.getError() : "No response");
@@ -761,9 +743,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Validate strategy performance by backtesting and comparing to buy-and-hold.
-	 * Returns outperformance percentage (strategy return - buy-and-hold return).
-	 *
+	 * Validate strategy performance by backtesting and comparing to buy-and-hold. Returns
+	 * outperformance percentage (strategy return - buy-and-hold return).
 	 * @param response Generated strategy response with Python code
 	 * @param request Original request with symbol/timeframe context
 	 * @param insights Historical insights (contains symbol if request doesn't)
@@ -785,34 +766,32 @@ public class AIStrategyService extends BaseService {
 			String timeframe = request.getContext() != null && request.getContext().getTimeframe() != null
 					? request.getContext().getTimeframe() : "1D";
 
-			// Use 3-year backtest period for validation (balance between 1y too short and 7y too long)
+			// Use 3-year backtest period for validation (balance between 1y too short and
+			// 7y too long)
 			String period = "3y";
 
 			log.info("Validating strategy for symbol={}, timeframe={}, period={}", symbol, timeframe, period);
 
 			// Execute backtest
-			ExecuteStrategyResponse backtestResult = executionService.executeStrategy(
-				response.getPythonCode(),
-				"python",
-				symbol,
-				timeframe,
-				period,
-				"system-validation", // user ID
-				null // no strategy entity
+			ExecuteStrategyResponse backtestResult = executionService.executeStrategy(response.getPythonCode(),
+					"python", symbol, timeframe, period, "system-validation", // user ID
+					null // no strategy entity
 			);
 
 			// Check if backtest succeeded (no errors and has performance data)
 			boolean hasErrors = backtestResult.getErrors() != null && !backtestResult.getErrors().isEmpty();
 			if (hasErrors || backtestResult.getPerformance() == null) {
 				log.warn("Backtest failed or returned no performance data. Errors: {}",
-					hasErrors ? backtestResult.getErrors() : "none");
+						hasErrors ? backtestResult.getErrors() : "none");
 				return Double.NEGATIVE_INFINITY;
 			}
 
-			// Log trade count but don't fail - AI has turning points data for optimal entry/exit
+			// Log trade count but don't fail - AI has turning points data for optimal
+			// entry/exit
 			int totalTrades = backtestResult.getPerformance().getTotalTrades();
 			if (totalTrades < 10) {
-				log.warn("Strategy has few trades ({}) - may be overfitted but proceeding with validation", totalTrades);
+				log.warn("Strategy has few trades ({}) - may be overfitted but proceeding with validation",
+						totalTrades);
 			}
 
 			// Get strategy return (already in percentage)
@@ -820,18 +799,18 @@ public class AIStrategyService extends BaseService {
 
 			// Get buy-and-hold return (already in percentage)
 			double buyAndHoldReturn = backtestResult.getPerformance().getBuyAndHoldReturnPercent() != null
-					? backtestResult.getPerformance().getBuyAndHoldReturnPercent()
-					: 0.0;
+					? backtestResult.getPerformance().getBuyAndHoldReturnPercent() : 0.0;
 
 			// Calculate outperformance
 			double outperformance = strategyReturn - buyAndHoldReturn;
 
 			log.info("Validation results: Trades={}, Strategy={:.2f}%, Buy&Hold={:.2f}%, Outperformance={:.2f}%",
-				totalTrades, strategyReturn, buyAndHoldReturn, outperformance);
+					totalTrades, strategyReturn, buyAndHoldReturn, outperformance);
 
 			return outperformance;
 
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Error validating strategy performance", e);
 			return Double.NEGATIVE_INFINITY;
 		}
@@ -840,9 +819,9 @@ public class AIStrategyService extends BaseService {
 	// Historical Market Insights Integration (Autonomous AI)
 
 	/**
-	 * Get Historical Market Insights for a symbol (Autonomous AI mode).
-	 * Analyzes 7 years of historical data to optimize strategy parameters.
-	 * Checks cache first, computes if needed, handles errors gracefully.
+	 * Get Historical Market Insights for a symbol (Autonomous AI mode). Analyzes 7 years
+	 * of historical data to optimize strategy parameters. Checks cache first, computes if
+	 * needed, handles errors gracefully.
 	 */
 	private SymbolInsights getHistoricalInsights(AIStrategyRequest request) {
 		// Check if HistoricalInsightsService is available (requires ClickHouse)
@@ -860,13 +839,11 @@ public class AIStrategyService extends BaseService {
 
 		// Extract timeframe (default to "1D")
 		String timeframe = request.getContext() != null && request.getContext().getTimeframe() != null
-				? request.getContext().getTimeframe()
-				: "1D";
+				? request.getContext().getTimeframe() : "1D";
 
 		// Get Historical Insights options or use defaults
 		AIStrategyRequest.HistoricalMarketInsightsOptions options = request.getHistoricalInsightsOptions() != null
-				? request.getHistoricalInsightsOptions()
-				: new AIStrategyRequest.HistoricalMarketInsightsOptions();
+				? request.getHistoricalInsightsOptions() : new AIStrategyRequest.HistoricalMarketInsightsOptions();
 
 		// Build cache key (includes fastMode to avoid mixing fast/full results)
 		String cacheKey = String.format("%s:%s:%s:%s", symbol, timeframe, options.getUseFundamentals(),
@@ -882,7 +859,8 @@ public class AIStrategyService extends BaseService {
 		}
 
 		// Compute fresh insights
-		boolean fastMode = !Boolean.FALSE.equals(options.getFastMode()); // Default to fast mode
+		boolean fastMode = !Boolean.FALSE.equals(options.getFastMode()); // Default to
+																			// fast mode
 		log.info("Computing Historical Market Insights for {} ({}, {} days, fastMode={})", symbol, timeframe,
 				options.getLookbackDays(), fastMode);
 
@@ -913,12 +891,12 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * AUTONOMOUS MODE: Generate strategy using the Strategy Optimization Engine.
-	 * Tests ~200 strategy combinations with various parameters, ranks by TOTAL RETURN
-	 * (not win rate), and returns the best performer.
+	 * AUTONOMOUS MODE: Generate strategy using the Strategy Optimization Engine. Tests
+	 * ~200 strategy combinations with various parameters, ranks by TOTAL RETURN (not win
+	 * rate), and returns the best performer.
 	 *
-	 * This replaces the old single-strategy generation that only tested 4 indicators
-	 * with fixed parameters and ranked by win rate.
+	 * This replaces the old single-strategy generation that only tested 4 indicators with
+	 * fixed parameters and ranked by win rate.
 	 */
 	private AIStrategyResponse generateDeterministicStrategy(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
@@ -933,8 +911,8 @@ public class AIStrategyService extends BaseService {
 
 		// Run optimization engine - tests ~200 strategy combinations
 		// Uses 3 years of data by default for comprehensive backtesting
-		OptimizationResult optimizationResult = optimizationEngine.optimize(
-				symbol, timeframe, "3y", "autonomous-" + System.currentTimeMillis());
+		OptimizationResult optimizationResult = optimizationEngine.optimize(symbol, timeframe, "3y",
+				"autonomous-" + System.currentTimeMillis());
 
 		// Build response from optimization result
 		AIStrategyResponse response = new AIStrategyResponse();
@@ -967,11 +945,12 @@ public class AIStrategyService extends BaseService {
 			summary.setBaselineMetrics(baselineMetrics);
 			response.setOptimizationSummary(summary);
 
-			log.info("AUTONOMOUS: Optimization complete. Best strategy: {} with {:.2f}% return (vs {:.2f}% buy-and-hold)",
-					bestStrategy.getStrategyType().getDisplayName(),
-					bestStrategy.getTotalReturn(),
+			log.info(
+					"AUTONOMOUS: Optimization complete. Best strategy: {} with {:.2f}% return (vs {:.2f}% buy-and-hold)",
+					bestStrategy.getStrategyType().getDisplayName(), bestStrategy.getTotalReturn(),
 					optimizationResult.getBuyAndHoldReturn());
-		} else {
+		}
+		else {
 			// Fallback if no strategy found
 			log.warn("AUTONOMOUS: No profitable strategy found through optimization, falling back to swing strategy");
 			response = generateFallbackSwingStrategy(insights, timeframe);
@@ -992,10 +971,9 @@ public class AIStrategyService extends BaseService {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append(String.format("**AUTONOMOUS MODE - Strategy Optimization Engine**\n\n"));
-		sb.append(String.format("Tested **%d strategy combinations** across %d days (~%.1f years) of %s historical data.\n\n",
-				result.getTotalCombinationsTested(),
-				result.getDaysAnalyzed(),
-				result.getDaysAnalyzed() / 365.25,
+		sb.append(String.format(
+				"Tested **%d strategy combinations** across %d days (~%.1f years) of %s historical data.\n\n",
+				result.getTotalCombinationsTested(), result.getDaysAnalyzed(), result.getDaysAnalyzed() / 365.25,
 				result.getSymbol()));
 
 		sb.append(String.format("**Best Strategy: %s**\n", best.getStrategyType().getDisplayName()));
@@ -1018,8 +996,8 @@ public class AIStrategyService extends BaseService {
 			sb.append("\n\n**Alternative Strategies:**\n");
 			for (int i = 1; i < Math.min(3, result.getTopStrategies().size()); i++) {
 				StrategyTestResult alt = result.getTopStrategies().get(i);
-				sb.append(String.format("%d. %s (%.2f%% return)\n", i + 1,
-						alt.getStrategyType().getDisplayName(), alt.getTotalReturn()));
+				sb.append(String.format("%d. %s (%.2f%% return)\n", i + 1, alt.getStrategyType().getDisplayName(),
+						alt.getTotalReturn()));
 			}
 		}
 
@@ -1027,7 +1005,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Fallback swing trading strategy if optimization fails to find a profitable strategy.
+	 * Fallback swing trading strategy if optimization fails to find a profitable
+	 * strategy.
 	 */
 	private AIStrategyResponse generateFallbackSwingStrategy(SymbolInsights insights, String timeframe) {
 		String symbol = insights.getSymbol();
@@ -1050,7 +1029,8 @@ public class AIStrategyService extends BaseService {
 					if (tp.getType().name().equals("TROUGH")) {
 						totalDrop += Math.abs(change);
 						troughCount++;
-					} else {
+					}
+					else {
 						totalRise += change;
 						peakCount++;
 					}
@@ -1126,19 +1106,19 @@ public class AIStrategyService extends BaseService {
 		response.setPythonCode(code);
 		response.setCanRepresentVisually(true);
 		response.setExplanation(String.format(
-				"AUTONOMOUS MODE (Fallback): No profitable optimized strategy found. " +
-				"Generated a basic swing trading strategy with thresholds derived from %d turning points. " +
-				"BUY when price drops %.1f%% from %d-day high, SELL at %.1f%% gain.",
+				"AUTONOMOUS MODE (Fallback): No profitable optimized strategy found. "
+						+ "Generated a basic swing trading strategy with thresholds derived from %d turning points. "
+						+ "BUY when price drops %.1f%% from %d-day high, SELL at %.1f%% gain.",
 				turningPoints != null ? turningPoints.size() : 0, buyThreshold, lookbackPeriod, sellThreshold));
 
 		return response;
 	}
 
 	/**
-	 * AUTONOMOUS MODE: Generate strategy from historical turning points analysis.
-	 * Uses optimal RSI/indicator thresholds derived from historical analysis.
-	 * Adapts strategy type based on market regime (mean-reversion vs trend-following).
-	 * Generates code that works for both backtesting AND live trading (no hardcoded dates).
+	 * AUTONOMOUS MODE: Generate strategy from historical turning points analysis. Uses
+	 * optimal RSI/indicator thresholds derived from historical analysis. Adapts strategy
+	 * type based on market regime (mean-reversion vs trend-following). Generates code
+	 * that works for both backtesting AND live trading (no hardcoded dates).
 	 */
 	private AIStrategyResponse generateStrategyFromTurningPoints(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
@@ -1150,8 +1130,8 @@ public class AIStrategyService extends BaseService {
 		}
 
 		var turningPoints = insights.getTurningPoints();
-		log.info("GENERATIVE AI: Using enhanced historical analysis for {} ({} turning points)",
-				symbol, turningPoints != null ? turningPoints.size() : 0);
+		log.info("GENERATIVE AI: Using enhanced historical analysis for {} ({} turning points)", symbol,
+				turningPoints != null ? turningPoints.size() : 0);
 
 		// Extract optimal thresholds from historical analysis
 		double optimalRsiBuy = insights.getOptimalRsiOversold() > 0 ? insights.getOptimalRsiOversold() : 30.0;
@@ -1171,8 +1151,8 @@ public class AIStrategyService extends BaseService {
 		double stopLossPercent = Math.min(Math.max(avgSwingMagnitude * 0.4, 3.0), 10.0);
 		double takeProfitPercent = Math.min(Math.max(avgSwingMagnitude * 0.8, 8.0), 25.0);
 
-		log.info("GENERATIVE AI: Regime={}, Hurst={:.2f}, RSI thresholds: buy<{:.0f}, sell>{:.0f}",
-				regime, hurstExponent, optimalRsiBuy, optimalRsiSell);
+		log.info("GENERATIVE AI: Regime={}, Hurst={:.2f}, RSI thresholds: buy<{:.0f}, sell>{:.0f}", regime,
+				hurstExponent, optimalRsiBuy, optimalRsiSell);
 
 		// Generate Python code with indicator-based rules
 		StringBuilder code = new StringBuilder();
@@ -1192,8 +1172,10 @@ public class AIStrategyService extends BaseService {
 		code.append("# ═══════════════════════════════════════════════════════════════\n");
 		code.append("# OPTIMAL THRESHOLDS (derived from historical turning points)\n");
 		code.append("# ═══════════════════════════════════════════════════════════════\n");
-		code.append(String.format("RSI_OVERSOLD = %.1f      # RSI below this captured 80%% of optimal buy points\n", optimalRsiBuy));
-		code.append(String.format("RSI_OVERBOUGHT = %.1f    # RSI above this captured 80%% of optimal sell points\n", optimalRsiSell));
+		code.append(String.format("RSI_OVERSOLD = %.1f      # RSI below this captured 80%% of optimal buy points\n",
+				optimalRsiBuy));
+		code.append(String.format("RSI_OVERBOUGHT = %.1f    # RSI above this captured 80%% of optimal sell points\n",
+				optimalRsiSell));
 		code.append(String.format("STOP_LOSS_PCT = %.1f     # Based on historical volatility\n", stopLossPercent));
 		code.append(String.format("TAKE_PROFIT_PCT = %.1f   # Based on average swing magnitude\n", takeProfitPercent));
 		code.append("BB_PERIOD = 20           # Bollinger Band period\n");
@@ -1253,8 +1235,10 @@ public class AIStrategyService extends BaseService {
 		code.append("    bb_mid, bb_upper, bb_lower = calculate_bollinger(close, BB_PERIOD, BB_STD)\n");
 		code.append("    current_bb_lower = bb_lower.iloc[-1]\n");
 		code.append("    current_bb_upper = bb_upper.iloc[-1]\n");
-		code.append("    bb_position = (current - current_bb_lower) / (current_bb_upper - current_bb_lower) if (current_bb_upper - current_bb_lower) > 0 else 0.5\n\n");
-		code.append("    macd_line, signal_line, histogram = calculate_macd(close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)\n");
+		code.append(
+				"    bb_position = (current - current_bb_lower) / (current_bb_upper - current_bb_lower) if (current_bb_upper - current_bb_lower) > 0 else 0.5\n\n");
+		code.append(
+				"    macd_line, signal_line, histogram = calculate_macd(close, MACD_FAST, MACD_SLOW, MACD_SIGNAL)\n");
 		code.append("    current_hist = histogram.iloc[-1]\n");
 		code.append("    prev_hist = histogram.iloc[-2] if len(histogram) > 1 else 0\n");
 		code.append("    macd_bullish = current_hist > prev_hist  # Momentum improving\n\n");
@@ -1284,7 +1268,8 @@ public class AIStrategyService extends BaseService {
 
 		// Trailing stop
 		code.append("        # Trailing stop - protect profits\n");
-		code.append("        trailing_stop = min(STOP_LOSS_PCT, gain * 0.5) if gain > STOP_LOSS_PCT else STOP_LOSS_PCT * 0.7\n");
+		code.append(
+				"        trailing_stop = min(STOP_LOSS_PCT, gain * 0.5) if gain > STOP_LOSS_PCT else STOP_LOSS_PCT * 0.7\n");
 		code.append("        if gain > STOP_LOSS_PCT and drop_from_peak <= -trailing_stop:\n");
 		code.append("            entry_price = None\n");
 		code.append("            peak_price = None\n");
@@ -1336,7 +1321,8 @@ public class AIStrategyService extends BaseService {
 			code.append("    deep_oversold = current_rsi < RSI_OVERSOLD and bb_position < 0.1\n");
 			code.append("    momentum_turning = macd_bullish\n\n");
 			code.append("    # Signal 2: Trend continuation with pullback (trend following)\n");
-			code.append("    pullback_buy = current_rsi < (RSI_OVERSOLD + 10) and bb_position < 0.3 and macd_bullish\n\n");
+			code.append(
+					"    pullback_buy = current_rsi < (RSI_OVERSOLD + 10) and bb_position < 0.3 and macd_bullish\n\n");
 			code.append("    if (deep_oversold and momentum_turning) or pullback_buy:\n");
 			code.append("        entry_price = current\n");
 			code.append("        peak_price = current\n");
@@ -1355,18 +1341,17 @@ public class AIStrategyService extends BaseService {
 		int turningPointCount = turningPoints != null ? turningPoints.size() : 0;
 		String strategyType = useMeanReversion ? "Mean Reversion" : (useTrendFollowing ? "Trend Following" : "Hybrid");
 		String explanation = String.format(
-				"AUTONOMOUS MODE: Analyzed %d historical turning points for %s. " +
-				"Market Regime: %s (Hurst: %.2f). Strategy Type: %s. " +
-				"Optimal entry threshold: RSI < %.0f (captured 80%% of historical troughs). " +
-				"Optimal exit threshold: RSI > %.0f (captured 80%% of historical peaks). " +
-				"Risk parameters: Stop-loss %.1f%%, Take-profit %.1f%% (based on %.1f%% avg swing).",
-				turningPointCount, symbol, regime, hurstExponent, strategyType,
-				optimalRsiBuy, optimalRsiSell, stopLossPercent, takeProfitPercent, avgSwingMagnitude);
+				"AUTONOMOUS MODE: Analyzed %d historical turning points for %s. "
+						+ "Market Regime: %s (Hurst: %.2f). Strategy Type: %s. "
+						+ "Optimal entry threshold: RSI < %.0f (captured 80%% of historical troughs). "
+						+ "Optimal exit threshold: RSI > %.0f (captured 80%% of historical peaks). "
+						+ "Risk parameters: Stop-loss %.1f%%, Take-profit %.1f%% (based on %.1f%% avg swing).",
+				turningPointCount, symbol, regime, hurstExponent, strategyType, optimalRsiBuy, optimalRsiSell,
+				stopLossPercent, takeProfitPercent, avgSwingMagnitude);
 		response.setExplanation(explanation);
 
 		// Generate summary card
-		String summaryCard = String.format(
-				"%s %s Strategy: RSI<%,.0f buy, RSI>%.0f sell, %.1f%% stop, %.1f%% target",
+		String summaryCard = String.format("%s %s Strategy: RSI<%,.0f buy, RSI>%.0f sell, %.1f%% stop, %.1f%% target",
 				symbol, strategyType, optimalRsiBuy, optimalRsiSell, stopLossPercent, takeProfitPercent);
 		response.setSummaryCard(summaryCard);
 
@@ -1397,7 +1382,7 @@ public class AIStrategyService extends BaseService {
 				String found = matcher.group(1);
 				// Filter out common words that aren't tickers
 				if (!java.util.Set.of("THE", "AND", "FOR", "WITH", "USE", "BUY", "SELL", "HOLD", "AI", "ETF")
-						.contains(found)) {
+					.contains(found)) {
 					return found;
 				}
 			}
@@ -1411,14 +1396,15 @@ public class AIStrategyService extends BaseService {
 	// Helper methods
 
 	/**
-	 * Get the model to use for Autonomous AI mode. Only allows verified models that work well
-	 * with the complex instruction-following required for Autonomous AI.
+	 * Get the model to use for Autonomous AI mode. Only allows verified models that work
+	 * well with the complex instruction-following required for Autonomous AI.
 	 */
 	private String getAutonomousAIModel(String requestedModel) {
 		// Models verified to work well with Autonomous AI mode
 		// These models can follow complex instructions about using calculated thresholds
-		java.util.Set<String> allowedModels = java.util.Set.of(
-				"gemini-2.5-pro", // Best for instruction-following
+		java.util.Set<String> allowedModels = java.util.Set.of("gemini-2.5-pro", // Best
+																					// for
+																					// instruction-following
 				"gemini-2.5-flash", // Fast, good quality
 				"gpt-4o", // Strong instruction-following
 				"gpt-4o-mini", // Good balance of speed/quality
@@ -1577,8 +1563,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Try to extract partial JSON even if truncated.
-	 * Attempts to find and parse visualConfig object from incomplete JSON.
+	 * Try to extract partial JSON even if truncated. Attempts to find and parse
+	 * visualConfig object from incomplete JSON.
 	 */
 	private JsonNode tryExtractPartialJson(String text) {
 		if (text == null) {
@@ -1586,13 +1572,15 @@ public class AIStrategyService extends BaseService {
 		}
 
 		// Try to find visualConfig object
-		Pattern visualConfigPattern = Pattern.compile("\"visualConfig\"\\s*:\\s*(\\{.*?\\})\\s*,\\s*\"pythonCode\"", Pattern.DOTALL);
+		Pattern visualConfigPattern = Pattern.compile("\"visualConfig\"\\s*:\\s*(\\{.*?\\})\\s*,\\s*\"pythonCode\"",
+				Pattern.DOTALL);
 		Matcher matcher = visualConfigPattern.matcher(text);
 		if (matcher.find()) {
 			try {
 				String visualConfigJson = "{\"visualConfig\":" + matcher.group(1) + "}";
 				return objectMapper.readTree(visualConfigJson);
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				log.debug("Failed to parse partial visualConfig", e);
 			}
 		}
@@ -1601,8 +1589,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Sanitize technical LLM error messages to be user-friendly.
-	 * Logs the full technical error for debugging.
+	 * Sanitize technical LLM error messages to be user-friendly. Logs the full technical
+	 * error for debugging.
 	 */
 	private String sanitizeErrorMessage(String technicalError) {
 		if (technicalError == null) {
@@ -1676,8 +1664,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Log visual rules quality metrics for monitoring and prompt improvement.
-	 * This is lightweight logging (~1ms overhead) to track AI generation quality without
+	 * Log visual rules quality metrics for monitoring and prompt improvement. This is
+	 * lightweight logging (~1ms overhead) to track AI generation quality without
 	 * expensive validation.
 	 */
 	private void logVisualRulesQuality(AIStrategyResponse response) {
@@ -1746,7 +1734,8 @@ public class AIStrategyService extends BaseService {
 
 			// Log quality metrics
 			if (crossoverCount > 0 || indicatorComparisonCount > 0) {
-				log.info("Visual rules quality: crossovers={}, indicatorComparisons={}, missingSecondaryIndicator={}, emptyValues={}",
+				log.info(
+						"Visual rules quality: crossovers={}, indicatorComparisons={}, missingSecondaryIndicator={}, emptyValues={}",
 						crossoverCount, indicatorComparisonCount, missingSecondaryIndicatorCount, emptyValueCount);
 			}
 
@@ -1768,9 +1757,9 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Parse optimization response with full analysis fields.
-	 * Unlike parseGenerationResponse (which only extracts visualConfig/pythonCode),
-	 * this extracts explanation, suggestions, etc. for the Optimize feature.
+	 * Parse optimization response with full analysis fields. Unlike
+	 * parseGenerationResponse (which only extracts visualConfig/pythonCode), this
+	 * extracts explanation, suggestions, etc. for the Optimize feature.
 	 */
 	private AIStrategyResponse parseOptimizationResponse(LLMResponse llmResponse, AIStrategyRequest request) {
 		AIStrategyResponse response = new AIStrategyResponse();
@@ -1812,16 +1801,19 @@ public class AIStrategyService extends BaseService {
 				if (json.has("riskLevel")) {
 					try {
 						response.setRiskLevel(AIStrategyResponse.RiskLevel.valueOf(json.get("riskLevel").asText()));
-					} catch (IllegalArgumentException e) {
+					}
+					catch (IllegalArgumentException e) {
 						response.setRiskLevel(AIStrategyResponse.RiskLevel.MEDIUM);
 					}
 				}
 				response.setSuccess(true);
-			} else {
+			}
+			else {
 				response.setSuccess(false);
 				response.setError("Could not parse optimization response");
 			}
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error("Error parsing optimization response", e);
 			response.setSuccess(false);
 			response.setError("Failed to parse optimization response");
@@ -1924,8 +1916,8 @@ public class AIStrategyService extends BaseService {
 	}
 
 	/**
-	 * Convert Python strategy code to PineScript v5 using AI.
-	 * Results are cached in-memory with a 24h TTL.
+	 * Convert Python strategy code to PineScript v5 using AI. Results are cached
+	 * in-memory with a 24h TTL.
 	 */
 	public AIStrategyResponse convertToPineScript(String pythonCode) {
 		log.info("Converting Python code to PineScript ({} chars)", pythonCode.length());
@@ -1946,7 +1938,8 @@ public class AIStrategyService extends BaseService {
 
 			// Build prompt and call LLM
 			String prompt = AIStrategyPrompts.buildPythonToPineScriptPrompt(pythonCode);
-			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel()).block();
+			LLMResponse llmResponse = llmRouter.generateContent(prompt, new ArrayList<>(), llmRouter.getDefaultModel())
+				.block();
 
 			if (llmResponse == null || !llmResponse.isSuccess()) {
 				String technicalError = llmResponse != null ? llmResponse.getError() : "No response from AI";
@@ -1988,7 +1981,8 @@ public class AIStrategyService extends BaseService {
 			StringBuilder hexString = new StringBuilder();
 			for (byte b : hash) {
 				String hex = Integer.toHexString(0xff & b);
-				if (hex.length() == 1) hexString.append('0');
+				if (hex.length() == 1)
+					hexString.append('0');
 				hexString.append(hex);
 			}
 			return hexString.toString();
@@ -2029,7 +2023,8 @@ public class AIStrategyService extends BaseService {
 		}
 
 		if (removed > 0) {
-			log.info("PineScript cache cleanup: removed {} expired entries, size now {}", removed, pineScriptCache.size());
+			log.info("PineScript cache cleanup: removed {} expired entries, size now {}", removed,
+					pineScriptCache.size());
 		}
 	}
 

@@ -12,11 +12,8 @@ import jakarta.annotation.PostConstruct;
 /**
  * Loads SonarQube configuration from Vault at application startup.
  *
- * Vault path: secret/strategiz/sonarqube
- * Required fields:
- * - url: SonarQube instance URL
- * - token: API token for authentication
- * - project-key: SonarQube project key
+ * Vault path: secret/strategiz/sonarqube Required fields: - url: SonarQube instance URL -
+ * token: API token for authentication - project-key: SonarQube project key
  */
 @Configuration
 public class SonarQubeVaultConfig {

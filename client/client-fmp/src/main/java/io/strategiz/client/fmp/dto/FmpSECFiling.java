@@ -154,9 +154,8 @@ public class FmpSECFiling {
 	 * Format for AI context injection.
 	 */
 	public String toContextString() {
-		return String.format("[%s] %s - %s\nFiled: %s | URL: %s", symbol != null ? symbol : "N/A",
-				getFormDescription(), formType, filedDate != null ? filedDate : "Unknown",
-				reportUrl != null ? reportUrl : filingUrl);
+		return String.format("[%s] %s - %s\nFiled: %s | URL: %s", symbol != null ? symbol : "N/A", getFormDescription(),
+				formType, filedDate != null ? filedDate : "Unknown", reportUrl != null ? reportUrl : filingUrl);
 	}
 
 	@Override

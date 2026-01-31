@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Manual verification tool for Historical Market Insights prompt enhancement.
- * Run this to see how the enhanced prompts look for different symbols.
+ * Manual verification tool for Historical Market Insights prompt enhancement. Run this to
+ * see how the enhanced prompts look for different symbols.
  */
 public class HistoricalInsightsPromptVerification {
 
@@ -67,13 +67,13 @@ public class HistoricalInsightsPromptVerification {
 
 		// Validate prompt contains key elements
 		List<String> validations = new ArrayList<>();
-		validations.add(checkContains(enhancedPrompt, "HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS", "Historical Market Insights header"));
+		validations.add(checkContains(enhancedPrompt, "HISTORICAL MARKET INSIGHTS: 7-YEAR DATA ANALYSIS",
+				"Historical Market Insights header"));
 		validations.add(checkContains(enhancedPrompt, "Symbol: " + insights.getSymbol(), "Symbol"));
 		validations
 			.add(checkContains(enhancedPrompt, "Volatility Regime: " + insights.getVolatilityRegime(), "Volatility"));
 		validations.add(checkContains(enhancedPrompt, "Trend Direction: " + insights.getTrendDirection(), "Trend"));
-		validations
-			.add(checkContains(enhancedPrompt, String.format("%.1f%%", insights.getAvgWinRate()), "Win Rate"));
+		validations.add(checkContains(enhancedPrompt, String.format("%.1f%%", insights.getAvgWinRate()), "Win Rate"));
 		validations.add(checkContains(enhancedPrompt, "TOP PERFORMING INDICATORS", "Indicators section"));
 		validations.add(checkContains(enhancedPrompt, "HISTORICAL INSIGHTS INSTRUCTIONS", "Instructions section"));
 
@@ -189,8 +189,7 @@ public class HistoricalInsightsPromptVerification {
 				"72% win rate on mean reversion from bands"));
 		rankings.add(createIndicatorRanking("RSI", 0.66, Map.of("period", 14, "oversold", 30, "overbought", 70),
 				"Reliable for overbought/oversold conditions"));
-		rankings.add(
-				createIndicatorRanking("VWAP", 0.62, Map.of(), "Strong support/resistance in range-bound market"));
+		rankings.add(createIndicatorRanking("VWAP", 0.62, Map.of(), "Strong support/resistance in range-bound market"));
 		insights.setTopIndicators(rankings);
 
 		Map<String, Object> params = new HashMap<>();
@@ -223,8 +222,8 @@ public class HistoricalInsightsPromptVerification {
 				"Best for BTC's strong trending behavior"));
 		rankings.add(createIndicatorRanking("MACD", 0.57, Map.of("fast", 12, "slow", 26, "signal", 9),
 				"Catches major trend reversals"));
-		rankings.add(
-				createIndicatorRanking("RSI", 0.52, Map.of("period", 14), "Useful for extreme overbought/oversold"));
+		rankings
+			.add(createIndicatorRanking("RSI", 0.52, Map.of("period", 14), "Useful for extreme overbought/oversold"));
 		insights.setTopIndicators(rankings);
 
 		Map<String, Object> params = new HashMap<>();

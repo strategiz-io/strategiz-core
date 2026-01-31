@@ -5,61 +5,63 @@ package io.strategiz.client.sms.model;
  */
 public class SmsMessage {
 
-    private final String toPhoneNumber;
-    private final String body;
-    private String fromPhoneNumber;
-    private String messagingServiceSid;
+	private final String toPhoneNumber;
 
-    /**
-     * Create an SMS message.
-     *
-     * @param toPhoneNumber The recipient phone number in E.164 format (e.g., +14155551234)
-     * @param body The message body (max 1600 characters for Twilio)
-     */
-    public SmsMessage(String toPhoneNumber, String body) {
-        this.toPhoneNumber = toPhoneNumber;
-        this.body = body;
-    }
+	private final String body;
 
-    public String getToPhoneNumber() {
-        return toPhoneNumber;
-    }
+	private String fromPhoneNumber;
 
-    public String getBody() {
-        return body;
-    }
+	private String messagingServiceSid;
 
-    public String getFromPhoneNumber() {
-        return fromPhoneNumber;
-    }
+	/**
+	 * Create an SMS message.
+	 * @param toPhoneNumber The recipient phone number in E.164 format (e.g.,
+	 * +14155551234)
+	 * @param body The message body (max 1600 characters for Twilio)
+	 */
+	public SmsMessage(String toPhoneNumber, String body) {
+		this.toPhoneNumber = toPhoneNumber;
+		this.body = body;
+	}
 
-    public void setFromPhoneNumber(String fromPhoneNumber) {
-        this.fromPhoneNumber = fromPhoneNumber;
-    }
+	public String getToPhoneNumber() {
+		return toPhoneNumber;
+	}
 
-    public String getMessagingServiceSid() {
-        return messagingServiceSid;
-    }
+	public String getBody() {
+		return body;
+	}
 
-    public void setMessagingServiceSid(String messagingServiceSid) {
-        this.messagingServiceSid = messagingServiceSid;
-    }
+	public String getFromPhoneNumber() {
+		return fromPhoneNumber;
+	}
 
-    @Override
-    public String toString() {
-        return "SmsMessage{" +
-                "to='" + maskPhoneNumber(toPhoneNumber) + '\'' +
-                ", bodyLength=" + (body != null ? body.length() : 0) +
-                '}';
-    }
+	public void setFromPhoneNumber(String fromPhoneNumber) {
+		this.fromPhoneNumber = fromPhoneNumber;
+	}
 
-    /**
-     * Mask phone number for secure logging.
-     */
-    private String maskPhoneNumber(String phone) {
-        if (phone == null || phone.length() < 4) {
-            return "****";
-        }
-        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 2);
-    }
+	public String getMessagingServiceSid() {
+		return messagingServiceSid;
+	}
+
+	public void setMessagingServiceSid(String messagingServiceSid) {
+		this.messagingServiceSid = messagingServiceSid;
+	}
+
+	@Override
+	public String toString() {
+		return "SmsMessage{" + "to='" + maskPhoneNumber(toPhoneNumber) + '\'' + ", bodyLength="
+				+ (body != null ? body.length() : 0) + '}';
+	}
+
+	/**
+	 * Mask phone number for secure logging.
+	 */
+	private String maskPhoneNumber(String phone) {
+		if (phone == null || phone.length() < 4) {
+			return "****";
+		}
+		return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 2);
+	}
+
 }

@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes specific to E*TRADE API client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes specific to E*TRADE API client operations. Implements ErrorDetails for
+ * integration with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(EtradeErrors.ETRADE_API_ERROR, MODULE_NAME);
  */

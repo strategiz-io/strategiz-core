@@ -6,10 +6,8 @@ import org.springframework.http.HttpStatus;
 /**
  * Error details for fundamentals business logic operations.
  *
- * Covers errors related to:
- * - Fundamentals collection and batch processing
- * - Data validation and storage
- * - Symbol lookup and queries
+ * Covers errors related to: - Fundamentals collection and batch processing - Data
+ * validation and storage - Symbol lookup and queries
  */
 public enum FundamentalsErrorDetails implements ErrorDetails {
 

@@ -14,156 +14,153 @@ import java.util.stream.Collectors;
 import io.strategiz.service.base.BaseService;
 
 /**
- * Service for managing strategy versions.
- * When a user edits a deployed strategy, a new version is created
- * while the original stays active with the existing deployment.
+ * Service for managing strategy versions. When a user edits a deployed strategy, a new
+ * version is created while the original stays active with the existing deployment.
  */
 @Service
 public class StrategyVersioningService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "unknown";
-    }
-    private final ReadStrategyRepository readStrategyRepository;
-    private final CreateStrategyRepository createStrategyRepository;
+	@Override
+	protected String getModuleName() {
+		return "unknown";
+	}
 
-    @Autowired
-    public StrategyVersioningService(
-            ReadStrategyRepository readStrategyRepository,
-            CreateStrategyRepository createStrategyRepository) {
-        this.readStrategyRepository = readStrategyRepository;
-        this.createStrategyRepository = createStrategyRepository;
-    }
+	private final ReadStrategyRepository readStrategyRepository;
 
-    /**
-     * Create a new version of a deployed strategy for editing.
-     * The original strategy remains deployed; a new draft version is created.
-     *
-     * @param strategyId The ID of the strategy to version
-     * @param userId The user ID (for authorization)
-     * @return The new draft strategy version
-     * @throws IllegalArgumentException if strategy not found or not owned by user
-     * @throws IllegalStateException if strategy is not deployed
-     */
-    public Strategy createVersion(String strategyId, String userId) {
-        log.info("Creating new version of strategy {} for user {}", strategyId, userId);
+	private final CreateStrategyRepository createStrategyRepository;
 
-        // Load the original strategy
-        Optional<Strategy> originalOpt = readStrategyRepository.findById(strategyId);
-        if (originalOpt.isEmpty()) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
-                "Strategy not found: " + strategyId);
-        }
+	@Autowired
+	public StrategyVersioningService(ReadStrategyRepository readStrategyRepository,
+			CreateStrategyRepository createStrategyRepository) {
+		this.readStrategyRepository = readStrategyRepository;
+		this.createStrategyRepository = createStrategyRepository;
+	}
 
-        Strategy original = originalOpt.get();
+	/**
+	 * Create a new version of a deployed strategy for editing. The original strategy
+	 * remains deployed; a new draft version is created.
+	 * @param strategyId The ID of the strategy to version
+	 * @param userId The user ID (for authorization)
+	 * @return The new draft strategy version
+	 * @throws IllegalArgumentException if strategy not found or not owned by user
+	 * @throws IllegalStateException if strategy is not deployed
+	 */
+	public Strategy createVersion(String strategyId, String userId) {
+		log.info("Creating new version of strategy {} for user {}", strategyId, userId);
 
-        // Verify ownership
-        if (!userId.equals(original.getOwnerId())) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
-                "Access denied to strategy: " + strategyId);
-        }
+		// Load the original strategy
+		Optional<Strategy> originalOpt = readStrategyRepository.findById(strategyId);
+		if (originalOpt.isEmpty()) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "Strategy not found: " + strategyId);
+		}
 
-        // Verify the strategy is deployed
-        if (!original.isDeployed()) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_VERSION_INVALID_STATE,
-                "Cannot create version of non-deployed strategy. Use the update endpoint instead.");
-        }
+		Strategy original = originalOpt.get();
 
-        // Determine the new version number
-        long newVersion = (original.getVersion() != null ? original.getVersion() : 1L) + 1L;
+		// Verify ownership
+		if (!userId.equals(original.getOwnerId())) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
+					"Access denied to strategy: " + strategyId);
+		}
 
-        // Check if there are already newer versions
-        List<Strategy> existingVersions = readStrategyRepository.findVersionsByParentId(
-                original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId
-        );
-        if (!existingVersions.isEmpty()) {
-            long maxVersion = existingVersions.stream()
-                    .map(s -> s.getVersion() != null ? s.getVersion() : 1L)
-                    .max(Long::compareTo)
-                    .orElse(1L);
-            newVersion = Math.max(newVersion, maxVersion + 1L);
-        }
+		// Verify the strategy is deployed
+		if (!original.isDeployed()) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_VERSION_INVALID_STATE,
+					"Cannot create version of non-deployed strategy. Use the update endpoint instead.");
+		}
 
-        // Create new strategy with copied fields
-        Strategy newStrategy = new Strategy();
-        newStrategy.setName(original.getName() + " (v" + newVersion + ")");
-        newStrategy.setDescription(original.getDescription());
-        newStrategy.setCode(original.getCode());
-        newStrategy.setLanguage(original.getLanguage());
-        newStrategy.setType(original.getType());
-        newStrategy.setTags(original.getTags() != null ? List.copyOf(original.getTags()) : null);
-        newStrategy.setParameters(original.getParameters());
+		// Determine the new version number
+		long newVersion = (original.getVersion() != null ? original.getVersion() : 1L) + 1L;
 
-        // Set versioning fields
-        newStrategy.setVersion(newVersion);
-        newStrategy.setParentStrategyId(original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId);
+		// Check if there are already newer versions
+		List<Strategy> existingVersions = readStrategyRepository.findVersionsByParentId(
+				original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId);
+		if (!existingVersions.isEmpty()) {
+			long maxVersion = existingVersions.stream()
+				.map(s -> s.getVersion() != null ? s.getVersion() : 1L)
+				.max(Long::compareTo)
+				.orElse(1L);
+			newVersion = Math.max(newVersion, maxVersion + 1L);
+		}
 
-        // New version is a draft (not deployed)
-        newStrategy.setIsPublished(false);
-        newStrategy.setIsPublic(false);
-        newStrategy.setIsListed(false);
-        // Note: Deployment fields removed - tracked in BotDeployment/AlertDeployment entities
+		// Create new strategy with copied fields
+		Strategy newStrategy = new Strategy();
+		newStrategy.setName(original.getName() + " (v" + newVersion + ")");
+		newStrategy.setDescription(original.getDescription());
+		newStrategy.setCode(original.getCode());
+		newStrategy.setLanguage(original.getLanguage());
+		newStrategy.setType(original.getType());
+		newStrategy.setTags(original.getTags() != null ? List.copyOf(original.getTags()) : null);
+		newStrategy.setParameters(original.getParameters());
 
-        // Save the new version
-        Strategy created = createStrategyRepository.createWithUserId(newStrategy, userId);
+		// Set versioning fields
+		newStrategy.setVersion(newVersion);
+		newStrategy
+			.setParentStrategyId(original.getParentStrategyId() != null ? original.getParentStrategyId() : strategyId);
 
-        log.info("Created new version {} of strategy {} as {}", newVersion, strategyId, created.getId());
-        return created;
-    }
+		// New version is a draft (not deployed)
+		newStrategy.setIsPublished(false);
+		newStrategy.setIsPublic(false);
+		newStrategy.setIsListed(false);
+		// Note: Deployment fields removed - tracked in BotDeployment/AlertDeployment
+		// entities
 
-    /**
-     * Get the version history of a strategy.
-     *
-     * @param strategyId The ID of any version in the strategy family
-     * @param userId The user ID (for authorization)
-     * @return List of all versions, sorted by version number descending
-     */
-    public List<Strategy> getVersionHistory(String strategyId, String userId) {
-        log.info("Fetching version history for strategy {} for user {}", strategyId, userId);
+		// Save the new version
+		Strategy created = createStrategyRepository.createWithUserId(newStrategy, userId);
 
-        // Load the requested strategy to get the parent ID
-        Optional<Strategy> strategyOpt = readStrategyRepository.findById(strategyId);
-        if (strategyOpt.isEmpty()) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND,
-                "Strategy not found: " + strategyId);
-        }
+		log.info("Created new version {} of strategy {} as {}", newVersion, strategyId, created.getId());
+		return created;
+	}
 
-        Strategy strategy = strategyOpt.get();
+	/**
+	 * Get the version history of a strategy.
+	 * @param strategyId The ID of any version in the strategy family
+	 * @param userId The user ID (for authorization)
+	 * @return List of all versions, sorted by version number descending
+	 */
+	public List<Strategy> getVersionHistory(String strategyId, String userId) {
+		log.info("Fetching version history for strategy {} for user {}", strategyId, userId);
 
-        // Verify ownership
-        if (!userId.equals(strategy.getOwnerId())) {
-            throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
-                "Access denied to strategy: " + strategyId);
-        }
+		// Load the requested strategy to get the parent ID
+		Optional<Strategy> strategyOpt = readStrategyRepository.findById(strategyId);
+		if (strategyOpt.isEmpty()) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_NOT_FOUND, "Strategy not found: " + strategyId);
+		}
 
-        // Determine the root strategy ID
-        String rootId = strategy.getParentStrategyId() != null ? strategy.getParentStrategyId() : strategyId;
+		Strategy strategy = strategyOpt.get();
 
-        // Fetch all versions
-        List<Strategy> versions = readStrategyRepository.findVersionsByParentId(rootId);
+		// Verify ownership
+		if (!userId.equals(strategy.getOwnerId())) {
+			throwModuleException(ServiceStrategyErrorDetails.STRATEGY_ACCESS_DENIED,
+					"Access denied to strategy: " + strategyId);
+		}
 
-        // Also include the root strategy if it's not in the list
-        Optional<Strategy> rootOpt = readStrategyRepository.findById(rootId);
-        if (rootOpt.isPresent() && versions.stream().noneMatch(s -> rootId.equals(s.getId()))) {
-            versions.add(rootOpt.get());
-        }
+		// Determine the root strategy ID
+		String rootId = strategy.getParentStrategyId() != null ? strategy.getParentStrategyId() : strategyId;
 
-        // Sort by version number descending (newest first)
-        return versions.stream()
-                .sorted(Comparator.comparingLong((Strategy s) -> s.getVersion() != null ? s.getVersion() : 1L).reversed())
-                .collect(Collectors.toList());
-    }
+		// Fetch all versions
+		List<Strategy> versions = readStrategyRepository.findVersionsByParentId(rootId);
 
-    /**
-     * Get the latest version of a strategy.
-     *
-     * @param strategyId The ID of any version in the strategy family
-     * @param userId The user ID (for authorization)
-     * @return The latest version
-     */
-    public Optional<Strategy> getLatestVersion(String strategyId, String userId) {
-        List<Strategy> versions = getVersionHistory(strategyId, userId);
-        return versions.isEmpty() ? Optional.empty() : Optional.of(versions.get(0));
-    }
+		// Also include the root strategy if it's not in the list
+		Optional<Strategy> rootOpt = readStrategyRepository.findById(rootId);
+		if (rootOpt.isPresent() && versions.stream().noneMatch(s -> rootId.equals(s.getId()))) {
+			versions.add(rootOpt.get());
+		}
+
+		// Sort by version number descending (newest first)
+		return versions.stream()
+			.sorted(Comparator.comparingLong((Strategy s) -> s.getVersion() != null ? s.getVersion() : 1L).reversed())
+			.collect(Collectors.toList());
+	}
+
+	/**
+	 * Get the latest version of a strategy.
+	 * @param strategyId The ID of any version in the strategy family
+	 * @param userId The user ID (for authorization)
+	 * @return The latest version
+	 */
+	public Optional<Strategy> getLatestVersion(String strategyId, String userId) {
+		List<Strategy> versions = getVersionHistory(strategyId, userId);
+		return versions.isEmpty() ? Optional.empty() : Optional.of(versions.get(0));
+	}
+
 }

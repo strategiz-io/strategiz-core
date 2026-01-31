@@ -79,22 +79,35 @@ public class AIStrategyRequest {
 	private String elementToExplain;
 
 	@JsonProperty("model")
-	private String model; // LLM model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
+	private String model; // LLM model to use (e.g., "gemini-1.5-flash",
+							// "claude-3-5-sonnet")
 
 	@JsonProperty("visualEditorSchema")
-	private String visualEditorSchema; // Schema description for generating valid visual rules
+	private String visualEditorSchema; // Schema description for generating valid visual
+										// rules
 
 	@JsonProperty("useHistoricalInsights")
-	private Boolean useHistoricalInsights = false; // Enable Historical Market Insights with 7 years of data analysis
+	private Boolean useHistoricalInsights = false; // Enable Historical Market Insights
+													// with 7 years of data analysis
 
 	@JsonProperty("historicalInsightsOptions")
-	private HistoricalMarketInsightsOptions historicalInsightsOptions; // Options for Historical Market Insights analysis
+	private HistoricalMarketInsightsOptions historicalInsightsOptions; // Options for
+																		// Historical
+																		// Market Insights
+																		// analysis
 
 	@JsonProperty("optimizationMode")
-	private OptimizationMode optimizationMode = OptimizationMode.ENHANCE_EXISTING; // Mode for strategy optimization
+	private OptimizationMode optimizationMode = OptimizationMode.ENHANCE_EXISTING; // Mode
+																					// for
+																					// strategy
+																					// optimization
 
 	@JsonProperty("autonomousMode")
-	private AutonomousMode autonomousMode = AutonomousMode.GENERATIVE_AI; // Mode: Generative AI or Autonomous (deterministic)
+	private AutonomousMode autonomousMode = AutonomousMode.GENERATIVE_AI; // Mode:
+																			// Generative
+																			// AI or
+																			// Autonomous
+																			// (deterministic)
 
 	// Getters and Setters
 
@@ -195,9 +208,9 @@ public class AIStrategyRequest {
 	}
 
 	/**
-	 * Options for Historical Market Insights analysis (Autonomous AI mode).
-	 * Analyzes historical market data to generate optimized strategies.
-	 * Default: ~3 years of data for fast analysis. Set fastMode=false for full 7-year analysis.
+	 * Options for Historical Market Insights analysis (Autonomous AI mode). Analyzes
+	 * historical market data to generate optimized strategies. Default: ~3 years of data
+	 * for fast analysis. Set fastMode=false for full 7-year analysis.
 	 */
 	public static class HistoricalMarketInsightsOptions {
 
@@ -211,7 +224,8 @@ public class AIStrategyRequest {
 		private Boolean forceRefresh = false; // Skip cache and recompute
 
 		@JsonProperty("fastMode")
-		private Boolean fastMode = true; // Fast mode: parallel backtesting + reduced lookback
+		private Boolean fastMode = true; // Fast mode: parallel backtesting + reduced
+											// lookback
 
 		// Getters and Setters
 

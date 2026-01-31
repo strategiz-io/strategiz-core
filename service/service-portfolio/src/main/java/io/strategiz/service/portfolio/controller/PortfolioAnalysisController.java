@@ -27,8 +27,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
- * REST controller for AI-powered portfolio analysis.
- * Provides endpoints for automated insights and conversational chat about portfolio.
+ * REST controller for AI-powered portfolio analysis. Provides endpoints for automated
+ * insights and conversational chat about portfolio.
  */
 @RestController
 @RequestMapping("/v1/portfolio/analysis")
@@ -49,13 +49,13 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Generate AI-powered portfolio insights.
-	 * Generates all 4 insight types (Risk, Performance, Rebalancing, Opportunities) in
-	 * parallel.
+	 * Generate AI-powered portfolio insights. Generates all 4 insight types (Risk,
+	 * Performance, Rebalancing, Opportunities) in parallel.
 	 */
 	@PostMapping("/insights")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Generate AI portfolio insights", description = "Generate automated insights covering risk, performance, rebalancing, and opportunities")
+	@Operation(summary = "Generate AI portfolio insights",
+			description = "Generate automated insights covering risk, performance, rebalancing, and opportunities")
 	public Mono<ResponseEntity<List<PortfolioInsightDto>>> generateInsights(
 			@Valid @RequestBody PortfolioAnalysisRequestDto request, @AuthUser AuthenticatedUser user) {
 
@@ -80,12 +80,13 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Chat with AI about portfolio.
-	 * Supports conversational interaction with portfolio context.
+	 * Chat with AI about portfolio. Supports conversational interaction with portfolio
+	 * context.
 	 */
 	@PostMapping("/chat")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Chat with portfolio AI assistant", description = "Ask questions about your portfolio and get AI-powered responses")
+	@Operation(summary = "Chat with portfolio AI assistant",
+			description = "Ask questions about your portfolio and get AI-powered responses")
 	public Mono<ResponseEntity<PortfolioChatResponseDto>> chat(@Valid @RequestBody PortfolioChatRequestDto request,
 			@AuthUser AuthenticatedUser user) {
 
@@ -115,8 +116,8 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Stream chat with AI about portfolio (SSE).
-	 * Provides real-time streaming responses for better UX.
+	 * Stream chat with AI about portfolio (SSE). Provides real-time streaming responses
+	 * for better UX.
 	 */
 	@GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 	@RequireAuth(minAcr = "1")
@@ -133,8 +134,7 @@ public class PortfolioAnalysisController extends BaseController {
 		// TODO: Add subscription usage tracking:
 		// subscriptionService.recordMessageUsage(userId)
 
-		return portfolioAnalysisService
-			.chatStream(message, userId, new ArrayList<>(), selectedModel, providerId)
+		return portfolioAnalysisService.chatStream(message, userId, new ArrayList<>(), selectedModel, providerId)
 			.map(this::convertToChatResponseDto)
 			.onErrorResume(error -> {
 				log.error("Error in portfolio chat stream for user {}: {}", userId, error.getMessage(), error);
@@ -146,8 +146,8 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Convert ChatResponse to PortfolioInsightDto. Uses metadata from service
-	 * for type/title, extracts summary and action items from AI response content.
+	 * Convert ChatResponse to PortfolioInsightDto. Uses metadata from service for
+	 * type/title, extracts summary and action items from AI response content.
 	 */
 	private PortfolioInsightDto convertToInsightDto(ChatResponse chatResponse) {
 		PortfolioInsightDto dto = new PortfolioInsightDto();
@@ -161,7 +161,8 @@ public class PortfolioAnalysisController extends BaseController {
 			dto.setGeneratedAt(chatResponse.getTimestamp().toEpochSecond(ZoneOffset.UTC));
 		}
 
-		// Use metadata if available (preferred), otherwise fall back to content extraction
+		// Use metadata if available (preferred), otherwise fall back to content
+		// extraction
 		String type;
 		String title;
 		if (chatResponse.getMetadata() != null) {
@@ -226,7 +227,8 @@ public class PortfolioAnalysisController extends BaseController {
 			return "OVERVIEW";
 
 		String lowerContent = content.toLowerCase();
-		if (lowerContent.contains("risk") && (lowerContent.contains("analysis") || lowerContent.contains("assessment"))) {
+		if (lowerContent.contains("risk")
+				&& (lowerContent.contains("analysis") || lowerContent.contains("assessment"))) {
 			return "RISK";
 		}
 		if (lowerContent.contains("performance")) {
@@ -297,8 +299,8 @@ public class PortfolioAnalysisController extends BaseController {
 	}
 
 	/**
-	 * Extract action items from AI response content. Looks for bullet points or
-	 * numbered lists.
+	 * Extract action items from AI response content. Looks for bullet points or numbered
+	 * lists.
 	 */
 	private List<PortfolioInsightDto.ActionItem> extractActionItems(String content) {
 		List<PortfolioInsightDto.ActionItem> actionItems = new ArrayList<>();

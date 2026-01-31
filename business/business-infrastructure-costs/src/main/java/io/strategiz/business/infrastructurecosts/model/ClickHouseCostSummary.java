@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * Model for ClickHouseDB cost summary data.
- * Represents aggregated billing costs for a date range.
+ * Model for ClickHouseDB cost summary data. Represents aggregated billing costs for a
+ * date range.
  */
 public record ClickHouseCostSummary(LocalDate startDate, LocalDate endDate, BigDecimal totalCost, String currency,
 		BigDecimal computeCost, BigDecimal storageCost, BigDecimal storageUsageGb, BigDecimal computeHours) {

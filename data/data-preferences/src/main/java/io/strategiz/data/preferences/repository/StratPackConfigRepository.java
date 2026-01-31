@@ -18,7 +18,9 @@ import java.util.stream.Collectors;
 /**
  * Repository for StratPackConfig stored at config/strat-packs/{packId}.
  *
- * <p>This repository manages configurable STRAT pack definitions.</p>
+ * <p>
+ * This repository manages configurable STRAT pack definitions.
+ * </p>
  */
 @Repository
 public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
@@ -43,7 +45,6 @@ public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
 
 	/**
 	 * Get pack config by ID.
-	 *
 	 * @param packId The pack ID
 	 * @return The pack config if found
 	 */
@@ -60,7 +61,6 @@ public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
 
 	/**
 	 * Get all enabled STRAT packs, sorted by sortOrder.
-	 *
 	 * @return List of enabled packs
 	 */
 	public List<StratPackConfig> getEnabledPacks() {
@@ -72,7 +72,6 @@ public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
 
 	/**
 	 * Get all STRAT packs (including disabled).
-	 *
 	 * @return List of all packs
 	 */
 	public List<StratPackConfig> getAllPacks() {
@@ -107,7 +106,6 @@ public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
 
 	/**
 	 * Save pack config.
-	 *
 	 * @param config The config to save
 	 * @param updatedBy The user making the change
 	 * @return The saved config
@@ -120,7 +118,6 @@ public class StratPackConfigRepository extends BaseRepository<StratPackConfig> {
 
 	/**
 	 * Seed default packs if none exist.
-	 *
 	 * @param userId The admin user seeding the packs
 	 */
 	public void seedDefaultsIfEmpty(String userId) {

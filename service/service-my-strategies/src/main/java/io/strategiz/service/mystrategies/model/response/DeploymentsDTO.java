@@ -9,26 +9,27 @@ import java.util.List;
  */
 public class DeploymentsDTO {
 
-    @JsonProperty("alerts")
-    private List<AlertDeploymentDTO> alerts;
+	@JsonProperty("alerts")
+	private List<AlertDeploymentDTO> alerts;
 
-    @JsonProperty("bots")
-    private List<BotDeploymentDTO> bots;
+	@JsonProperty("bots")
+	private List<BotDeploymentDTO> bots;
 
-    // Getters and Setters
-    public List<AlertDeploymentDTO> getAlerts() {
-        return alerts;
-    }
+	// Getters and Setters
+	public List<AlertDeploymentDTO> getAlerts() {
+		return alerts;
+	}
 
-    public void setAlerts(List<AlertDeploymentDTO> alerts) {
-        this.alerts = alerts;
-    }
+	public void setAlerts(List<AlertDeploymentDTO> alerts) {
+		this.alerts = alerts;
+	}
 
-    public List<BotDeploymentDTO> getBots() {
-        return bots;
-    }
+	public List<BotDeploymentDTO> getBots() {
+		return bots;
+	}
 
-    public void setBots(List<BotDeploymentDTO> bots) {
-        this.bots = bots;
-    }
+	public void setBots(List<BotDeploymentDTO> bots) {
+		this.bots = bots;
+	}
+
 }

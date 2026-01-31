@@ -64,8 +64,8 @@ public class AIPreferencesController extends BaseController {
 	 */
 	@PutMapping
 	@RequireAuth(minAcr = "1")
-	public ResponseEntity<AIPreferencesResponse> updatePreferences(@Valid @RequestBody UpdateAIPreferencesRequest request,
-			@AuthUser AuthenticatedUser user) {
+	public ResponseEntity<AIPreferencesResponse> updatePreferences(
+			@Valid @RequestBody UpdateAIPreferencesRequest request, @AuthUser AuthenticatedUser user) {
 
 		String userId = user.getUserId();
 		logger.info("Updating AI preferences for user {}", userId);

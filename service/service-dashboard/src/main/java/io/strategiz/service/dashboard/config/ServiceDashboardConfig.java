@@ -9,26 +9,26 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
- * Configuration class for service-dashboard module.
- * Follows the standard naming convention: Service[Module]Config
+ * Configuration class for service-dashboard module. Follows the standard naming
+ * convention: Service[Module]Config
  */
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.service.dashboard")
-@Import({
-    BusinessPortfolioConfig.class
-})
+@Import({ BusinessPortfolioConfig.class })
 public class ServiceDashboardConfig {
-    
-    /**
-     * Configure MessageSource to load dashboard error messages
-     * NOTE: Commented out - using GlobalMessageSourceConfig which includes all module messages
-     */
-    // @Bean
-    // public MessageSource messageSource() {
-    //     ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-    //     messageSource.setBasenames("messages/dashboard-errors");
-    //     messageSource.setDefaultEncoding("UTF-8");
-    //     messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
-    //     return messageSource;
-    // }
+
+	/**
+	 * Configure MessageSource to load dashboard error messages NOTE: Commented out -
+	 * using GlobalMessageSourceConfig which includes all module messages
+	 */
+	// @Bean
+	// public MessageSource messageSource() {
+	// ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+	// messageSource.setBasenames("messages/dashboard-errors");
+	// messageSource.setDefaultEncoding("UTF-8");
+	// messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not
+	// found
+	// return messageSource;
+	// }
+
 }

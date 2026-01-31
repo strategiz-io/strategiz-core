@@ -17,15 +17,17 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Service for tracking token/STRAT usage across AI operations.
- * Handles STRAT consumption from wallet, usage warnings, and tier cap enforcement.
+ * Service for tracking token/STRAT usage across AI operations. Handles STRAT consumption
+ * from wallet, usage warnings, and tier cap enforcement.
  *
- * <p>STRAT System:</p>
+ * <p>
+ * STRAT System:
+ * </p>
  * <ul>
- *   <li>AI usage debits STRAT from user's CryptoWallet</li>
- *   <li>Models have different weights (Gemini Flash = 1x, Claude 3 Opus = 125x)</li>
- *   <li>Monthly tier cap tracked on PlatformSubscription (monthlyStratUsed)</li>
- *   <li>Usage warnings at 80%, critical at 95%, blocked at 100%</li>
+ * <li>AI usage debits STRAT from user's CryptoWallet</li>
+ * <li>Models have different weights (Gemini Flash = 1x, Claude 3 Opus = 125x)</li>
+ * <li>Monthly tier cap tracked on PlatformSubscription (monthlyStratUsed)</li>
+ * <li>Usage warnings at 80%, critical at 95%, blocked at 100%</li>
  * </ul>
  */
 @Service
@@ -37,7 +39,9 @@ public class TokenUsageService {
 
 	// Warning thresholds as percentages
 	private static final int WARNING_THRESHOLD = 80;
+
 	private static final int CRITICAL_THRESHOLD = 95;
+
 	private static final int BLOCKED_THRESHOLD = 100;
 
 	private final TokenUsageRepository tokenUsageRepository;
@@ -54,8 +58,8 @@ public class TokenUsageService {
 	}
 
 	/**
-	 * Record token usage for an AI API call.
-	 * Updates user's credit balance and creates audit record.
+	 * Record token usage for an AI API call. Updates user's credit balance and creates
+	 * audit record.
 	 * @param userId The user ID
 	 * @param modelId The AI model used
 	 * @param promptTokens Number of input tokens
@@ -80,8 +84,8 @@ public class TokenUsageService {
 	 */
 	public TokenUsageRecord recordUsage(String userId, String modelId, int promptTokens, int completionTokens,
 			String requestType, String sessionId) {
-		logger.debug("Recording usage for user {}: model={}, prompt={}, completion={}, type={}",
-				userId, modelId, promptTokens, completionTokens, requestType);
+		logger.debug("Recording usage for user {}: model={}, prompt={}, completion={}, type={}", userId, modelId,
+				promptTokens, completionTokens, requestType);
 
 		// Get current subscription
 		PlatformSubscription subscription = subscriptionRepository.getByUserId(userId);
@@ -112,16 +116,16 @@ public class TokenUsageService {
 		// Save usage record for audit trail
 		tokenUsageRepository.save(userId, record);
 
-		logger.info("User {} consumed {} STRAT ({} model, {} tokens). Remaining: {}/{}",
-				userId, stratConsumed, modelId, promptTokens + completionTokens,
-				subscription.getRemainingStrat(), subscription.getMonthlyStratAllowed());
+		logger.info("User {} consumed {} STRAT ({} model, {} tokens). Remaining: {}/{}", userId, stratConsumed, modelId,
+				promptTokens + completionTokens, subscription.getRemainingStrat(),
+				subscription.getMonthlyStratAllowed());
 
 		return record;
 	}
 
 	/**
-	 * Calculate credits that would be consumed for a request.
-	 * Use this to pre-check before making expensive API calls.
+	 * Calculate credits that would be consumed for a request. Use this to pre-check
+	 * before making expensive API calls.
 	 * @param modelId The AI model
 	 * @param estimatedPromptTokens Estimated input tokens
 	 * @param estimatedCompletionTokens Estimated output tokens
@@ -187,8 +191,8 @@ public class TokenUsageService {
 	}
 
 	/**
-	 * Check if user can consume the specified credits.
-	 * Throws exception if insufficient credits.
+	 * Check if user can consume the specified credits. Throws exception if insufficient
+	 * credits.
 	 * @param userId The user ID
 	 * @param creditsNeeded Credits needed for the operation
 	 * @throws StrategizException if insufficient credits
@@ -211,8 +215,8 @@ public class TokenUsageService {
 		// Check if enough STRAT available in tier cap
 		if (subscription.getRemainingStrat() < creditsNeeded) {
 			throw new StrategizException(PreferencesErrorDetails.INSUFFICIENT_CREDITS, MODULE_NAME,
-					"Insufficient STRAT. You have " + subscription.getRemainingStrat()
-							+ " STRAT remaining but need " + creditsNeeded + ".");
+					"Insufficient STRAT. You have " + subscription.getRemainingStrat() + " STRAT remaining but need "
+							+ creditsNeeded + ".");
 		}
 	}
 
@@ -261,8 +265,8 @@ public class TokenUsageService {
 	}
 
 	/**
-	 * Reset STRAT usage for a new billing period.
-	 * Called by webhook handler when subscription renews.
+	 * Reset STRAT usage for a new billing period. Called by webhook handler when
+	 * subscription renews.
 	 * @param userId The user ID
 	 * @return Updated subscription
 	 */

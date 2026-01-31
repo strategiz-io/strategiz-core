@@ -4,9 +4,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Result of E*TRADE OAuth 1.0a connection.
- * Note: E*TRADE uses accessToken + accessTokenSecret (OAuth 1.0a)
- * instead of accessToken + refreshToken (OAuth 2.0).
+ * Result of E*TRADE OAuth 1.0a connection. Note: E*TRADE uses accessToken +
+ * accessTokenSecret (OAuth 1.0a) instead of accessToken + refreshToken (OAuth 2.0).
  */
 public class EtradeConnectionResult {
 

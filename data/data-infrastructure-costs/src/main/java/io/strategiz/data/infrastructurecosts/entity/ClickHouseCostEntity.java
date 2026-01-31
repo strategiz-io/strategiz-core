@@ -10,8 +10,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * ClickHouseDB cost data stored at infrastructure/costs/clickhouse/{date}
- * Documents monthly ClickHouseDB infrastructure costs for tracking and budgeting.
+ * ClickHouseDB cost data stored at infrastructure/costs/clickhouse/{date} Documents
+ * monthly ClickHouseDB infrastructure costs for tracking and budgeting.
  */
 @Collection("clickhouse")
 public class ClickHouseCostEntity extends BaseEntity {

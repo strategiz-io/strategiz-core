@@ -18,15 +18,19 @@ import java.util.stream.Collectors;
 /**
  * Business logic for MFA enforcement.
  *
- * <p>This service manages MFA enforcement preferences and validates
- * that users can enable MFA based on their configured authentication methods.</p>
+ * <p>
+ * This service manages MFA enforcement preferences and validates that users can enable
+ * MFA based on their configured authentication methods.
+ * </p>
  *
- * <p>ACR Levels:</p>
+ * <p>
+ * ACR Levels:
+ * </p>
  * <ul>
- *   <li>ACR 0: Partial/Signup (no enforcement possible)</li>
- *   <li>ACR 1: Single-Factor (password only)</li>
- *   <li>ACR 2: MFA (2+ methods OR passkey alone)</li>
- *   <li>ACR 3: Strong MFA (passkey + another factor)</li>
+ * <li>ACR 0: Partial/Signup (no enforcement possible)</li>
+ * <li>ACR 1: Single-Factor (password only)</li>
+ * <li>ACR 2: MFA (2+ methods OR passkey alone)</li>
+ * <li>ACR 3: Strong MFA (passkey + another factor)</li>
  * </ul>
  */
 @Component
@@ -41,7 +45,8 @@ public class MfaEnforcementBusiness {
 	private AuthenticationMethodRepository authMethodRepository;
 
 	/**
-	 * Check if step-up authentication is required for a user based on their current ACR level.
+	 * Check if step-up authentication is required for a user based on their current ACR
+	 * level.
 	 * @param userId The user ID
 	 * @param currentAcr The current session's ACR level (as string from token)
 	 * @return StepUpCheckResult indicating if step-up is needed and available methods
@@ -80,8 +85,8 @@ public class MfaEnforcementBusiness {
 	}
 
 	/**
-	 * Validate that a user can enable MFA enforcement.
-	 * User must have at least one active MFA method configured.
+	 * Validate that a user can enable MFA enforcement. User must have at least one active
+	 * MFA method configured.
 	 * @param userId The user ID
 	 * @return ValidationResult indicating if MFA can be enabled
 	 */
@@ -174,8 +179,8 @@ public class MfaEnforcementBusiness {
 	}
 
 	/**
-	 * Called when an MFA method is about to be removed.
-	 * Checks if this would disable MFA enforcement.
+	 * Called when an MFA method is about to be removed. Checks if this would disable MFA
+	 * enforcement.
 	 * @param userId The user ID
 	 * @param methodType The method type being removed
 	 * @return RemovalCheckResult indicating if removal would disable enforcement
@@ -220,10 +225,10 @@ public class MfaEnforcementBusiness {
 	// Helper methods
 
 	/**
-	 * Check if an authentication method is considered active.
-	 * Passkeys are always considered active because they are verified during
-	 * WebAuthn registration (the authenticator performs user verification).
-	 * Other methods require explicit isActive=true flag.
+	 * Check if an authentication method is considered active. Passkeys are always
+	 * considered active because they are verified during WebAuthn registration (the
+	 * authenticator performs user verification). Other methods require explicit
+	 * isActive=true flag.
 	 */
 	private boolean isMethodActive(AuthenticationMethodEntity method) {
 		// Passkeys are verified during registration - treat as always active

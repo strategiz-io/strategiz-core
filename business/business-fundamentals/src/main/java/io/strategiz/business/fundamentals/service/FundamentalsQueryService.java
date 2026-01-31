@@ -17,10 +17,8 @@ import java.util.*;
  * Service for querying company fundamentals data.
  *
  * <p>
- * Provides business-friendly methods for:
- * - Retrieving latest fundamentals for a symbol
- * - Stock screening by financial metrics
- * - Python strategy integration (map format)
+ * Provides business-friendly methods for: - Retrieving latest fundamentals for a symbol -
+ * Stock screening by financial metrics - Python strategy integration (map format)
  * </p>
  *
  * Requires ClickHouse to be enabled.
@@ -39,7 +37,6 @@ public class FundamentalsQueryService {
 
 	/**
 	 * Get latest fundamentals for a symbol.
-	 *
 	 * @param symbol Stock symbol
 	 * @return FundamentalsEntity
 	 * @throws StrategizException if not found
@@ -54,7 +51,6 @@ public class FundamentalsQueryService {
 
 	/**
 	 * Get latest fundamentals for a symbol (returns null if not found).
-	 *
 	 * @param symbol Stock symbol
 	 * @return FundamentalsEntity or null
 	 */
@@ -64,7 +60,6 @@ public class FundamentalsQueryService {
 
 	/**
 	 * Get fundamentals for a specific period type.
-	 *
 	 * @param symbol Stock symbol
 	 * @param periodType Period type (QUARTERLY, ANNUAL, TTM)
 	 * @return FundamentalsEntity
@@ -72,24 +67,22 @@ public class FundamentalsQueryService {
 	 */
 	public FundamentalsEntity getFundamentalsByPeriodType(String symbol, String periodType) {
 		if (!PeriodType.isValid(periodType)) {
-			throw new StrategizException(FundamentalsErrorDetails.INVALID_PERIOD_TYPE,
-					String.format("Invalid period type: %s. Must be one of: %s", periodType,
-							PeriodType.VALID_PERIOD_TYPES));
+			throw new StrategizException(FundamentalsErrorDetails.INVALID_PERIOD_TYPE, String
+				.format("Invalid period type: %s. Must be one of: %s", periodType, PeriodType.VALID_PERIOD_TYPES));
 		}
 
 		log.debug("Fetching {} fundamentals for {}", periodType, symbol);
 
 		return repository.findFirstBySymbolAndPeriodTypeOrderByFiscalPeriodDesc(symbol, periodType)
-			.orElseThrow(() -> new StrategizException(FundamentalsErrorDetails.NO_FUNDAMENTALS_FOUND, String
-				.format("No %s fundamentals found for symbol: %s", periodType, symbol)));
+			.orElseThrow(() -> new StrategizException(FundamentalsErrorDetails.NO_FUNDAMENTALS_FOUND,
+					String.format("No %s fundamentals found for symbol: %s", periodType, symbol)));
 	}
 
 	/**
 	 * Get fundamentals formatted for Python strategy execution.
 	 *
-	 * Returns a map with all fundamental metrics that can be injected into Python
-	 * global namespace.
-	 *
+	 * Returns a map with all fundamental metrics that can be injected into Python global
+	 * namespace.
 	 * @param symbol Stock symbol
 	 * @return Map of fundamental metrics (snake_case keys)
 	 */
@@ -168,15 +161,13 @@ public class FundamentalsQueryService {
 
 	/**
 	 * Find symbols with P/E ratio in specified range.
-	 *
 	 * @param minPE Minimum P/E ratio
 	 * @param maxPE Maximum P/E ratio
 	 * @return List of symbols matching criteria
 	 */
 	public List<String> findSymbolsByPERatio(BigDecimal minPE, BigDecimal maxPE) {
 		if (minPE == null || maxPE == null || minPE.compareTo(maxPE) > 0) {
-			throw new StrategizException(FundamentalsErrorDetails.INVALID_QUERY_PARAMETERS,
-					"Invalid P/E ratio range");
+			throw new StrategizException(FundamentalsErrorDetails.INVALID_QUERY_PARAMETERS, "Invalid P/E ratio range");
 		}
 
 		log.debug("Finding symbols with P/E ratio between {} and {}", minPE, maxPE);
@@ -185,14 +176,12 @@ public class FundamentalsQueryService {
 
 	/**
 	 * Find symbols with dividend yield above threshold.
-	 *
 	 * @param minYield Minimum dividend yield (as percentage)
 	 * @return List of symbols matching criteria
 	 */
 	public List<String> findSymbolsByDividendYield(BigDecimal minYield) {
 		if (minYield == null || minYield.compareTo(BigDecimal.ZERO) < 0) {
-			throw new StrategizException(FundamentalsErrorDetails.INVALID_QUERY_PARAMETERS,
-					"Invalid dividend yield");
+			throw new StrategizException(FundamentalsErrorDetails.INVALID_QUERY_PARAMETERS, "Invalid dividend yield");
 		}
 
 		log.debug("Finding symbols with dividend yield >= {}%", minYield);

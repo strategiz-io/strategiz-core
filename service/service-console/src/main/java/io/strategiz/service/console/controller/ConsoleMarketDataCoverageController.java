@@ -262,7 +262,8 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 				.calculateFreshnessMetrics(targetTimeframes, freshnessThresholdMinutes);
 
 			// Calculate overall freshness
-			long totalPairs = (long) totalSymbols * targetTimeframes.size(); // 567 * 4 = 2,268
+			long totalPairs = (long) totalSymbols * targetTimeframes.size(); // 567 * 4 =
+																				// 2,268
 			long totalFreshPairs = timeframeMetrics.stream().mapToLong(m -> (Long) m.get("freshSymbols")).sum();
 			double overallFreshnessPercent = (totalFreshPairs * 100.0) / totalPairs;
 
@@ -320,9 +321,7 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 
 			// Calculate summary statistics
 			int totalSymbols = dateRanges.size();
-			long totalBars = dateRanges.stream()
-				.mapToLong(r -> ((Number) r.get("bars")).longValue())
-				.sum();
+			long totalBars = dateRanges.stream().mapToLong(r -> ((Number) r.get("bars")).longValue()).sum();
 
 			// Find min/max days covered
 			int minDays = dateRanges.stream()
@@ -377,9 +376,7 @@ public class ConsoleMarketDataCoverageController extends BaseController {
 			List<Map<String, Object>> timeframeSummary = coverageService.getTimeframeSummary();
 
 			// Calculate overall totals
-			long totalBars = timeframeSummary.stream()
-				.mapToLong(r -> ((Number) r.get("total_bars")).longValue())
-				.sum();
+			long totalBars = timeframeSummary.stream().mapToLong(r -> ((Number) r.get("total_bars")).longValue()).sum();
 			int totalSymbols = timeframeSummary.stream()
 				.mapToInt(r -> ((Number) r.get("symbols")).intValue())
 				.max()

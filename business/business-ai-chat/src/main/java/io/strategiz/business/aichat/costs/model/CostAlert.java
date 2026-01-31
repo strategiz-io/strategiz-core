@@ -62,8 +62,8 @@ public class CostAlert {
 		alert.setType(AlertType.BUDGET_WARNING);
 		alert.setSeverity(AlertSeverity.WARNING);
 		alert.setTitle("Budget Warning");
-		alert.setMessage(
-				String.format("LLM spending has reached %d%% of monthly budget ($%.2f of $%.2f)", percent, current, budget));
+		alert.setMessage(String.format("LLM spending has reached %d%% of monthly budget ($%.2f of $%.2f)", percent,
+				current, budget));
 		alert.setCurrentValue(current);
 		alert.setThresholdValue(budget);
 		return alert;
@@ -85,7 +85,8 @@ public class CostAlert {
 		alert.setType(AlertType.DAILY_THRESHOLD);
 		alert.setSeverity(AlertSeverity.WARNING);
 		alert.setTitle("Daily Spend Alert");
-		alert.setMessage(String.format("Today's LLM spending ($%.2f) exceeded daily threshold ($%.2f)", dailySpend, threshold));
+		alert.setMessage(
+				String.format("Today's LLM spending ($%.2f) exceeded daily threshold ($%.2f)", dailySpend, threshold));
 		alert.setCurrentValue(dailySpend);
 		alert.setThresholdValue(threshold);
 		return alert;
@@ -96,8 +97,8 @@ public class CostAlert {
 		alert.setType(AlertType.SPEND_ANOMALY);
 		alert.setSeverity(AlertSeverity.WARNING);
 		alert.setTitle("Spending Anomaly Detected");
-		alert.setMessage(String.format("Today's spending ($%.2f) is %.1fx higher than the 7-day average ($%.2f)", current,
-				multiplier, average));
+		alert.setMessage(String.format("Today's spending ($%.2f) is %.1fx higher than the 7-day average ($%.2f)",
+				current, multiplier, average));
 		alert.setCurrentValue(current);
 		alert.setThresholdValue(average);
 		return alert;

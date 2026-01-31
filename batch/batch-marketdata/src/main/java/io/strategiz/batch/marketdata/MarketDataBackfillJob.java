@@ -20,20 +20,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Scheduled job for historical market data backfill.
  *
- * Purpose: Load historical dataset for all symbols across multiple timeframes
- * Execution: Manual trigger via console or scheduled (disabled by default)
- * Target: All symbols from SymbolService, configurable timeframes
+ * Purpose: Load historical dataset for all symbols across multiple timeframes Execution:
+ * Manual trigger via console or scheduled (disabled by default) Target: All symbols from
+ * SymbolService, configurable timeframes
  *
- * Usage:
- * - Initial system setup: Backfill all symbols with historical data
- * - Manual trigger from console app for on-demand backfills
- * - REST API for specific symbol/timeframe backfills
+ * Usage: - Initial system setup: Backfill all symbols with historical data - Manual
+ * trigger from console app for on-demand backfills - REST API for specific
+ * symbol/timeframe backfills
  *
- * Configuration:
- * - marketdata.batch.backfill-enabled: Enable/disable scheduled backfill (default: false)
- * - marketdata.batch.backfill-years: Historical lookback period (default: 7)
- * - marketdata.batch.backfill-timeframes: Comma-separated timeframes (default: 1Day,1Hour,1Week,1Month)
- * - marketdata.batch.thread-pool-size: Concurrent symbol processing (default: 2)
+ * Configuration: - marketdata.batch.backfill-enabled: Enable/disable scheduled backfill
+ * (default: false) - marketdata.batch.backfill-years: Historical lookback period
+ * (default: 7) - marketdata.batch.backfill-timeframes: Comma-separated timeframes
+ * (default: 1Day,1Hour,1Week,1Month) - marketdata.batch.thread-pool-size: Concurrent
+ * symbol processing (default: 2)
  *
  * Architecture: Only runs when "scheduler" profile is active
  */
@@ -45,7 +44,9 @@ public class MarketDataBackfillJob {
 	private static final Logger log = LoggerFactory.getLogger(MarketDataBackfillJob.class);
 
 	private final MarketDataCollectionService collectionService;
+
 	private final JobExecutionHistoryBusiness jobExecutionHistoryBusiness;
+
 	private final SymbolService symbolService;
 
 	private final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -60,10 +61,8 @@ public class MarketDataBackfillJob {
 	private String backfillTimeframes;
 
 	@Autowired
-	public MarketDataBackfillJob(
-			MarketDataCollectionService collectionService,
-			JobExecutionHistoryBusiness jobExecutionHistoryBusiness,
-			SymbolService symbolService) {
+	public MarketDataBackfillJob(MarketDataCollectionService collectionService,
+			JobExecutionHistoryBusiness jobExecutionHistoryBusiness, SymbolService symbolService) {
 		this.collectionService = collectionService;
 		this.jobExecutionHistoryBusiness = jobExecutionHistoryBusiness;
 		this.symbolService = symbolService;
@@ -71,8 +70,8 @@ public class MarketDataBackfillJob {
 	}
 
 	/**
-	 * Run backfill on application startup if enabled.
-	 * This allows populating ClickHouse with historical data on first deployment.
+	 * Run backfill on application startup if enabled. This allows populating ClickHouse
+	 * with historical data on first deployment.
 	 */
 	@jakarta.annotation.PostConstruct
 	public void runOnStartupIfEnabled() {
@@ -86,35 +85,38 @@ public class MarketDataBackfillJob {
 					// Check if symbols exist before backfill
 					List<String> symbols = symbolService.getProviderSymbolsForCollection("ALPACA");
 					if (symbols == null || symbols.isEmpty()) {
-						log.error("No symbols found for ALPACA data source. Please seed symbols first via /v1/admin/symbols/seed endpoint");
+						log.error(
+								"No symbols found for ALPACA data source. Please seed symbols first via /v1/admin/symbols/seed endpoint");
 						return;
 					}
 					log.info("Found {} symbols ready for backfill", symbols.size());
 
 					execute();
-				} catch (Exception e) {
+				}
+				catch (Exception e) {
 					log.error("Failed to run startup backfill: {}", e.getMessage(), e);
 				}
 			}, "backfill-startup").start();
-		} else {
+		}
+		else {
 			log.info("Backfill disabled - skipping automatic execution");
 		}
 	}
 
 	/**
-	 * Public execute method called by DynamicJobSchedulerBusiness.
-	 * Scheduled via database (jobs table) instead of @Scheduled annotation.
+	 * Public execute method called by DynamicJobSchedulerBusiness. Scheduled via database
+	 * (jobs table) instead of @Scheduled annotation.
 	 *
-	 * WARNING: This is resource-intensive and should only be run once
-	 * Use REST API or console trigger for manual backfills instead
+	 * WARNING: This is resource-intensive and should only be run once Use REST API or
+	 * console trigger for manual backfills instead
 	 */
 	public void execute() {
 		executeBackfill();
 	}
 
 	/**
-	 * Manual trigger for backfill job from console app. Can be called directly
-	 * without scheduler profile.
+	 * Manual trigger for backfill job from console app. Can be called directly without
+	 * scheduler profile.
 	 * @return BackfillResult with execution details
 	 */
 	public BackfillResult triggerManualExecution() {
@@ -144,11 +146,8 @@ public class MarketDataBackfillJob {
 
 		// Record job execution start
 		List<String> timeframes = Arrays.asList(backfillTimeframes.split(","));
-		String executionId = jobExecutionHistoryBusiness.recordJobStart(
-			"MARKETDATA_BACKFILL",
-			"MarketData_Backfill",
-			toJson(timeframes)
-		);
+		String executionId = jobExecutionHistoryBusiness.recordJobStart("MARKETDATA_BACKFILL", "MarketData_Backfill",
+				toJson(timeframes));
 
 		long startTime = System.currentTimeMillis();
 
@@ -173,8 +172,7 @@ public class MarketDataBackfillJob {
 					long tfStartTime = System.currentTimeMillis();
 
 					// Use gap-filling backfill to only fetch missing data
-					MarketDataCollectionService.CollectionResult result = collectionService
-						.backfillGaps(startDate, tf);
+					MarketDataCollectionService.CollectionResult result = collectionService.backfillGaps(startDate, tf);
 
 					long tfDuration = (System.currentTimeMillis() - tfStartTime) / 1000;
 
@@ -202,14 +200,8 @@ public class MarketDataBackfillJob {
 			log.info("Total errors: {}", totalErrors);
 
 			// Record successful completion
-			jobExecutionHistoryBusiness.recordJobCompletion(
-				executionId,
-				"SUCCESS",
-				totalSymbolsProcessed,
-				totalDataPointsStored,
-				totalErrors,
-				null
-			);
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "SUCCESS", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors, null);
 
 			return new BackfillResult(true, totalSymbolsProcessed, totalDataPointsStored, totalErrors,
 					String.format("Completed in %ds", duration));
@@ -219,14 +211,8 @@ public class MarketDataBackfillJob {
 			log.error("Backfill failed: {}", e.getMessage(), e);
 
 			// Record failed completion
-			jobExecutionHistoryBusiness.recordJobCompletion(
-				executionId,
-				"FAILED",
-				totalSymbolsProcessed,
-				totalDataPointsStored,
-				totalErrors + 1,
-				e.getMessage()
-			);
+			jobExecutionHistoryBusiness.recordJobCompletion(executionId, "FAILED", totalSymbolsProcessed,
+					totalDataPointsStored, totalErrors + 1, e.getMessage());
 
 			return new BackfillResult(false, totalSymbolsProcessed, totalDataPointsStored, totalErrors + 1,
 					e.getMessage());
@@ -242,7 +228,8 @@ public class MarketDataBackfillJob {
 	private String toJson(List<String> list) {
 		try {
 			return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(list);
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.warn("Failed to convert to JSON: {}", e.getMessage());
 			return list != null ? list.toString() : "[]";
 		}

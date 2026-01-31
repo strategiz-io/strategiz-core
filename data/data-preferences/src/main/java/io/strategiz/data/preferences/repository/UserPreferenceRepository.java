@@ -13,79 +13,80 @@ import java.util.Optional;
  */
 @Repository
 public interface UserPreferenceRepository extends CrudRepository<UserPreferenceEntity, String> {
-    
-    // ===============================
-    // Spring Data Query Methods
-    // ===============================
-    
-    /**
-     * Find preferences by category
-     */
-    List<UserPreferenceEntity> findByCategory(String category);
-    
-    /**
-     * Find preference by category (single result)
-     */
-    Optional<UserPreferenceEntity> findFirstByCategory(String category);
-    
-    /**
-     * Check if category exists
-     */
-    boolean existsByCategory(String category);
-    
-    /**
-     * Count preferences by category
-     */
-    long countByCategory(String category);
-    
-    /**
-     * Delete by category
-     */
-    void deleteByCategory(String category);
-    
-    // ===============================
-    // Category-Specific Convenience Methods
-    // ===============================
-    
-    /**
-     * Find theme preference
-     */
-    default Optional<UserPreferenceEntity> findThemePreference() {
-        return findFirstByCategory("theme");
-    }
-    
-    /**
-     * Find notification preference
-     */
-    default Optional<UserPreferenceEntity> findNotificationPreference() {
-        return findFirstByCategory("notifications");
-    }
-    
-    /**
-     * Find trading preference
-     */
-    default Optional<UserPreferenceEntity> findTradingPreference() {
-        return findFirstByCategory("trading");
-    }
-    
-    /**
-     * Find display preference
-     */
-    default Optional<UserPreferenceEntity> findDisplayPreference() {
-        return findFirstByCategory("display");
-    }
-    
-    /**
-     * Find privacy preference
-     */
-    default Optional<UserPreferenceEntity> findPrivacyPreference() {
-        return findFirstByCategory("privacy");
-    }
 
-    /**
-     * Find AI preference (model selection, etc.)
-     */
-    default Optional<UserPreferenceEntity> findAIPreference() {
-        return findFirstByCategory("ai");
-    }
+	// ===============================
+	// Spring Data Query Methods
+	// ===============================
+
+	/**
+	 * Find preferences by category
+	 */
+	List<UserPreferenceEntity> findByCategory(String category);
+
+	/**
+	 * Find preference by category (single result)
+	 */
+	Optional<UserPreferenceEntity> findFirstByCategory(String category);
+
+	/**
+	 * Check if category exists
+	 */
+	boolean existsByCategory(String category);
+
+	/**
+	 * Count preferences by category
+	 */
+	long countByCategory(String category);
+
+	/**
+	 * Delete by category
+	 */
+	void deleteByCategory(String category);
+
+	// ===============================
+	// Category-Specific Convenience Methods
+	// ===============================
+
+	/**
+	 * Find theme preference
+	 */
+	default Optional<UserPreferenceEntity> findThemePreference() {
+		return findFirstByCategory("theme");
+	}
+
+	/**
+	 * Find notification preference
+	 */
+	default Optional<UserPreferenceEntity> findNotificationPreference() {
+		return findFirstByCategory("notifications");
+	}
+
+	/**
+	 * Find trading preference
+	 */
+	default Optional<UserPreferenceEntity> findTradingPreference() {
+		return findFirstByCategory("trading");
+	}
+
+	/**
+	 * Find display preference
+	 */
+	default Optional<UserPreferenceEntity> findDisplayPreference() {
+		return findFirstByCategory("display");
+	}
+
+	/**
+	 * Find privacy preference
+	 */
+	default Optional<UserPreferenceEntity> findPrivacyPreference() {
+		return findFirstByCategory("privacy");
+	}
+
+	/**
+	 * Find AI preference (model selection, etc.)
+	 */
+	default Optional<UserPreferenceEntity> findAIPreference() {
+		return findFirstByCategory("ai");
+	}
+
 }

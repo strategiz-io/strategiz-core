@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes specific to Charles Schwab API client operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes specific to Charles Schwab API client operations. Implements ErrorDetails
+ * for integration with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(SchwabErrors.SCHWAB_API_ERROR, MODULE_NAME);
  */
@@ -44,4 +44,3 @@ public enum SchwabErrors implements ErrorDetails {
 	}
 
 }
-

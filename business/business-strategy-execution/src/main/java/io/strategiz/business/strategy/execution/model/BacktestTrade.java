@@ -5,98 +5,108 @@ package io.strategiz.business.strategy.execution.model;
  */
 public class BacktestTrade {
 
-    private String buyTimestamp;
-    private String sellTimestamp;
-    private double buyPrice;
-    private double sellPrice;
-    private double pnl;
-    private double pnlPercent;
-    private boolean isWin;
-    private boolean unrealized;
-    private String buyReason;
-    private String sellReason;
+	private String buyTimestamp;
 
-    public BacktestTrade() {
-    }
+	private String sellTimestamp;
 
-    // Getters and Setters
-    public String getBuyTimestamp() {
-        return buyTimestamp;
-    }
+	private double buyPrice;
 
-    public void setBuyTimestamp(String buyTimestamp) {
-        this.buyTimestamp = buyTimestamp;
-    }
+	private double sellPrice;
 
-    public String getSellTimestamp() {
-        return sellTimestamp;
-    }
+	private double pnl;
 
-    public void setSellTimestamp(String sellTimestamp) {
-        this.sellTimestamp = sellTimestamp;
-    }
+	private double pnlPercent;
 
-    public double getBuyPrice() {
-        return buyPrice;
-    }
+	private boolean isWin;
 
-    public void setBuyPrice(double buyPrice) {
-        this.buyPrice = buyPrice;
-    }
+	private boolean unrealized;
 
-    public double getSellPrice() {
-        return sellPrice;
-    }
+	private String buyReason;
 
-    public void setSellPrice(double sellPrice) {
-        this.sellPrice = sellPrice;
-    }
+	private String sellReason;
 
-    public double getPnl() {
-        return pnl;
-    }
+	public BacktestTrade() {
+	}
 
-    public void setPnl(double pnl) {
-        this.pnl = pnl;
-    }
+	// Getters and Setters
+	public String getBuyTimestamp() {
+		return buyTimestamp;
+	}
 
-    public double getPnlPercent() {
-        return pnlPercent;
-    }
+	public void setBuyTimestamp(String buyTimestamp) {
+		this.buyTimestamp = buyTimestamp;
+	}
 
-    public void setPnlPercent(double pnlPercent) {
-        this.pnlPercent = pnlPercent;
-    }
+	public String getSellTimestamp() {
+		return sellTimestamp;
+	}
 
-    public boolean isWin() {
-        return isWin;
-    }
+	public void setSellTimestamp(String sellTimestamp) {
+		this.sellTimestamp = sellTimestamp;
+	}
 
-    public void setWin(boolean isWin) {
-        this.isWin = isWin;
-    }
+	public double getBuyPrice() {
+		return buyPrice;
+	}
 
-    public boolean isUnrealized() {
-        return unrealized;
-    }
+	public void setBuyPrice(double buyPrice) {
+		this.buyPrice = buyPrice;
+	}
 
-    public void setUnrealized(boolean unrealized) {
-        this.unrealized = unrealized;
-    }
+	public double getSellPrice() {
+		return sellPrice;
+	}
 
-    public String getBuyReason() {
-        return buyReason;
-    }
+	public void setSellPrice(double sellPrice) {
+		this.sellPrice = sellPrice;
+	}
 
-    public void setBuyReason(String buyReason) {
-        this.buyReason = buyReason;
-    }
+	public double getPnl() {
+		return pnl;
+	}
 
-    public String getSellReason() {
-        return sellReason;
-    }
+	public void setPnl(double pnl) {
+		this.pnl = pnl;
+	}
 
-    public void setSellReason(String sellReason) {
-        this.sellReason = sellReason;
-    }
+	public double getPnlPercent() {
+		return pnlPercent;
+	}
+
+	public void setPnlPercent(double pnlPercent) {
+		this.pnlPercent = pnlPercent;
+	}
+
+	public boolean isWin() {
+		return isWin;
+	}
+
+	public void setWin(boolean isWin) {
+		this.isWin = isWin;
+	}
+
+	public boolean isUnrealized() {
+		return unrealized;
+	}
+
+	public void setUnrealized(boolean unrealized) {
+		this.unrealized = unrealized;
+	}
+
+	public String getBuyReason() {
+		return buyReason;
+	}
+
+	public void setBuyReason(String buyReason) {
+		this.buyReason = buyReason;
+	}
+
+	public String getSellReason() {
+		return sellReason;
+	}
+
+	public void setSellReason(String sellReason) {
+		this.sellReason = sellReason;
+	}
+
 }

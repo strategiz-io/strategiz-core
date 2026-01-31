@@ -16,15 +16,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * OAuth 1.0a signature generation utility for E*TRADE API.
- * Implements HMAC-SHA1 signing as required by E*TRADE.
+ * OAuth 1.0a signature generation utility for E*TRADE API. Implements HMAC-SHA1 signing
+ * as required by E*TRADE.
  *
- * OAuth 1.0a signature process:
- * 1. Collect all OAuth parameters
- * 2. Collect all request parameters
- * 3. Create signature base string
- * 4. Sign with HMAC-SHA1 using consumer secret and token secret
- * 5. Base64 encode the result
+ * OAuth 1.0a signature process: 1. Collect all OAuth parameters 2. Collect all request
+ * parameters 3. Create signature base string 4. Sign with HMAC-SHA1 using consumer secret
+ * and token secret 5. Base64 encode the result
  */
 public class OAuth1aSignature {
 
@@ -45,8 +42,8 @@ public class OAuth1aSignature {
 	 * @param oauthParams OAuth parameters (oauth_consumer_key, oauth_token, etc.)
 	 * @param requestParams Additional request parameters (query string or body)
 	 * @param consumerSecret Consumer secret from E*TRADE app registration
-	 * @param tokenSecret Token secret (empty string for request token, actual secret
-	 * for access token)
+	 * @param tokenSecret Token secret (empty string for request token, actual secret for
+	 * access token)
 	 * @return Base64-encoded HMAC-SHA1 signature
 	 */
 	public static String sign(String httpMethod, String baseUrl, Map<String, String> oauthParams,

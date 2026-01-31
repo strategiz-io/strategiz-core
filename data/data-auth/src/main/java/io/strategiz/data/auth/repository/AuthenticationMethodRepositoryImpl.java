@@ -23,278 +23,305 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Firebase implementation of AuthenticationMethodRepository
- * Manages authentication methods in users/{userId}/security subcollection
+ * Firebase implementation of AuthenticationMethodRepository Manages authentication
+ * methods in users/{userId}/security subcollection
  */
 @Repository
-public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<AuthenticationMethodEntity> 
-    implements AuthenticationMethodRepository {
+public class AuthenticationMethodRepositoryImpl extends SubcollectionRepository<AuthenticationMethodEntity>
+		implements AuthenticationMethodRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthenticationMethodRepositoryImpl.class);
-    
-    @Autowired
-    public AuthenticationMethodRepositoryImpl(Firestore firestore) {
-        super(firestore, AuthenticationMethodEntity.class);
-    }
+	private static final Logger log = LoggerFactory.getLogger(AuthenticationMethodRepositoryImpl.class);
 
-    @Override
-    protected String getParentCollectionName() {
-        return "users";
-    }
+	@Autowired
+	public AuthenticationMethodRepositoryImpl(Firestore firestore) {
+		super(firestore, AuthenticationMethodEntity.class);
+	}
 
-    @Override
-    protected String getSubcollectionName() {
-        return "security";
-    }
+	@Override
+	protected String getParentCollectionName() {
+		return "users";
+	}
 
-    @Override
-    protected String getModuleName() {
-        return "data-auth";
-    }
+	@Override
+	protected String getSubcollectionName() {
+		return "security";
+	}
 
-    // ===============================
-    // Subcollection-specific Methods
-    // ===============================
+	@Override
+	protected String getModuleName() {
+		return "data-auth";
+	}
 
-    @Override
-    public List<AuthenticationMethodEntity> findByUserId(String userId) {
-        try {
-            return findAllInSubcollection(userId).stream()
-                    .filter(entity -> Boolean.TRUE.equals(entity.getIsActive()))
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to find authentication methods for user: {}", userId, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
-        }
-    }
+	// ===============================
+	// Subcollection-specific Methods
+	// ===============================
 
-    @Override
-    public List<AuthenticationMethodEntity> findByUserIdAndType(String userId, AuthenticationMethodType type) {
-        try {
-            return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getAuthenticationMethod() == type)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to find authentication methods for user: {} and type: {}", userId, type, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
-        }
-    }
+	@Override
+	public List<AuthenticationMethodEntity> findByUserId(String userId) {
+		try {
+			return findAllInSubcollection(userId).stream()
+				.filter(entity -> Boolean.TRUE.equals(entity.getIsActive()))
+				.collect(Collectors.toList());
+		}
+		catch (Exception e) {
+			log.error("Failed to find authentication methods for user: {}", userId, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", userId);
+		}
+	}
 
-    @Override
-    public Optional<AuthenticationMethodEntity> findByUserIdAndId(String userId, String methodId) {
-        return findByIdInSubcollection(userId, methodId);
-    }
+	@Override
+	public List<AuthenticationMethodEntity> findByUserIdAndType(String userId, AuthenticationMethodType type) {
+		try {
+			return findAllInSubcollection(userId).stream()
+				.filter(entity -> entity.getAuthenticationMethod() == type)
+				.collect(Collectors.toList());
+		}
+		catch (Exception e) {
+			log.error("Failed to find authentication methods for user: {} and type: {}", userId, type, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", userId);
+		}
+	}
 
-    @Override
-    public List<AuthenticationMethodEntity> findByUserIdAndIsEnabled(String userId, boolean isEnabled) {
-        try {
-            return findAllInSubcollection(userId).stream()
-                    .filter(entity -> Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to find authentication methods for user: {} with enabled: {}", userId, isEnabled, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
-        }
-    }
+	@Override
+	public Optional<AuthenticationMethodEntity> findByUserIdAndId(String userId, String methodId) {
+		return findByIdInSubcollection(userId, methodId);
+	}
 
-    @Override
-    public List<AuthenticationMethodEntity> findByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled) {
-        try {
-            return findAllInSubcollection(userId).stream()
-                    .filter(entity -> entity.getAuthenticationMethod() == type && Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("Failed to find authentication methods for user: {}, type: {}, enabled: {}", userId, type, isEnabled, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", userId);
-        }
-    }
+	@Override
+	public List<AuthenticationMethodEntity> findByUserIdAndIsEnabled(String userId, boolean isEnabled) {
+		try {
+			return findAllInSubcollection(userId).stream()
+				.filter(entity -> Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
+				.collect(Collectors.toList());
+		}
+		catch (Exception e) {
+			log.error("Failed to find authentication methods for user: {} with enabled: {}", userId, isEnabled, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", userId);
+		}
+	}
 
-    @Override
-    public boolean existsByUserIdAndType(String userId, AuthenticationMethodType type) {
-        return !findByUserIdAndType(userId, type).isEmpty();
-    }
+	@Override
+	public List<AuthenticationMethodEntity> findByUserIdAndTypeAndIsEnabled(String userId,
+			AuthenticationMethodType type, boolean isEnabled) {
+		try {
+			return findAllInSubcollection(userId).stream()
+				.filter(entity -> entity.getAuthenticationMethod() == type
+						&& Boolean.TRUE.equals(entity.getIsActive()) == isEnabled)
+				.collect(Collectors.toList());
+		}
+		catch (Exception e) {
+			log.error("Failed to find authentication methods for user: {}, type: {}, enabled: {}", userId, type,
+					isEnabled, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", userId);
+		}
+	}
 
-    @Override
-    public boolean existsByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled) {
-        return !findByUserIdAndTypeAndIsEnabled(userId, type, isEnabled).isEmpty();
-    }
+	@Override
+	public boolean existsByUserIdAndType(String userId, AuthenticationMethodType type) {
+		return !findByUserIdAndType(userId, type).isEmpty();
+	}
 
-    @Override
-    public long countByUserIdAndType(String userId, AuthenticationMethodType type) {
-        return findByUserIdAndType(userId, type).size();
-    }
+	@Override
+	public boolean existsByUserIdAndTypeAndIsEnabled(String userId, AuthenticationMethodType type, boolean isEnabled) {
+		return !findByUserIdAndTypeAndIsEnabled(userId, type, isEnabled).isEmpty();
+	}
 
-    @Override
-    public void deleteByUserIdAndType(String userId, AuthenticationMethodType type) {
-        List<AuthenticationMethodEntity> entities = findByUserIdAndType(userId, type);
-        entities.forEach(entity -> deleteForUser(userId, entity.getId()));
-    }
+	@Override
+	public long countByUserIdAndType(String userId, AuthenticationMethodType type) {
+		return findByUserIdAndType(userId, type).size();
+	}
 
-    @Override
-    public AuthenticationMethodEntity saveForUser(String userId, AuthenticationMethodEntity entity) {
-        log.info("=== AUTH METHOD REPOSITORY: saveForUser START ===");
-        log.info("AuthenticationMethodRepositoryImpl.saveForUser - userId (parent doc): [{}]", userId);
-        log.info("AuthenticationMethodRepositoryImpl.saveForUser - entity type: {}", entity.getAuthenticationType());
-        log.info("AuthenticationMethodRepositoryImpl.saveForUser - This will create document at: users/{}/security/...", userId);
-        // Use the standardized subcollection save method from base class
-        // The userId parameter acts as both the parent document ID and the audit user
-        AuthenticationMethodEntity saved = saveInSubcollection(userId, entity, userId);
-        log.info("AuthenticationMethodRepositoryImpl.saveForUser - Saved auth method with ID: {} under userId: [{}]", saved.getId(), userId);
-        log.info("=== AUTH METHOD REPOSITORY: saveForUser END ===");
-        return saved;
-    }
+	@Override
+	public void deleteByUserIdAndType(String userId, AuthenticationMethodType type) {
+		List<AuthenticationMethodEntity> entities = findByUserIdAndType(userId, type);
+		entities.forEach(entity -> deleteForUser(userId, entity.getId()));
+	}
 
-    @Override
-    public void deleteForUser(String userId, String methodId) {
-        // Use soft delete from base class
-        if (!deleteInSubcollection(userId, methodId, userId)) {
-            log.warn("Authentication method {} not found for user {}", methodId, userId);
-        }
-    }
-    
-    @Override
-    public Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId) {
-        try {
-            log.debug("Searching for passkey with credential ID: {}", credentialId);
+	@Override
+	public AuthenticationMethodEntity saveForUser(String userId, AuthenticationMethodEntity entity) {
+		log.info("=== AUTH METHOD REPOSITORY: saveForUser START ===");
+		log.info("AuthenticationMethodRepositoryImpl.saveForUser - userId (parent doc): [{}]", userId);
+		log.info("AuthenticationMethodRepositoryImpl.saveForUser - entity type: {}", entity.getAuthenticationType());
+		log.info("AuthenticationMethodRepositoryImpl.saveForUser - This will create document at: users/{}/security/...",
+				userId);
+		// Use the standardized subcollection save method from base class
+		// The userId parameter acts as both the parent document ID and the audit user
+		AuthenticationMethodEntity saved = saveInSubcollection(userId, entity, userId);
+		log.info("AuthenticationMethodRepositoryImpl.saveForUser - Saved auth method with ID: {} under userId: [{}]",
+				saved.getId(), userId);
+		log.info("=== AUTH METHOD REPOSITORY: saveForUser END ===");
+		return saved;
+	}
 
-            // For passkey authentication, we need to search across all users
-            // This requires a collection group query on the security subcollection
-            // Note: This requires a composite index in Firestore
-            // IMPORTANT: Firestore uses camelCase field names from Java getters, not @PropertyName
-            Query query = firestore.collectionGroup("security")
-                    .whereEqualTo("authenticationMethod", "PASSKEY")  // Use camelCase, not snake_case!
-                    .whereEqualTo("isActive", true)
-                    .limit(100);
+	@Override
+	public void deleteForUser(String userId, String methodId) {
+		// Use soft delete from base class
+		if (!deleteInSubcollection(userId, methodId, userId)) {
+			log.warn("Authentication method {} not found for user {}", methodId, userId);
+		}
+	}
 
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-            QuerySnapshot snapshot = querySnapshot.get();
+	@Override
+	public Optional<AuthenticationMethodEntity> findByPasskeyCredentialId(String credentialId) {
+		try {
+			log.debug("Searching for passkey with credential ID: {}", credentialId);
 
-            if (snapshot.isEmpty()) {
-                log.debug("No active passkey documents found in collection group query");
-                return Optional.empty();
-            }
+			// For passkey authentication, we need to search across all users
+			// This requires a collection group query on the security subcollection
+			// Note: This requires a composite index in Firestore
+			// IMPORTANT: Firestore uses camelCase field names from Java getters, not
+			// @PropertyName
+			Query query = firestore.collectionGroup("security")
+				.whereEqualTo("authenticationMethod", "PASSKEY") // Use camelCase, not
+																	// snake_case!
+				.whereEqualTo("isActive", true)
+				.limit(100);
 
-            // Filter documents by credentialId in metadata
-            for (com.google.cloud.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
-                AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
-                entity.setId(doc.getId());
+			ApiFuture<QuerySnapshot> querySnapshot = query.get();
+			QuerySnapshot snapshot = querySnapshot.get();
 
-                // Check if this passkey has the matching credential ID
-                String storedCredentialId = entity.getMetadataAsString("credentialId");
-                if (credentialId.equals(storedCredentialId)) {
-                    // Extract userId from the document path and store it in metadata
-                    // Path format: users/{userId}/security/{methodId}
-                    String path = doc.getReference().getPath();
-                    String[] pathParts = path.split("/");
-                    if (pathParts.length >= 2) {
-                        String userId = pathParts[1]; // users/{userId}/...
-                        entity.putMetadata("userId", userId);
-                        log.debug("Found matching passkey for user {}", userId);
-                    }
-                    return Optional.of(entity);
-                }
-            }
+			if (snapshot.isEmpty()) {
+				log.debug("No active passkey documents found in collection group query");
+				return Optional.empty();
+			}
 
-            log.debug("No passkey found with credential ID: {}", credentialId);
-            return Optional.empty();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", credentialId);
-        } catch (ExecutionException e) {
-            log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", credentialId);
-        }
-    }
+			// Filter documents by credentialId in metadata
+			for (com.google.cloud.firestore.DocumentSnapshot doc : snapshot.getDocuments()) {
+				AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+				entity.setId(doc.getId());
 
-    @Override
-    public List<AuthenticationMethodEntity> findByType(AuthenticationMethodType type) {
-        try {
-            log.debug("Searching for authentication methods of type: {}", type);
+				// Check if this passkey has the matching credential ID
+				String storedCredentialId = entity.getMetadataAsString("credentialId");
+				if (credentialId.equals(storedCredentialId)) {
+					// Extract userId from the document path and store it in metadata
+					// Path format: users/{userId}/security/{methodId}
+					String path = doc.getReference().getPath();
+					String[] pathParts = path.split("/");
+					if (pathParts.length >= 2) {
+						String userId = pathParts[1]; // users/{userId}/...
+						entity.putMetadata("userId", userId);
+						log.debug("Found matching passkey for user {}", userId);
+					}
+					return Optional.of(entity);
+				}
+			}
 
-            // Use collection group query to search across all users' security subcollections
-            Query query = firestore.collectionGroup("security")
-                    .whereEqualTo("authenticationMethod", type.name())
-                    .whereEqualTo("isActive", true)
-                    .limit(1000); // Reasonable limit for phone number lookup
+			log.debug("No passkey found with credential ID: {}", credentialId);
+			return Optional.empty();
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"AuthenticationMethodEntity", credentialId);
+		}
+		catch (ExecutionException e) {
+			log.error("Failed to find authentication method by credential ID: {}", credentialId, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", credentialId);
+		}
+	}
 
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-            QuerySnapshot snapshot = querySnapshot.get();
+	@Override
+	public List<AuthenticationMethodEntity> findByType(AuthenticationMethodType type) {
+		try {
+			log.debug("Searching for authentication methods of type: {}", type);
 
-            if (snapshot.isEmpty()) {
-                log.debug("No authentication methods found of type: {}", type);
-                return List.of();
-            }
+			// Use collection group query to search across all users' security
+			// subcollections
+			Query query = firestore.collectionGroup("security")
+				.whereEqualTo("authenticationMethod", type.name())
+				.whereEqualTo("isActive", true)
+				.limit(1000); // Reasonable limit for phone number lookup
 
-            return snapshot.getDocuments().stream()
-                    .map(doc -> {
-                        AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
-                        entity.setId(doc.getId());
-                        // Extract userId from the document path: users/{userId}/security/{methodId}
-                        String path = doc.getReference().getPath();
-                        String[] pathParts = path.split("/");
-                        if (pathParts.length >= 2) {
-                            // Store userId in metadata for retrieval
-                            entity.putMetadata("userId", pathParts[1]);
-                        }
-                        return entity;
-                    })
-                    .collect(Collectors.toList());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Failed to find authentication methods by type: {}", type, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", type.name());
-        } catch (ExecutionException e) {
-            log.error("Failed to find authentication methods by type: {}", type, e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", type.name());
-        }
-    }
+			ApiFuture<QuerySnapshot> querySnapshot = query.get();
+			QuerySnapshot snapshot = querySnapshot.get();
 
-    @Override
-    public Optional<AuthenticationMethodEntity> findByPhoneNumber(String phoneNumber) {
-        try {
-            log.debug("Searching for SMS OTP method with phone number: {}",
-                    phoneNumber != null && phoneNumber.length() > 4
-                        ? phoneNumber.substring(0, 3) + "****"
-                        : "****");
+			if (snapshot.isEmpty()) {
+				log.debug("No authentication methods found of type: {}", type);
+				return List.of();
+			}
 
-            // Use collection group query with direct filter on metadata.phoneNumber
-            // This is much faster than fetching all SMS_OTP methods and filtering in memory
-            Query query = firestore.collectionGroup("security")
-                    .whereEqualTo("authenticationMethod", AuthenticationMethodType.SMS_OTP.name())
-                    .whereEqualTo("metadata.phoneNumber", phoneNumber)
-                    .whereEqualTo("metadata.isVerified", true)
-                    .whereEqualTo("isActive", true)
-                    .limit(1);
+			return snapshot.getDocuments().stream().map(doc -> {
+				AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+				entity.setId(doc.getId());
+				// Extract userId from the document path:
+				// users/{userId}/security/{methodId}
+				String path = doc.getReference().getPath();
+				String[] pathParts = path.split("/");
+				if (pathParts.length >= 2) {
+					// Store userId in metadata for retrieval
+					entity.putMetadata("userId", pathParts[1]);
+				}
+				return entity;
+			}).collect(Collectors.toList());
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			log.error("Failed to find authentication methods by type: {}", type, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"AuthenticationMethodEntity", type.name());
+		}
+		catch (ExecutionException e) {
+			log.error("Failed to find authentication methods by type: {}", type, e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", type.name());
+		}
+	}
 
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-            QuerySnapshot snapshot = querySnapshot.get();
+	@Override
+	public Optional<AuthenticationMethodEntity> findByPhoneNumber(String phoneNumber) {
+		try {
+			log.debug("Searching for SMS OTP method with phone number: {}",
+					phoneNumber != null && phoneNumber.length() > 4 ? phoneNumber.substring(0, 3) + "****" : "****");
 
-            if (snapshot.isEmpty()) {
-                log.debug("No verified SMS OTP method found for phone number");
-                return Optional.empty();
-            }
+			// Use collection group query with direct filter on metadata.phoneNumber
+			// This is much faster than fetching all SMS_OTP methods and filtering in
+			// memory
+			Query query = firestore.collectionGroup("security")
+				.whereEqualTo("authenticationMethod", AuthenticationMethodType.SMS_OTP.name())
+				.whereEqualTo("metadata.phoneNumber", phoneNumber)
+				.whereEqualTo("metadata.isVerified", true)
+				.whereEqualTo("isActive", true)
+				.limit(1);
 
-            com.google.cloud.firestore.DocumentSnapshot doc = snapshot.getDocuments().get(0);
-            AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
-            entity.setId(doc.getId());
+			ApiFuture<QuerySnapshot> querySnapshot = query.get();
+			QuerySnapshot snapshot = querySnapshot.get();
 
-            // Extract userId from the document path: users/{userId}/security/{methodId}
-            String path = doc.getReference().getPath();
-            String[] pathParts = path.split("/");
-            if (pathParts.length >= 2) {
-                entity.putMetadata("userId", pathParts[1]);
-                log.debug("Found SMS OTP method for user: {}", pathParts[1]);
-            }
+			if (snapshot.isEmpty()) {
+				log.debug("No verified SMS OTP method found for phone number");
+				return Optional.empty();
+			}
 
-            return Optional.of(entity);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Failed to find SMS OTP method by phone number", e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "AuthenticationMethodEntity", "phoneNumber");
-        } catch (ExecutionException e) {
-            log.error("Failed to find SMS OTP method by phone number", e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "AuthenticationMethodEntity", "phoneNumber");
-        }
-    }
+			com.google.cloud.firestore.DocumentSnapshot doc = snapshot.getDocuments().get(0);
+			AuthenticationMethodEntity entity = doc.toObject(AuthenticationMethodEntity.class);
+			entity.setId(doc.getId());
+
+			// Extract userId from the document path: users/{userId}/security/{methodId}
+			String path = doc.getReference().getPath();
+			String[] pathParts = path.split("/");
+			if (pathParts.length >= 2) {
+				entity.putMetadata("userId", pathParts[1]);
+				log.debug("Found SMS OTP method for user: {}", pathParts[1]);
+			}
+
+			return Optional.of(entity);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			log.error("Failed to find SMS OTP method by phone number", e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"AuthenticationMethodEntity", "phoneNumber");
+		}
+		catch (ExecutionException e) {
+			log.error("Failed to find SMS OTP method by phone number", e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"AuthenticationMethodEntity", "phoneNumber");
+		}
+	}
+
 }

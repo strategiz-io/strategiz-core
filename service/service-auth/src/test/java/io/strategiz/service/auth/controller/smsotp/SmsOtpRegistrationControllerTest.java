@@ -27,8 +27,8 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.doThrow;
 
 /**
- * Unit tests for SmsOtpRegistrationController.
- * Tests phone number registration and verification flows for SMS OTP.
+ * Unit tests for SmsOtpRegistrationController. Tests phone number registration and
+ * verification flows for SMS OTP.
  */
 @ExtendWith(MockitoExtension.class)
 class SmsOtpRegistrationControllerTest {
@@ -83,7 +83,8 @@ class SmsOtpRegistrationControllerTest {
 				.thenReturn(true);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.registerPhoneNumber(validRequest, TEST_IP_ADDRESS);
+			ResponseEntity<Map<String, Object>> response = controller.registerPhoneNumber(validRequest,
+					TEST_IP_ADDRESS);
 
 			// Then
 			assertNotNull(response);

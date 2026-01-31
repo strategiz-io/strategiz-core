@@ -10,7 +10,8 @@ import java.util.List;
 public class DeploymentInsights {
 
 	// Position Sizing
-	private double recommendedPortfolioAllocation; // Percentage-based allocation (e.g., 5.0 = "Risk no more than 5%")
+	private double recommendedPortfolioAllocation; // Percentage-based allocation (e.g.,
+													// 5.0 = "Risk no more than 5%")
 
 	private double kellyPercentage; // Full Kelly criterion result
 
@@ -59,7 +60,8 @@ public class DeploymentInsights {
 	private List<String> botLimitations;
 
 	// Trade Frequency Classification
-	private String tradingFrequencyClassification; // "High Frequency", "Day Trading", "Swing Trading", "Position
+	private String tradingFrequencyClassification; // "High Frequency", "Day Trading",
+													// "Swing Trading", "Position
 													// Trading"
 
 	private int estimatedTradesPerYear;
@@ -76,10 +78,10 @@ public class DeploymentInsights {
 	 */
 	public enum DrawdownRiskLevel {
 
-		LOW("Low Risk", "Easy recovery, suitable for most portfolios"), MEDIUM("Moderate Risk",
-				"Requires patience to recover"), HIGH("High Risk",
-						"Significant capital at risk, requires strong conviction"), EXTREME("Extreme Risk",
-								"Capital devastating, not recommended for most traders");
+		LOW("Low Risk", "Easy recovery, suitable for most portfolios"),
+		MEDIUM("Moderate Risk", "Requires patience to recover"),
+		HIGH("High Risk", "Significant capital at risk, requires strong conviction"),
+		EXTREME("Extreme Risk", "Capital devastating, not recommended for most traders");
 
 		private final String label;
 
@@ -105,8 +107,8 @@ public class DeploymentInsights {
 	 */
 	public enum DeploymentMode {
 
-		ALERT("Alert Mode", "Receive signals and execute trades manually"), BOT("Bot Mode",
-				"Fully automated trade execution");
+		ALERT("Alert Mode", "Receive signals and execute trades manually"),
+		BOT("Bot Mode", "Fully automated trade execution");
 
 		private final String label;
 
@@ -319,7 +321,8 @@ public class DeploymentInsights {
 				"DeploymentInsights[allocation=%.1f%%, kelly=%.1f%%, drawdown=%s, mode=%s, tradesPerYear=%d]",
 				recommendedPortfolioAllocation, kellyPercentage,
 				drawdownRiskLevel != null ? drawdownRiskLevel.getLabel() : "N/A",
-				recommendedDeploymentMode != null ? recommendedDeploymentMode.getLabel() : "N/A", estimatedTradesPerYear);
+				recommendedDeploymentMode != null ? recommendedDeploymentMode.getLabel() : "N/A",
+				estimatedTradesPerYear);
 	}
 
 }

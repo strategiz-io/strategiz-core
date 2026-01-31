@@ -9,10 +9,8 @@ import java.util.UUID;
 /**
  * Message published to Pub/Sub for batch processing of alerts and bots.
  *
- * Each message contains up to 100 symbol sets, where each symbol set includes:
- * - The symbols to fetch market data for
- * - The alert IDs to evaluate
- * - The bot IDs to evaluate
+ * Each message contains up to 100 symbol sets, where each symbol set includes: - The
+ * symbols to fetch market data for - The alert IDs to evaluate - The bot IDs to evaluate
  */
 public class DeploymentBatchMessage {
 
@@ -118,9 +116,9 @@ public class DeploymentBatchMessage {
 
 	@Override
 	public String toString() {
-		return "DeploymentBatchMessage{" + "messageId='" + messageId + '\'' + ", tier='" + tier + '\''
-				+ ", symbolSets=" + (symbolSets != null ? symbolSets.size() : 0) + ", totalAlerts=" + totalAlerts
-				+ ", totalBots=" + totalBots + ", createdAt=" + createdAt + '}';
+		return "DeploymentBatchMessage{" + "messageId='" + messageId + '\'' + ", tier='" + tier + '\'' + ", symbolSets="
+				+ (symbolSets != null ? symbolSets.size() : 0) + ", totalAlerts=" + totalAlerts + ", totalBots="
+				+ totalBots + ", createdAt=" + createdAt + '}';
 	}
 
 }

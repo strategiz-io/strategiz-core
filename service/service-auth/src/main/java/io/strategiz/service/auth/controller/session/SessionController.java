@@ -30,486 +30,474 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 
 /**
- * Controller for session management operations.
- * Handles session refresh, validation, and revocation.
- * Uses clean architecture - returns resources directly, no wrappers.
+ * Controller for session management operations. Handles session refresh, validation, and
+ * revocation. Uses clean architecture - returns resources directly, no wrappers.
  */
 @RestController
 @RequestMapping("/v1/auth/session")
 public class SessionController extends BaseController {
-    
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
 
-    private static final Logger log = LoggerFactory.getLogger(SessionController.class);
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    private final SessionService sessionService;
-    private final TokenSessionService tokenSessionService;
-    private final UserRepository userRepository;
+	private static final Logger log = LoggerFactory.getLogger(SessionController.class);
 
-    public SessionController(SessionService sessionService, TokenSessionService tokenSessionService, UserRepository userRepository) {
-        this.sessionService = sessionService;
-        this.tokenSessionService = tokenSessionService;
-        this.userRepository = userRepository;
-    }
-    
-    /**
-     * Refresh an existing session
-     * 
-     * @param request Session refresh request containing refresh token
-     * @return Clean refresh response with new tokens - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/refresh")
-    public ResponseEntity<RefreshSessionResponse> refreshSession(@Valid @RequestBody RefreshSessionRequest request,
-                                                               jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.info("Refreshing session with refresh token");
-        
-        // Extract IP address
-        String ipAddress = getClientIp(httpRequest);
-        
-        // Refresh session using token service - let exceptions bubble up
-        java.util.Optional<String> newTokenOpt = tokenSessionService.refreshToken(request.refreshToken(), ipAddress);
-        
-        if (newTokenOpt.isEmpty()) {
-            throwModuleException(ServiceAuthErrorDetails.REFRESH_TOKEN_INVALID, request.refreshToken());
-        }
-        
-        RefreshSessionResponse response = new RefreshSessionResponse(
-            newTokenOpt.get(),
-            request.refreshToken(), // Keep same refresh token for now
-            86400L // 24 hours in seconds
-        );
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Extract client IP address from request
-     */
-    private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
-    
-    /**
-     * Validate a session token
-     * 
-     * @param request Session validation request containing access token
-     * @return Clean validation response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/validate")
-    public ResponseEntity<SessionValidationResponse> validateSession(@Valid @RequestBody SessionValidationRequest request) {
-        log.info("Validating session token");
-        
-        // Validate session using token service - let exceptions bubble up
-        boolean isValid = tokenSessionService.validateSession(request.accessToken());
-        java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
-        
-        SessionValidationResponse response = new SessionValidationResponse(
-            isValid,
-            userIdOpt.orElse(null),
-            System.currentTimeMillis() / 1000 + 86400L // Current time + 24 hours
-        );
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
-    }
+	private final SessionService sessionService;
 
-    
-    /**
-     * Revoke a specific session
-     * 
-     * @param request Session revocation request containing session ID (token) and user ID
-     * @return Clean revocation response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/revoke")
-    public ResponseEntity<RevocationResponse> revokeSession(@Valid @RequestBody SessionRevocationRequest request) {
-        log.info("Revoking session: {}", request.sessionId());
-        
-        // Revoke session using token service - let exceptions bubble up
-        tokenSessionService.deleteSession(request.sessionId());
-        
-        RevocationResponse response = new RevocationResponse(
-            true,
-            "Session revoked successfully"
-        );
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Revoke all sessions for a user
-     * 
-     * @param userId The user ID whose sessions to revoke
-     * @return Clean revocation response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/revoke-all/{userId}")
-    public ResponseEntity<RevokeAllResponse> revokeAllSessions(@PathVariable String userId) {
-        log.info("Revoking all sessions for user: {}", userId);
-        
-        // Revoke all sessions using token service - let exceptions bubble up
-        boolean deleted = tokenSessionService.deleteUserSessions(userId);
-        
-        RevokeAllResponse response = new RevokeAllResponse(
-            deleted ? 1 : 0, // Simple count - in real implementation would return actual count
-            deleted ? "All sessions revoked successfully" : "No sessions found to revoke"
-        );
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
-    }
-    
-    /**
-     * Get current user information from a valid session token
-     * 
-     * @param request Session validation request containing access token
-     * @return Clean user response - no wrapper, let GlobalExceptionHandler handle errors
-     */
-    @PostMapping("/current-user")
-    public ResponseEntity<CurrentUserResponse> getCurrentUser(@Valid @RequestBody SessionValidationRequest request) {
-        log.info("Getting current user from session token");
-        
-        // Validate session and extract user ID using token service
-        java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
-        
-        if (userIdOpt.isEmpty()) {
-            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "Invalid or expired token");
-        }
-        
-        String userId = userIdOpt.get();
-        
-        // For now, return basic user info from token
-        // TODO: Integrate with user service to get full user profile
-        CurrentUserResponse response = new CurrentUserResponse(
-            userId,
-            userId + "@strategiz.io", // Temporary email format
-            "User " + userId.substring(0, Math.min(8, userId.length())), // Temporary name
-            System.currentTimeMillis() / 1000 // Current timestamp as created date
-        );
-        
-        // Return clean response - headers added by StandardHeadersInterceptor
-        return ResponseEntity.ok(response);
-    }
+	private final TokenSessionService tokenSessionService;
 
-    // === SERVER-SIDE SESSION MANAGEMENT ENDPOINTS (Firestore-based) ===
+	private final UserRepository userRepository;
 
-    /**
-     * Validate server-side session using Firestore-based session management
-     * 
-     * @param httpRequest HTTP servlet request containing session
-     * @return Clean validation response with user information
-     */
-    @PostMapping("/validate-server")
-    public ResponseEntity<SessionValidationResponse> validateServerSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.info("Validating Firestore-based server-side session");
-        
-        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
-        
-        if (validationOpt.isEmpty()) {
-            return ResponseEntity.ok(new SessionValidationResponse(false, null, 0L));
-        }
-        
-        SessionValidationResult validation = validationOpt.get();
-        SessionValidationResponse response = new SessionValidationResponse(
-            validation.isValid(),
-            validation.getUserId(),
-            validation.getExpiresAt().getEpochSecond()
-        );
-        
-        return ResponseEntity.ok(response);
-    }
+	public SessionController(SessionService sessionService, TokenSessionService tokenSessionService,
+			UserRepository userRepository) {
+		this.sessionService = sessionService;
+		this.tokenSessionService = tokenSessionService;
+		this.userRepository = userRepository;
+	}
 
-    /**
-     * Get current user information from server-side session (new architecture)
-     *
-     * @param httpRequest HTTP servlet request containing session
-     * @return Clean user response with session data including role
-     */
-    @PostMapping("/current-user-server")
-    public ResponseEntity<CurrentUserResponse> getCurrentUserFromSession(jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.info("Getting current user from server-side session");
+	/**
+	 * Refresh an existing session
+	 * @param request Session refresh request containing refresh token
+	 * @return Clean refresh response with new tokens - no wrapper, let
+	 * GlobalExceptionHandler handle errors
+	 */
+	@PostMapping("/refresh")
+	public ResponseEntity<RefreshSessionResponse> refreshSession(@Valid @RequestBody RefreshSessionRequest request,
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.info("Refreshing session with refresh token");
 
-        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+		// Extract IP address
+		String ipAddress = getClientIp(httpRequest);
 
-        if (validationOpt.isEmpty()) {
-            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
-        }
+		// Refresh session using token service - let exceptions bubble up
+		java.util.Optional<String> newTokenOpt = tokenSessionService.refreshToken(request.refreshToken(), ipAddress);
 
-        SessionValidationResult validation = validationOpt.get();
-        String userId = validation.getUserId();
+		if (newTokenOpt.isEmpty()) {
+			throwModuleException(ServiceAuthErrorDetails.REFRESH_TOKEN_INVALID, request.refreshToken());
+		}
 
-        // Fetch user profile to get role and display name
-        String role = null;
-        String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
-        try {
-            java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
-            if (userOpt.isPresent()) {
-                UserEntity user = userOpt.get();
-                if (user.getProfile() != null) {
-                    role = user.getProfile().getRole();
-                    if (user.getProfile().getName() != null) {
-                        displayName = user.getProfile().getName();
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Could not fetch user profile for role: {}", e.getMessage());
-        }
+		RefreshSessionResponse response = new RefreshSessionResponse(newTokenOpt.get(), request.refreshToken(), // Keep
+																												// same
+																												// refresh
+																												// token
+																												// for
+																												// now
+				86400L // 24 hours in seconds
+		);
 
-        CurrentUserResponse response = new CurrentUserResponse(
-            userId,
-            validation.getUserEmail(),
-            displayName,
-            validation.getLastAccessedAt().getEpochSecond(),
-            role
-        );
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(response);
+	}
 
-        log.info("Valid session found for user: {}, role: {}", userId, role);
-        return ResponseEntity.ok(response);
-    }
+	/**
+	 * Extract client IP address from request
+	 */
+	private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
+		String xForwardedFor = request.getHeader("X-Forwarded-For");
+		if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+			return xForwardedFor.split(",")[0].trim();
+		}
+		return request.getRemoteAddr();
+	}
 
-    /**
-     * BEST PRACTICE: Simple session validation from HTTP-only cookie
-     * Returns user data if valid session, 401 if not
-     * Includes user role for admin console access
-     */
-    @GetMapping("/validate-cookie")
-    public ResponseEntity<CurrentUserResponse> validateSessionCookie(jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.info("Validating session from HTTP-only cookie");
+	/**
+	 * Validate a session token
+	 * @param request Session validation request containing access token
+	 * @return Clean validation response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@PostMapping("/validate")
+	public ResponseEntity<SessionValidationResponse> validateSession(
+			@Valid @RequestBody SessionValidationRequest request) {
+		log.info("Validating session token");
 
-        try {
-            java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+		// Validate session using token service - let exceptions bubble up
+		boolean isValid = tokenSessionService.validateSession(request.accessToken());
+		java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
 
-            if (validationOpt.isEmpty()) {
-                log.info("No valid session cookie found");
-                return ResponseEntity.status(401).build();
-            }
+		SessionValidationResponse response = new SessionValidationResponse(isValid, userIdOpt.orElse(null),
+				System.currentTimeMillis() / 1000 + 86400L // Current time + 24 hours
+		);
 
-            SessionValidationResult validation = validationOpt.get();
-            String userId = validation.getUserId();
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(response);
+	}
 
-            // Fetch user profile to get role
-            String role = null;
-            String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
-            try {
-                java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent()) {
-                    UserEntity user = userOpt.get();
-                    if (user.getProfile() != null) {
-                        role = user.getProfile().getRole();
-                        if (user.getProfile().getName() != null) {
-                            displayName = user.getProfile().getName();
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("Could not fetch user profile for role: {}", e.getMessage());
-            }
+	/**
+	 * Revoke a specific session
+	 * @param request Session revocation request containing session ID (token) and user ID
+	 * @return Clean revocation response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@PostMapping("/revoke")
+	public ResponseEntity<RevocationResponse> revokeSession(@Valid @RequestBody SessionRevocationRequest request) {
+		log.info("Revoking session: {}", request.sessionId());
 
-            CurrentUserResponse response = new CurrentUserResponse(
-                userId,
-                validation.getUserEmail(),
-                displayName,
-                validation.getLastAccessedAt().getEpochSecond(),
-                role
-            );
+		// Revoke session using token service - let exceptions bubble up
+		tokenSessionService.deleteSession(request.sessionId());
 
-            log.info("Valid session found for user: {}, role: {}", userId, role);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error validating session cookie: {}", e.getMessage(), e);
-            return ResponseEntity.status(401).build();
-        }
-    }
+		RevocationResponse response = new RevocationResponse(true, "Session revoked successfully");
 
-    /**
-     * BEST PRACTICE: Simple logout endpoint
-     * Destroys server session and clears HTTP-only cookie
-     */
-    @PostMapping("/logout")
-    public ResponseEntity<RevocationResponse> logout(
-            jakarta.servlet.http.HttpServletRequest httpRequest,
-            jakarta.servlet.http.HttpServletResponse httpResponse) {
-        log.info("Processing logout request");
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(response);
+	}
 
-        boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
+	/**
+	 * Revoke all sessions for a user
+	 * @param userId The user ID whose sessions to revoke
+	 * @return Clean revocation response - no wrapper, let GlobalExceptionHandler handle
+	 * errors
+	 */
+	@PostMapping("/revoke-all/{userId}")
+	public ResponseEntity<RevokeAllResponse> revokeAllSessions(@PathVariable String userId) {
+		log.info("Revoking all sessions for user: {}", userId);
 
-        RevocationResponse response = new RevocationResponse(
-            terminated,
-            terminated ? "Logged out successfully" : "No active session"
-        );
+		// Revoke all sessions using token service - let exceptions bubble up
+		boolean deleted = tokenSessionService.deleteUserSessions(userId);
 
-        return ResponseEntity.ok(response);
-    }
+		RevokeAllResponse response = new RevokeAllResponse(deleted ? 1 : 0, // Simple
+																			// count - in
+																			// real
+																			// implementation
+																			// would
+																			// return
+																			// actual
+																			// count
+				deleted ? "All sessions revoked successfully" : "No sessions found to revoke");
 
-    /**
-     * Terminate current server-side session (logout)
-     * 
-     * @param httpRequest HTTP servlet request containing session
-     * @param httpResponse HTTP servlet response for clearing cookies
-     * @return Clean response indicating success
-     */
-    @PostMapping("/logout-server")
-    public ResponseEntity<RevocationResponse> logoutServerSession(
-            jakarta.servlet.http.HttpServletRequest httpRequest,
-            jakarta.servlet.http.HttpServletResponse httpResponse) {
-        log.info("Terminating server-side session");
-        
-        boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
-        
-        RevocationResponse response = new RevocationResponse(
-            terminated,
-            terminated ? "Session terminated successfully" : "No session found"
-        );
-        
-        return ResponseEntity.ok(response);
-    }
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(response);
+	}
 
-    /**
-     * Get active sessions for current user (new architecture)
-     *
-     * @param httpRequest HTTP servlet request containing session
-     * @return List of active sessions for the user
-     */
-    @PostMapping("/user-sessions")
-    public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getUserSessions(
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.info("Getting user active sessions");
+	/**
+	 * Get current user information from a valid session token
+	 * @param request Session validation request containing access token
+	 * @return Clean user response - no wrapper, let GlobalExceptionHandler handle errors
+	 */
+	@PostMapping("/current-user")
+	public ResponseEntity<CurrentUserResponse> getCurrentUser(@Valid @RequestBody SessionValidationRequest request) {
+		log.info("Getting current user from session token");
 
-        java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+		// Validate session and extract user ID using token service
+		java.util.Optional<String> userIdOpt = tokenSessionService.getUserIdFromToken(request.accessToken());
 
-        if (validationOpt.isEmpty()) {
-            throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
-        }
+		if (userIdOpt.isEmpty()) {
+			throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "Invalid or expired token");
+		}
 
-        String userId = validationOpt.get().getUserId();
-        java.util.List<io.strategiz.data.session.entity.SessionEntity> sessions = sessionService.getUserActiveSessions(userId);
+		String userId = userIdOpt.get();
 
-        java.util.List<java.util.Map<String, Object>> sessionList = sessions.stream()
-            .map(session -> {
-                java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
-                sessionMap.put("sessionId", session.getSessionId());
-                sessionMap.put("ipAddress", session.getIpAddress() != null ? session.getIpAddress() : "unknown");
-                sessionMap.put("userAgent", "unknown"); // SessionEntity doesn't have userAgent
-                sessionMap.put("createdAt", session.getIssuedAt() != null ? session.getIssuedAt().getEpochSecond() : 0);
-                sessionMap.put("lastAccessedAt", session.getLastAccessedAt() != null ? session.getLastAccessedAt().getEpochSecond() : 0);
-                sessionMap.put("expiresAt", session.getExpiresAt() != null ? session.getExpiresAt().getEpochSecond() : 0);
-                return sessionMap;
-            })
-            .collect(java.util.stream.Collectors.toList());
+		// For now, return basic user info from token
+		// TODO: Integrate with user service to get full user profile
+		CurrentUserResponse response = new CurrentUserResponse(userId, userId + "@strategiz.io", // Temporary
+																									// email
+																									// format
+				"User " + userId.substring(0, Math.min(8, userId.length())), // Temporary
+																				// name
+				System.currentTimeMillis() / 1000 // Current timestamp as created date
+		);
 
-        return ResponseEntity.ok(sessionList);
-    }
+		// Return clean response - headers added by StandardHeadersInterceptor
+		return ResponseEntity.ok(response);
+	}
 
-    /**
-     * Session heartbeat endpoint - lightweight session refresh
-     *
-     * Called by frontend to:
-     * - Verify session is still valid
-     * - Refresh session expiry on user activity
-     * - Keep active users logged in
-     *
-     * @param httpRequest HTTP servlet request containing session cookie
-     * @return Simple success response if session is valid, 401 if not
-     */
-    @GetMapping("/heartbeat")
-    public ResponseEntity<java.util.Map<String, Object>> sessionHeartbeat(
-            jakarta.servlet.http.HttpServletRequest httpRequest) {
-        log.debug("Session heartbeat check");
+	// === SERVER-SIDE SESSION MANAGEMENT ENDPOINTS (Firestore-based) ===
 
-        try {
-            // Validate session - this also updates lastAccessedAt
-            java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+	/**
+	 * Validate server-side session using Firestore-based session management
+	 * @param httpRequest HTTP servlet request containing session
+	 * @return Clean validation response with user information
+	 */
+	@PostMapping("/validate-server")
+	public ResponseEntity<SessionValidationResponse> validateServerSession(
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.info("Validating Firestore-based server-side session");
 
-            if (validationOpt.isEmpty()) {
-                log.debug("Heartbeat - no valid session");
-                return ResponseEntity.status(401).build();
-            }
+		java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
 
-            SessionValidationResult validation = validationOpt.get();
+		if (validationOpt.isEmpty()) {
+			return ResponseEntity.ok(new SessionValidationResponse(false, null, 0L));
+		}
 
-            // Return minimal session info
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("status", "active");
-            response.put("userId", validation.getUserId());
-            response.put("expiresAt", validation.getExpiresAt().getEpochSecond());
-            response.put("sessionRefreshed", true);
+		SessionValidationResult validation = validationOpt.get();
+		SessionValidationResponse response = new SessionValidationResponse(validation.isValid(), validation.getUserId(),
+				validation.getExpiresAt().getEpochSecond());
 
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error processing heartbeat: {}", e.getMessage());
-            return ResponseEntity.status(401).build();
-        }
-    }
+		return ResponseEntity.ok(response);
+	}
 
-    /**
-     * Refresh access token using refresh token from HTTP-only cookie
-     *
-     * This endpoint should be called when the access token expires (401).
-     * It uses the longer-lived refresh token to issue a new access token
-     * without requiring the user to re-authenticate.
-     *
-     * @param httpRequest HTTP servlet request containing refresh token cookie
-     * @param httpResponse HTTP servlet response for setting new access token cookie
-     * @return Success response with new token info, or 401 if refresh fails
-     */
-    @PostMapping("/refresh-cookie")
-    public ResponseEntity<java.util.Map<String, Object>> refreshTokenFromCookie(
-            jakarta.servlet.http.HttpServletRequest httpRequest,
-            jakarta.servlet.http.HttpServletResponse httpResponse) {
-        log.info("Refreshing access token from cookie");
+	/**
+	 * Get current user information from server-side session (new architecture)
+	 * @param httpRequest HTTP servlet request containing session
+	 * @return Clean user response with session data including role
+	 */
+	@PostMapping("/current-user-server")
+	public ResponseEntity<CurrentUserResponse> getCurrentUserFromSession(
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.info("Getting current user from server-side session");
 
-        try {
-            // Extract refresh token from cookie
-            String refreshToken = extractRefreshTokenFromRequest(httpRequest);
-            if (refreshToken == null) {
-                log.info("No refresh token cookie found");
-                return ResponseEntity.status(401).build();
-            }
+		java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
 
-            // Get client IP for session tracking
-            String ipAddress = getClientIp(httpRequest);
+		if (validationOpt.isEmpty()) {
+			throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
+		}
 
-            // Attempt to refresh the access token
-            java.util.Optional<String> newAccessTokenOpt = sessionService.refreshAccessToken(refreshToken, ipAddress, httpResponse);
+		SessionValidationResult validation = validationOpt.get();
+		String userId = validation.getUserId();
 
-            if (newAccessTokenOpt.isEmpty()) {
-                log.info("Refresh token invalid or expired");
-                return ResponseEntity.status(401).build();
-            }
+		// Fetch user profile to get role and display name
+		String role = null;
+		String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
+		try {
+			java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
+			if (userOpt.isPresent()) {
+				UserEntity user = userOpt.get();
+				if (user.getProfile() != null) {
+					role = user.getProfile().getRole();
+					if (user.getProfile().getName() != null) {
+						displayName = user.getProfile().getName();
+					}
+				}
+			}
+		}
+		catch (Exception e) {
+			log.warn("Could not fetch user profile for role: {}", e.getMessage());
+		}
 
-            // Success - new access token has been set as cookie by the service
-            java.util.Map<String, Object> response = new java.util.HashMap<>();
-            response.put("success", true);
-            response.put("message", "Token refreshed successfully");
+		CurrentUserResponse response = new CurrentUserResponse(userId, validation.getUserEmail(), displayName,
+				validation.getLastAccessedAt().getEpochSecond(), role);
 
-            log.info("Access token refreshed successfully");
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("Error refreshing token from cookie: {}", e.getMessage(), e);
-            return ResponseEntity.status(401).build();
-        }
-    }
+		log.info("Valid session found for user: {}, role: {}", userId, role);
+		return ResponseEntity.ok(response);
+	}
 
-    /**
-     * Extract refresh token from request cookies
-     */
-    private String extractRefreshTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
-        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (jakarta.servlet.http.Cookie cookie : cookies) {
-                if ("strategiz-refresh-token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        return null;
-    }
+	/**
+	 * BEST PRACTICE: Simple session validation from HTTP-only cookie Returns user data if
+	 * valid session, 401 if not Includes user role for admin console access
+	 */
+	@GetMapping("/validate-cookie")
+	public ResponseEntity<CurrentUserResponse> validateSessionCookie(
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.info("Validating session from HTTP-only cookie");
+
+		try {
+			java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+
+			if (validationOpt.isEmpty()) {
+				log.info("No valid session cookie found");
+				return ResponseEntity.status(401).build();
+			}
+
+			SessionValidationResult validation = validationOpt.get();
+			String userId = validation.getUserId();
+
+			// Fetch user profile to get role
+			String role = null;
+			String displayName = "User " + userId.substring(0, Math.min(8, userId.length()));
+			try {
+				java.util.Optional<UserEntity> userOpt = userRepository.findById(userId);
+				if (userOpt.isPresent()) {
+					UserEntity user = userOpt.get();
+					if (user.getProfile() != null) {
+						role = user.getProfile().getRole();
+						if (user.getProfile().getName() != null) {
+							displayName = user.getProfile().getName();
+						}
+					}
+				}
+			}
+			catch (Exception e) {
+				log.warn("Could not fetch user profile for role: {}", e.getMessage());
+			}
+
+			CurrentUserResponse response = new CurrentUserResponse(userId, validation.getUserEmail(), displayName,
+					validation.getLastAccessedAt().getEpochSecond(), role);
+
+			log.info("Valid session found for user: {}, role: {}", userId, role);
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Error validating session cookie: {}", e.getMessage(), e);
+			return ResponseEntity.status(401).build();
+		}
+	}
+
+	/**
+	 * BEST PRACTICE: Simple logout endpoint Destroys server session and clears HTTP-only
+	 * cookie
+	 */
+	@PostMapping("/logout")
+	public ResponseEntity<RevocationResponse> logout(jakarta.servlet.http.HttpServletRequest httpRequest,
+			jakarta.servlet.http.HttpServletResponse httpResponse) {
+		log.info("Processing logout request");
+
+		boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
+
+		RevocationResponse response = new RevocationResponse(terminated,
+				terminated ? "Logged out successfully" : "No active session");
+
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Terminate current server-side session (logout)
+	 * @param httpRequest HTTP servlet request containing session
+	 * @param httpResponse HTTP servlet response for clearing cookies
+	 * @return Clean response indicating success
+	 */
+	@PostMapping("/logout-server")
+	public ResponseEntity<RevocationResponse> logoutServerSession(jakarta.servlet.http.HttpServletRequest httpRequest,
+			jakarta.servlet.http.HttpServletResponse httpResponse) {
+		log.info("Terminating server-side session");
+
+		boolean terminated = sessionService.terminateSession(httpRequest, httpResponse);
+
+		RevocationResponse response = new RevocationResponse(terminated,
+				terminated ? "Session terminated successfully" : "No session found");
+
+		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Get active sessions for current user (new architecture)
+	 * @param httpRequest HTTP servlet request containing session
+	 * @return List of active sessions for the user
+	 */
+	@PostMapping("/user-sessions")
+	public ResponseEntity<java.util.List<java.util.Map<String, Object>>> getUserSessions(
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.info("Getting user active sessions");
+
+		java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+
+		if (validationOpt.isEmpty()) {
+			throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
+		}
+
+		String userId = validationOpt.get().getUserId();
+		java.util.List<io.strategiz.data.session.entity.SessionEntity> sessions = sessionService
+			.getUserActiveSessions(userId);
+
+		java.util.List<java.util.Map<String, Object>> sessionList = sessions.stream().map(session -> {
+			java.util.Map<String, Object> sessionMap = new java.util.HashMap<>();
+			sessionMap.put("sessionId", session.getSessionId());
+			sessionMap.put("ipAddress", session.getIpAddress() != null ? session.getIpAddress() : "unknown");
+			sessionMap.put("userAgent", "unknown"); // SessionEntity doesn't have
+													// userAgent
+			sessionMap.put("createdAt", session.getIssuedAt() != null ? session.getIssuedAt().getEpochSecond() : 0);
+			sessionMap.put("lastAccessedAt",
+					session.getLastAccessedAt() != null ? session.getLastAccessedAt().getEpochSecond() : 0);
+			sessionMap.put("expiresAt", session.getExpiresAt() != null ? session.getExpiresAt().getEpochSecond() : 0);
+			return sessionMap;
+		}).collect(java.util.stream.Collectors.toList());
+
+		return ResponseEntity.ok(sessionList);
+	}
+
+	/**
+	 * Session heartbeat endpoint - lightweight session refresh
+	 *
+	 * Called by frontend to: - Verify session is still valid - Refresh session expiry on
+	 * user activity - Keep active users logged in
+	 * @param httpRequest HTTP servlet request containing session cookie
+	 * @return Simple success response if session is valid, 401 if not
+	 */
+	@GetMapping("/heartbeat")
+	public ResponseEntity<java.util.Map<String, Object>> sessionHeartbeat(
+			jakarta.servlet.http.HttpServletRequest httpRequest) {
+		log.debug("Session heartbeat check");
+
+		try {
+			// Validate session - this also updates lastAccessedAt
+			java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
+
+			if (validationOpt.isEmpty()) {
+				log.debug("Heartbeat - no valid session");
+				return ResponseEntity.status(401).build();
+			}
+
+			SessionValidationResult validation = validationOpt.get();
+
+			// Return minimal session info
+			java.util.Map<String, Object> response = new java.util.HashMap<>();
+			response.put("status", "active");
+			response.put("userId", validation.getUserId());
+			response.put("expiresAt", validation.getExpiresAt().getEpochSecond());
+			response.put("sessionRefreshed", true);
+
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Error processing heartbeat: {}", e.getMessage());
+			return ResponseEntity.status(401).build();
+		}
+	}
+
+	/**
+	 * Refresh access token using refresh token from HTTP-only cookie
+	 *
+	 * This endpoint should be called when the access token expires (401). It uses the
+	 * longer-lived refresh token to issue a new access token without requiring the user
+	 * to re-authenticate.
+	 * @param httpRequest HTTP servlet request containing refresh token cookie
+	 * @param httpResponse HTTP servlet response for setting new access token cookie
+	 * @return Success response with new token info, or 401 if refresh fails
+	 */
+	@PostMapping("/refresh-cookie")
+	public ResponseEntity<java.util.Map<String, Object>> refreshTokenFromCookie(
+			jakarta.servlet.http.HttpServletRequest httpRequest,
+			jakarta.servlet.http.HttpServletResponse httpResponse) {
+		log.info("Refreshing access token from cookie");
+
+		try {
+			// Extract refresh token from cookie
+			String refreshToken = extractRefreshTokenFromRequest(httpRequest);
+			if (refreshToken == null) {
+				log.info("No refresh token cookie found");
+				return ResponseEntity.status(401).build();
+			}
+
+			// Get client IP for session tracking
+			String ipAddress = getClientIp(httpRequest);
+
+			// Attempt to refresh the access token
+			java.util.Optional<String> newAccessTokenOpt = sessionService.refreshAccessToken(refreshToken, ipAddress,
+					httpResponse);
+
+			if (newAccessTokenOpt.isEmpty()) {
+				log.info("Refresh token invalid or expired");
+				return ResponseEntity.status(401).build();
+			}
+
+			// Success - new access token has been set as cookie by the service
+			java.util.Map<String, Object> response = new java.util.HashMap<>();
+			response.put("success", true);
+			response.put("message", "Token refreshed successfully");
+
+			log.info("Access token refreshed successfully");
+			return ResponseEntity.ok(response);
+		}
+		catch (Exception e) {
+			log.error("Error refreshing token from cookie: {}", e.getMessage(), e);
+			return ResponseEntity.status(401).build();
+		}
+	}
+
+	/**
+	 * Extract refresh token from request cookies
+	 */
+	private String extractRefreshTokenFromRequest(jakarta.servlet.http.HttpServletRequest request) {
+		jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+		if (cookies != null) {
+			for (jakarta.servlet.http.Cookie cookie : cookies) {
+				if ("strategiz-refresh-token".equals(cookie.getName())) {
+					return cookie.getValue();
+				}
+			}
+		}
+		return null;
+	}
+
 }

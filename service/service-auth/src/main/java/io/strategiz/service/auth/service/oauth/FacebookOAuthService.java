@@ -31,283 +31,258 @@ import java.util.UUID;
 @Service
 public class FacebookOAuthService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    private final FacebookClient facebookClient;
-    private final OAuthUserManager oauthUserManager;
-    private final OAuthAuthenticationManager oauthAuthenticationManager;
-    private final SessionAuthBusiness sessionAuthBusiness;
-    private final AuthOAuthConfig oauthConfig;
+	private final FacebookClient facebookClient;
 
-    public FacebookOAuthService(
-            FacebookClient facebookClient,
-            OAuthUserManager oauthUserManager,
-            OAuthAuthenticationManager oauthAuthenticationManager,
-            SessionAuthBusiness sessionAuthBusiness,
-            AuthOAuthConfig oauthConfig) {
-        this.facebookClient = facebookClient;
-        this.oauthUserManager = oauthUserManager;
-        this.oauthAuthenticationManager = oauthAuthenticationManager;
-        this.sessionAuthBusiness = sessionAuthBusiness;
-        this.oauthConfig = oauthConfig;
-    }
+	private final OAuthUserManager oauthUserManager;
 
-    /**
-     * Get the authorization URL for Facebook OAuth
-     *
-     * @param isSignup Whether this is for signup flow
-     * @return The authorization URL and state
-     */
-    public Map<String, String> getAuthorizationUrl(boolean isSignup) {
-        return getAuthorizationUrl(isSignup, null);
-    }
+	private final OAuthAuthenticationManager oauthAuthenticationManager;
 
-    /**
-     * Get the authorization URL for Facebook OAuth with optional cross-app redirect
-     *
-     * @param isSignup Whether this is for signup flow
-     * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
-     * @return The authorization URL and state
-     */
-    public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
-        // Build state to match original Facebook OAuth format
-        // Signup: "signup:uuid" or "signup:uuid:base64redirect"
-        // Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
-        String uuid = UUID.randomUUID().toString();
-        String state;
-        if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
-            // Base64 encode the redirect URL to safely include in state
-            String encodedRedirect = Base64.getEncoder().encodeToString(redirectAfterAuth.getBytes(StandardCharsets.UTF_8));
-            if (isSignup) {
-                state = "signup:" + uuid + ":" + encodedRedirect;
-            } else {
-                // For signin, don't use "signin:" prefix - just uuid:redirect for backwards compatibility
-                state = uuid + ":" + encodedRedirect;
-            }
-            log.info("Built state with redirect: type={}, uuid={}, redirect={}",
-                isSignup ? "signup" : "signin", uuid, redirectAfterAuth);
-        } else {
-            // Original format: "signup:uuid" for signup, just "uuid" for signin
-            if (isSignup) {
-                state = "signup:" + uuid;
-            } else {
-                state = uuid;
-            }
-            log.info("Built state without redirect: type={}, uuid={}",
-                isSignup ? "signup" : "signin", uuid);
-        }
+	private final SessionAuthBusiness sessionAuthBusiness;
 
-        AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
-        if (facebookConfig == null) {
-            log.error("Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
-        }
+	private final AuthOAuthConfig oauthConfig;
 
-        // Use signup redirect URI for signup flow, otherwise use signin redirect URI
-        String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
-                ? facebookConfig.getSignupRedirectUri()
-                : facebookConfig.getRedirectUri();
+	public FacebookOAuthService(FacebookClient facebookClient, OAuthUserManager oauthUserManager,
+			OAuthAuthenticationManager oauthAuthenticationManager, SessionAuthBusiness sessionAuthBusiness,
+			AuthOAuthConfig oauthConfig) {
+		this.facebookClient = facebookClient;
+		this.oauthUserManager = oauthUserManager;
+		this.oauthAuthenticationManager = oauthAuthenticationManager;
+		this.sessionAuthBusiness = sessionAuthBusiness;
+		this.oauthConfig = oauthConfig;
+	}
 
-        String authUrl = UriComponentsBuilder.fromUriString(facebookConfig.getAuthUrl())
-                .queryParam("client_id", facebookConfig.getClientId())
-                .queryParam("redirect_uri", redirectUri)
-                .queryParam("state", state)
-                .queryParam("response_type", "code")
-                .queryParam("scope", "email,public_profile")
-                .toUriString();
+	/**
+	 * Get the authorization URL for Facebook OAuth
+	 * @param isSignup Whether this is for signup flow
+	 * @return The authorization URL and state
+	 */
+	public Map<String, String> getAuthorizationUrl(boolean isSignup) {
+		return getAuthorizationUrl(isSignup, null);
+	}
 
-        Map<String, String> response = new HashMap<>();
-        response.put("url", authUrl);
-        response.put("state", state);
+	/**
+	 * Get the authorization URL for Facebook OAuth with optional cross-app redirect
+	 * @param isSignup Whether this is for signup flow
+	 * @param redirectAfterAuth Optional redirect URL for cross-app SSO (encoded in state)
+	 * @return The authorization URL and state
+	 */
+	public Map<String, String> getAuthorizationUrl(boolean isSignup, String redirectAfterAuth) {
+		// Build state to match original Facebook OAuth format
+		// Signup: "signup:uuid" or "signup:uuid:base64redirect"
+		// Signin: "uuid" or "uuid:base64redirect" (no prefix for backwards compatibility)
+		String uuid = UUID.randomUUID().toString();
+		String state;
+		if (redirectAfterAuth != null && !redirectAfterAuth.isEmpty()) {
+			// Base64 encode the redirect URL to safely include in state
+			String encodedRedirect = Base64.getEncoder()
+				.encodeToString(redirectAfterAuth.getBytes(StandardCharsets.UTF_8));
+			if (isSignup) {
+				state = "signup:" + uuid + ":" + encodedRedirect;
+			}
+			else {
+				// For signin, don't use "signin:" prefix - just uuid:redirect for
+				// backwards compatibility
+				state = uuid + ":" + encodedRedirect;
+			}
+			log.info("Built state with redirect: type={}, uuid={}, redirect={}", isSignup ? "signup" : "signin", uuid,
+					redirectAfterAuth);
+		}
+		else {
+			// Original format: "signup:uuid" for signup, just "uuid" for signin
+			if (isSignup) {
+				state = "signup:" + uuid;
+			}
+			else {
+				state = uuid;
+			}
+			log.info("Built state without redirect: type={}, uuid={}", isSignup ? "signup" : "signin", uuid);
+		}
 
-        return response;
-    }
-    
-    /**
-     * Get the frontend URL for redirects
-     */
-    public String getFrontendUrl() {
-        return oauthConfig.getFrontendUrl();
-    }
-    
-    /**
-     * Handle OAuth callback from Facebook
-     *
-     * @param code Authorization code from Facebook
-     * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @return Clean response object based on the operation result
-     */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
-        // Determine signup from state for backwards compatibility
-        boolean isSignup = oauthUserManager.isSignupFlow(state);
-        return handleOAuthCallback(code, state, deviceId, isSignup);
-    }
+		AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
+		if (facebookConfig == null) {
+			log.error(
+					"Facebook OAuth configuration is not available. Check application.properties for oauth.providers.facebook settings.");
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
+		}
 
-    /**
-     * Handle OAuth callback from Facebook with explicit signup flag
-     *
-     * @param code Authorization code from Facebook
-     * @param state State parameter for verification
-     * @param deviceId Optional device ID for fingerprinting
-     * @param isSignup Whether this is a signup flow (determined by calling controller)
-     * @return Clean response object based on the operation result
-     */
-    public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId, boolean isSignup) {
-        if (!isValidAuthorizationCode(code)) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
-        }
+		// Use signup redirect URI for signup flow, otherwise use signin redirect URI
+		String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
+				? facebookConfig.getSignupRedirectUri() : facebookConfig.getRedirectUri();
 
-        FacebookTokenResponse tokenResponse = exchangeCodeForToken(code, state);
-        if (tokenResponse == null) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
-        }
+		String authUrl = UriComponentsBuilder.fromUriString(facebookConfig.getAuthUrl())
+			.queryParam("client_id", facebookConfig.getClientId())
+			.queryParam("redirect_uri", redirectUri)
+			.queryParam("state", state)
+			.queryParam("response_type", "code")
+			.queryParam("scope", "email,public_profile")
+			.toUriString();
 
-        FacebookUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
-        if (userInfo == null) {
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
-        }
+		Map<String, String> response = new HashMap<>();
+		response.put("url", authUrl);
+		response.put("state", state);
 
-        Object result = processUserAuthentication(userInfo, isSignup);
-        
-        // Convert result to Map<String, Object> for consistent JSON response
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
+		return response;
+	}
 
-        if (result instanceof OAuthSignupResponse) {
-            OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
-            response.put("type", "signup");
-            response.put("userId", signupResponse.getUserId());
-            response.put("email", signupResponse.getEmail());
-            response.put("name", signupResponse.getName());
-            response.put("accessToken", signupResponse.getAccessToken());
-            response.put("refreshToken", signupResponse.getRefreshToken());
-        } else if (result instanceof LoginFlowResponse) {
-            LoginFlowResponse loginResponse = (LoginFlowResponse) result;
-            response.put("type", "login");
-            response.put("userId", loginResponse.userId());
-            response.put("email", loginResponse.email());
-            response.put("name", loginResponse.name());
-            response.put("accessToken", loginResponse.tokens().accessToken());
-            response.put("refreshToken", loginResponse.tokens().refreshToken());
-            response.put("tokenType", loginResponse.tokens().tokenType());
-        }
+	/**
+	 * Get the frontend URL for redirects
+	 */
+	public String getFrontendUrl() {
+		return oauthConfig.getFrontendUrl();
+	}
 
-        return response;
-    }
+	/**
+	 * Handle OAuth callback from Facebook
+	 * @param code Authorization code from Facebook
+	 * @param state State parameter for verification
+	 * @param deviceId Optional device ID for fingerprinting
+	 * @return Clean response object based on the operation result
+	 */
+	public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId) {
+		// Determine signup from state for backwards compatibility
+		boolean isSignup = oauthUserManager.isSignupFlow(state);
+		return handleOAuthCallback(code, state, deviceId, isSignup);
+	}
 
-    private boolean isValidAuthorizationCode(String code) {
-        if (code == null) {
-            log.error("Missing authorization code");
-            return false;
-        }
-        return true;
-    }
+	/**
+	 * Handle OAuth callback from Facebook with explicit signup flag
+	 * @param code Authorization code from Facebook
+	 * @param state State parameter for verification
+	 * @param deviceId Optional device ID for fingerprinting
+	 * @param isSignup Whether this is a signup flow (determined by calling controller)
+	 * @return Clean response object based on the operation result
+	 */
+	public Map<String, Object> handleOAuthCallback(String code, String state, String deviceId, boolean isSignup) {
+		if (!isValidAuthorizationCode(code)) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Missing authorization code");
+		}
 
-    private FacebookTokenResponse exchangeCodeForToken(String code, String state) {
-        AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
-        if (facebookConfig == null) {
-            log.error("Facebook OAuth configuration is not available during token exchange");
-            throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
-        }
+		FacebookTokenResponse tokenResponse = exchangeCodeForToken(code, state);
+		if (tokenResponse == null) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to exchange authorization code for token");
+		}
 
-        // Use signup redirect URI if this is a signup flow, otherwise use signin redirect URI
-        boolean isSignup = oauthUserManager.isSignupFlow(state);
-        String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
-                ? facebookConfig.getSignupRedirectUri()
-                : facebookConfig.getRedirectUri();
+		FacebookUserInfo userInfo = getUserInfo(tokenResponse.getAccessToken());
+		if (userInfo == null) {
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Failed to get user info");
+		}
 
-        return facebookClient.exchangeCodeForToken(
-            code,
-            facebookConfig.getClientId(),
-            facebookConfig.getClientSecret(),
-            redirectUri
-        ).orElse(null);
-    }
+		Object result = processUserAuthentication(userInfo, isSignup);
 
-    private FacebookUserInfo getUserInfo(String accessToken) {
-        return facebookClient.getUserInfo(accessToken).orElse(null);
-    }
+		// Convert result to Map<String, Object> for consistent JSON response
+		Map<String, Object> response = new HashMap<>();
+		response.put("success", true);
 
-    private Object processUserAuthentication(FacebookUserInfo userInfo, boolean isSignup) {
-        Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
+		if (result instanceof OAuthSignupResponse) {
+			OAuthSignupResponse signupResponse = (OAuthSignupResponse) result;
+			response.put("type", "signup");
+			response.put("userId", signupResponse.getUserId());
+			response.put("email", signupResponse.getEmail());
+			response.put("name", signupResponse.getName());
+			response.put("accessToken", signupResponse.getAccessToken());
+			response.put("refreshToken", signupResponse.getRefreshToken());
+		}
+		else if (result instanceof LoginFlowResponse) {
+			LoginFlowResponse loginResponse = (LoginFlowResponse) result;
+			response.put("type", "login");
+			response.put("userId", loginResponse.userId());
+			response.put("email", loginResponse.email());
+			response.put("name", loginResponse.name());
+			response.put("accessToken", loginResponse.tokens().accessToken());
+			response.put("refreshToken", loginResponse.tokens().refreshToken());
+			response.put("tokenType", loginResponse.tokens().tokenType());
+		}
 
-        if (isSignup && existingUser.isPresent()) {
-            throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
-        }
+		return response;
+	}
 
-        if (isSignup || !existingUser.isPresent()) {
-            return handleSignupFlow(userInfo);
-        } else {
-            return handleLoginFlow(existingUser.get(), userInfo);
-        }
-    }
+	private boolean isValidAuthorizationCode(String code) {
+		if (code == null) {
+			log.error("Missing authorization code");
+			return false;
+		}
+		return true;
+	}
 
-    /**
-     * Response wrapper for login flow that includes user data
-     */
-    public record LoginFlowResponse(
-        ApiTokenResponse tokens,
-        String userId,
-        String email,
-        String name
-    ) {}
+	private FacebookTokenResponse exchangeCodeForToken(String code, String state) {
+		AuthOAuthSettings facebookConfig = oauthConfig.getFacebook();
+		if (facebookConfig == null) {
+			log.error("Facebook OAuth configuration is not available during token exchange");
+			throw new StrategizException(AuthErrors.INVALID_TOKEN, "Facebook OAuth is not configured");
+		}
 
-    private OAuthSignupResponse handleSignupFlow(FacebookUserInfo userInfo) {
-        return oauthUserManager.createOAuthUser(
-            userInfo.getEmail(), 
-            userInfo.getName(), 
-            userInfo.getPictureUrl(), 
-            "facebook", 
-            userInfo.getFacebookId(),
-            null, // deviceId not available
-            null  // ipAddress not available
-        );
-    }
+		// Use signup redirect URI if this is a signup flow, otherwise use signin redirect
+		// URI
+		boolean isSignup = oauthUserManager.isSignupFlow(state);
+		String redirectUri = isSignup && facebookConfig.getSignupRedirectUri() != null
+				? facebookConfig.getSignupRedirectUri() : facebookConfig.getRedirectUri();
 
-    private LoginFlowResponse handleLoginFlow(UserEntity user, FacebookUserInfo userInfo) {
-        oauthAuthenticationManager.ensureOAuthMethod(
-            user,
-            "facebook",
-            userInfo.getFacebookId(),
-            userInfo.getEmail()
-        );
+		return facebookClient
+			.exchangeCodeForToken(code, facebookConfig.getClientId(), facebookConfig.getClientSecret(), redirectUri)
+			.orElse(null);
+	}
 
-        // Generate authentication tokens using unified approach
-        SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(
-            user.getUserId(),
-            userInfo.getEmail(),
-            List.of("facebook"), // Authentication method used
-            false, // Not partial auth - OAuth provides full authentication
-            null, // Device ID not available in OAuth flow
-            null, // Device fingerprint not available
-            null, // IP address not available in OAuth flow
-            "Facebook OAuth",
-            false // demoMode
-        );
+	private FacebookUserInfo getUserInfo(String accessToken) {
+		return facebookClient.getUserInfo(accessToken).orElse(null);
+	}
 
-        SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+	private Object processUserAuthentication(FacebookUserInfo userInfo, boolean isSignup) {
+		Optional<UserEntity> existingUser = oauthUserManager.findUserByEmail(userInfo.getEmail());
 
-        ApiTokenResponse tokens = new ApiTokenResponse(
-            authResult.accessToken(),
-            authResult.refreshToken(),
-            "bearer"
-        );
+		if (isSignup && existingUser.isPresent()) {
+			throw new StrategizException(AuthErrors.INVALID_CREDENTIALS, "email_already_exists");
+		}
 
-        // Get name from user profile, fallback to Facebook userInfo
-        String userName = userInfo.getName();
-        if (user.getProfile() != null && user.getProfile().getName() != null) {
-            userName = user.getProfile().getName();
-        }
+		if (isSignup || !existingUser.isPresent()) {
+			return handleSignupFlow(userInfo);
+		}
+		else {
+			return handleLoginFlow(existingUser.get(), userInfo);
+		}
+	}
 
-        return new LoginFlowResponse(
-            tokens,
-            user.getUserId(),
-            userInfo.getEmail(),
-            userName
-        );
-    }
+	/**
+	 * Response wrapper for login flow that includes user data
+	 */
+	public record LoginFlowResponse(ApiTokenResponse tokens, String userId, String email, String name) {
+	}
+
+	private OAuthSignupResponse handleSignupFlow(FacebookUserInfo userInfo) {
+		return oauthUserManager.createOAuthUser(userInfo.getEmail(), userInfo.getName(), userInfo.getPictureUrl(),
+				"facebook", userInfo.getFacebookId(), null, // deviceId not available
+				null // ipAddress not available
+		);
+	}
+
+	private LoginFlowResponse handleLoginFlow(UserEntity user, FacebookUserInfo userInfo) {
+		oauthAuthenticationManager.ensureOAuthMethod(user, "facebook", userInfo.getFacebookId(), userInfo.getEmail());
+
+		// Generate authentication tokens using unified approach
+		SessionAuthBusiness.AuthRequest authRequest = new SessionAuthBusiness.AuthRequest(user.getUserId(),
+				userInfo.getEmail(), List.of("facebook"), // Authentication method used
+				false, // Not partial auth - OAuth provides full authentication
+				null, // Device ID not available in OAuth flow
+				null, // Device fingerprint not available
+				null, // IP address not available in OAuth flow
+				"Facebook OAuth", false // demoMode
+		);
+
+		SessionAuthBusiness.AuthResult authResult = sessionAuthBusiness.createAuthentication(authRequest);
+
+		ApiTokenResponse tokens = new ApiTokenResponse(authResult.accessToken(), authResult.refreshToken(), "bearer");
+
+		// Get name from user profile, fallback to Facebook userInfo
+		String userName = userInfo.getName();
+		if (user.getProfile() != null && user.getProfile().getName() != null) {
+			userName = user.getProfile().getName();
+		}
+
+		return new LoginFlowResponse(tokens, user.getUserId(), userInfo.getEmail(), userName);
+	}
+
 }

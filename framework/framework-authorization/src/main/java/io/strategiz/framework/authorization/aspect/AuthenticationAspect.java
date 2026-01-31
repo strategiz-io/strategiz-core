@@ -17,99 +17,82 @@ import org.springframework.stereotype.Component;
 /**
  * Aspect that enforces {@link RequireAuth} annotation on controller methods.
  *
- * <p>Checks:
+ * <p>
+ * Checks:
  *
  * <ul>
- *   <li>User is authenticated
- *   <li>User meets minimum ACR level
- *   <li>User is not in demo mode (if restricted)
+ * <li>User is authenticated
+ * <li>User meets minimum ACR level
+ * <li>User is not in demo mode (if restricted)
  * </ul>
  *
- * <p>Order: 50 (runs before scope and FGA checks)
+ * <p>
+ * Order: 50 (runs before scope and FGA checks)
  */
 @Aspect
 @Component
 @Order(50)
 public class AuthenticationAspect {
 
-  private static final Logger log = LoggerFactory.getLogger(AuthenticationAspect.class);
+	private static final Logger log = LoggerFactory.getLogger(AuthenticationAspect.class);
 
-  private static final String MODULE_NAME = "authorization";
+	private static final String MODULE_NAME = "authorization";
 
-  /**
-   * Checks authentication requirements before method execution.
-   *
-   * @param joinPoint the join point
-   * @param requireAuth the require auth annotation
-   */
-  @Before("@annotation(requireAuth)")
-  public void checkAuthentication(JoinPoint joinPoint, RequireAuth requireAuth) {
-    // If authentication is not required, skip all checks
-    if (!requireAuth.required()) {
-      log.debug(
-          "Authentication optional for {}.{}, skipping checks",
-          joinPoint.getSignature().getDeclaringTypeName(),
-          joinPoint.getSignature().getName());
-      return;
-    }
+	/**
+	 * Checks authentication requirements before method execution.
+	 * @param joinPoint the join point
+	 * @param requireAuth the require auth annotation
+	 */
+	@Before("@annotation(requireAuth)")
+	public void checkAuthentication(JoinPoint joinPoint, RequireAuth requireAuth) {
+		// If authentication is not required, skip all checks
+		if (!requireAuth.required()) {
+			log.debug("Authentication optional for {}.{}, skipping checks",
+					joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName());
+			return;
+		}
 
-    // Check if user is authenticated
-    AuthenticatedUser user =
-        SecurityContextHolder.getAuthenticatedUser()
-            .orElseThrow(
-                () -> {
-                  log.warn(
-                      "Authentication required for {}.{}",
-                      joinPoint.getSignature().getDeclaringTypeName(),
-                      joinPoint.getSignature().getName());
-                  return new StrategizException(
-                      AuthorizationErrorDetails.NOT_AUTHENTICATED, MODULE_NAME);
-                });
+		// Check if user is authenticated
+		AuthenticatedUser user = SecurityContextHolder.getAuthenticatedUser().orElseThrow(() -> {
+			log.warn("Authentication required for {}.{}", joinPoint.getSignature().getDeclaringTypeName(),
+					joinPoint.getSignature().getName());
+			return new StrategizException(AuthorizationErrorDetails.NOT_AUTHENTICATED, MODULE_NAME);
+		});
 
-    // Check minimum ACR level
-    String requiredAcr = requireAuth.minAcr();
-    if (!user.meetsMinAcr(requiredAcr)) {
-      log.warn(
-          "Auth level required: user={} has acr={} but needs acr>={}",
-          user.getUserId(),
-          user.getAcr(),
-          requiredAcr);
-      throw new StrategizException(AuthorizationErrorDetails.AUTH_LEVEL_REQUIRED, MODULE_NAME);
-    }
+		// Check minimum ACR level
+		String requiredAcr = requireAuth.minAcr();
+		if (!user.meetsMinAcr(requiredAcr)) {
+			log.warn("Auth level required: user={} has acr={} but needs acr>={}", user.getUserId(), user.getAcr(),
+					requiredAcr);
+			throw new StrategizException(AuthorizationErrorDetails.AUTH_LEVEL_REQUIRED, MODULE_NAME);
+		}
 
-    // Check demo mode restriction
-    if (!requireAuth.allowDemoMode() && user.isDemoMode()) {
-      log.warn(
-          "Demo mode restricted: user={} attempted action requiring live mode", user.getUserId());
-      throw new StrategizException(AuthorizationErrorDetails.DEMO_MODE_RESTRICTED, MODULE_NAME);
-    }
+		// Check demo mode restriction
+		if (!requireAuth.allowDemoMode() && user.isDemoMode()) {
+			log.warn("Demo mode restricted: user={} attempted action requiring live mode", user.getUserId());
+			throw new StrategizException(AuthorizationErrorDetails.DEMO_MODE_RESTRICTED, MODULE_NAME);
+		}
 
-    log.debug(
-        "Authentication check passed: user={} acr={} demoMode={}",
-        user.getUserId(),
-        user.getAcr(),
-        user.isDemoMode());
-  }
+		log.debug("Authentication check passed: user={} acr={} demoMode={}", user.getUserId(), user.getAcr(),
+				user.isDemoMode());
+	}
 
-  /**
-   * Checks authentication requirements at class level.
-   *
-   * @param joinPoint the join point
-   * @param requireAuth the require auth annotation
-   */
-  @Before("@within(requireAuth)")
-  public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
-    // If the method has its own @RequireAuth, skip the class-level check
-    // Method-level annotation takes precedence over class-level
-    MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-    if (signature.getMethod().isAnnotationPresent(RequireAuth.class)) {
-      log.debug(
-          "Method {}.{} has its own @RequireAuth, skipping class-level check",
-          joinPoint.getSignature().getDeclaringTypeName(),
-          joinPoint.getSignature().getName());
-      return;
-    }
-    checkAuthentication(joinPoint, requireAuth);
-  }
+	/**
+	 * Checks authentication requirements at class level.
+	 * @param joinPoint the join point
+	 * @param requireAuth the require auth annotation
+	 */
+	@Before("@within(requireAuth)")
+	public void checkAuthenticationOnClass(JoinPoint joinPoint, RequireAuth requireAuth) {
+		// If the method has its own @RequireAuth, skip the class-level check
+		// Method-level annotation takes precedence over class-level
+		MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+		if (signature.getMethod().isAnnotationPresent(RequireAuth.class)) {
+			log.debug("Method {}.{} has its own @RequireAuth, skipping class-level check",
+					joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName());
+			return;
+		}
+		checkAuthentication(joinPoint, requireAuth);
+	}
 
 }

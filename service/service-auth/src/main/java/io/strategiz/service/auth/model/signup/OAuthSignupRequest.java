@@ -7,99 +7,104 @@ import jakarta.validation.constraints.Size;
 import java.util.Map;
 
 /**
- * Request model for OAuth-based user signup
- * Contains profile information received from OAuth providers (Google, Facebook, etc.)
+ * Request model for OAuth-based user signup Contains profile information received from
+ * OAuth providers (Google, Facebook, etc.)
  */
 public class OAuthSignupRequest {
 
-    @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must be less than 100 characters")
-    private String name;
+	@NotBlank(message = "Name is required")
+	@Size(max = 100, message = "Name must be less than 100 characters")
+	private String name;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
-    private String email;
+	@NotBlank(message = "Email is required")
+	@Email(message = "Email must be valid")
+	private String email;
 
-    @NotBlank(message = "Authentication method is required")
-    private String authMethod;
+	@NotBlank(message = "Authentication method is required")
+	private String authMethod;
 
-    private String photoURL;
-    private String phoneNumber;
-    private Map<String, String> authData;
-    private String recaptchaToken;
+	private String photoURL;
 
-    /**
-     * Default constructor
-     */
-    public OAuthSignupRequest() {
-    }
+	private String phoneNumber;
 
-    /**
-     * Constructor for OAuth signup
-     */
-    public OAuthSignupRequest(String name, String email, String authMethod, String photoURL, String phoneNumber, Map<String, String> authData) {
-        this.name = name;
-        this.email = email;
-        this.authMethod = authMethod;
-        this.photoURL = photoURL;
-        this.phoneNumber = phoneNumber;
-        this.authData = authData;
-    }
+	private Map<String, String> authData;
 
-    // Getters and setters
-    public String getName() {
-        return name;
-    }
+	private String recaptchaToken;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	/**
+	 * Default constructor
+	 */
+	public OAuthSignupRequest() {
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	/**
+	 * Constructor for OAuth signup
+	 */
+	public OAuthSignupRequest(String name, String email, String authMethod, String photoURL, String phoneNumber,
+			Map<String, String> authData) {
+		this.name = name;
+		this.email = email;
+		this.authMethod = authMethod;
+		this.photoURL = photoURL;
+		this.phoneNumber = phoneNumber;
+		this.authData = authData;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	// Getters and setters
+	public String getName() {
+		return name;
+	}
 
-    public String getAuthMethod() {
-        return authMethod;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setAuthMethod(String authMethod) {
-        this.authMethod = authMethod;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public String getPhotoURL() {
-        return photoURL;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public void setPhotoURL(String photoURL) {
-        this.photoURL = photoURL;
-    }
+	public String getAuthMethod() {
+		return authMethod;
+	}
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+	public void setAuthMethod(String authMethod) {
+		this.authMethod = authMethod;
+	}
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
+	public String getPhotoURL() {
+		return photoURL;
+	}
 
-    public Map<String, String> getAuthData() {
-        return authData;
-    }
+	public void setPhotoURL(String photoURL) {
+		this.photoURL = photoURL;
+	}
 
-    public void setAuthData(Map<String, String> authData) {
-        this.authData = authData;
-    }
+	public String getPhoneNumber() {
+		return phoneNumber;
+	}
 
-    public String getRecaptchaToken() {
-        return recaptchaToken;
-    }
+	public void setPhoneNumber(String phoneNumber) {
+		this.phoneNumber = phoneNumber;
+	}
 
-    public void setRecaptchaToken(String recaptchaToken) {
-        this.recaptchaToken = recaptchaToken;
-    }
+	public Map<String, String> getAuthData() {
+		return authData;
+	}
+
+	public void setAuthData(Map<String, String> authData) {
+		this.authData = authData;
+	}
+
+	public String getRecaptchaToken() {
+		return recaptchaToken;
+	}
+
+	public void setRecaptchaToken(String recaptchaToken) {
+		this.recaptchaToken = recaptchaToken;
+	}
+
 }

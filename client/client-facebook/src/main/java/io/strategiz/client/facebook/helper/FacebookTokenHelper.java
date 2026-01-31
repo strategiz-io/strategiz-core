@@ -21,77 +21,78 @@ import java.util.Optional;
 @Component
 public class FacebookTokenHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(FacebookTokenHelper.class);
-    private static final String TOKEN_URL = "https://graph.facebook.com/v18.0/oauth/access_token";
+	private static final Logger logger = LoggerFactory.getLogger(FacebookTokenHelper.class);
 
-    private final RestTemplate restTemplate;
+	private static final String TOKEN_URL = "https://graph.facebook.com/v18.0/oauth/access_token";
 
-    public FacebookTokenHelper(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
-    }
+	private final RestTemplate restTemplate;
 
-    /**
-     * Exchange authorization code for access token
-     */
-    public Optional<FacebookTokenResponse> exchangeCodeForToken(String code, String clientId,
-                                                               String clientSecret, String redirectUri) {
-        try {
-            logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
-            logger.info("Using client_id: {}...", clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
+	public FacebookTokenHelper(RestTemplate restTemplate) {
+		this.restTemplate = restTemplate;
+	}
 
-            String tokenUrl = buildTokenUrl(code, clientId, clientSecret, redirectUri);
-            ResponseEntity<Map<String, Object>> response = makeTokenRequest(tokenUrl);
+	/**
+	 * Exchange authorization code for access token
+	 */
+	public Optional<FacebookTokenResponse> exchangeCodeForToken(String code, String clientId, String clientSecret,
+			String redirectUri) {
+		try {
+			logger.info("Exchanging code for token with redirect_uri: {}", redirectUri);
+			logger.info("Using client_id: {}...",
+					clientId != null ? clientId.substring(0, Math.min(15, clientId.length())) : "null");
 
-            if (isSuccessfulResponse(response)) {
-                logger.info("Successfully exchanged code for token");
-                return extractTokenFromResponse(response);
-            }
+			String tokenUrl = buildTokenUrl(code, clientId, clientSecret, redirectUri);
+			ResponseEntity<Map<String, Object>> response = makeTokenRequest(tokenUrl);
 
-            // Log the actual error response from Facebook
-            logger.error("Failed to get access token from Facebook. Status: {}, Body: {}",
-                response.getStatusCode(), response.getBody());
-            return Optional.empty();
+			if (isSuccessfulResponse(response)) {
+				logger.info("Successfully exchanged code for token");
+				return extractTokenFromResponse(response);
+			}
 
-        } catch (Exception e) {
-            logger.error("Error exchanging code for token: {}", e.getMessage(), e);
-            return Optional.empty();
-        }
-    }
+			// Log the actual error response from Facebook
+			logger.error("Failed to get access token from Facebook. Status: {}, Body: {}", response.getStatusCode(),
+					response.getBody());
+			return Optional.empty();
 
-    private String buildTokenUrl(String code, String clientId, String clientSecret, String redirectUri) {
-        return UriComponentsBuilder.fromUriString(TOKEN_URL)
-                .queryParam("client_id", clientId)
-                .queryParam("client_secret", clientSecret)
-                .queryParam("code", code)
-                .queryParam("redirect_uri", redirectUri)
-                .toUriString();
-    }
+		}
+		catch (Exception e) {
+			logger.error("Error exchanging code for token: {}", e.getMessage(), e);
+			return Optional.empty();
+		}
+	}
 
-    private ResponseEntity<Map<String, Object>> makeTokenRequest(String tokenUrl) {
-        HttpHeaders headers = new HttpHeaders();
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        
-        return restTemplate.exchange(
-                tokenUrl,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<Map<String, Object>>(){}
-        );
-    }
+	private String buildTokenUrl(String code, String clientId, String clientSecret, String redirectUri) {
+		return UriComponentsBuilder.fromUriString(TOKEN_URL)
+			.queryParam("client_id", clientId)
+			.queryParam("client_secret", clientSecret)
+			.queryParam("code", code)
+			.queryParam("redirect_uri", redirectUri)
+			.toUriString();
+	}
 
-    private boolean isSuccessfulResponse(ResponseEntity<Map<String, Object>> response) {
-        return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
-    }
+	private ResponseEntity<Map<String, Object>> makeTokenRequest(String tokenUrl) {
+		HttpHeaders headers = new HttpHeaders();
+		HttpEntity<String> entity = new HttpEntity<>(headers);
 
-    private Optional<FacebookTokenResponse> extractTokenFromResponse(ResponseEntity<Map<String, Object>> response) {
-        Map<String, Object> body = response.getBody();
-        String accessToken = (String) body.get("access_token");
-        String tokenType = (String) body.get("token_type");
-        Integer expiresIn = (Integer) body.get("expires_in");
-        
-        if (accessToken != null) {
-            return Optional.of(new FacebookTokenResponse(accessToken, tokenType, expiresIn));
-        }
-        return Optional.empty();
-    }
-} 
+		return restTemplate.exchange(tokenUrl, HttpMethod.GET, entity,
+				new ParameterizedTypeReference<Map<String, Object>>() {
+				});
+	}
+
+	private boolean isSuccessfulResponse(ResponseEntity<Map<String, Object>> response) {
+		return response.getStatusCode().is2xxSuccessful() && response.getBody() != null;
+	}
+
+	private Optional<FacebookTokenResponse> extractTokenFromResponse(ResponseEntity<Map<String, Object>> response) {
+		Map<String, Object> body = response.getBody();
+		String accessToken = (String) body.get("access_token");
+		String tokenType = (String) body.get("token_type");
+		Integer expiresIn = (Integer) body.get("expires_in");
+
+		if (accessToken != null) {
+			return Optional.of(new FacebookTokenResponse(accessToken, tokenType, expiresIn));
+		}
+		return Optional.empty();
+	}
+
+}

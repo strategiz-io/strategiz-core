@@ -7,205 +7,217 @@ import java.util.Objects;
  * Represents an asset in a user's watchlist.
  */
 public class WatchlistItemData {
-    private String id;
-    private String symbol;
-    private String name;
-    private String category;
-    private BigDecimal price;
-    private BigDecimal change;
-    private BigDecimal changePercent;
-    private boolean positiveChange;
-    private String chartDataUrl;
 
-    // Constructors
-    public WatchlistItemData() {}
+	private String id;
 
-    public WatchlistItemData(String id, String symbol, String name, String category, BigDecimal price,
-                           BigDecimal change, BigDecimal changePercent, boolean positiveChange, String chartDataUrl) {
-        this.id = id;
-        this.symbol = symbol;
-        this.name = name;
-        this.category = category;
-        this.price = price;
-        this.change = change;
-        this.changePercent = changePercent;
-        this.positiveChange = positiveChange;
-        this.chartDataUrl = chartDataUrl;
-    }
+	private String symbol;
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	private String name;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	private String category;
 
-    public String getSymbol() {
-        return symbol;
-    }
+	private BigDecimal price;
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	private BigDecimal change;
 
-    public String getName() {
-        return name;
-    }
+	private BigDecimal changePercent;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private boolean positiveChange;
 
-    public String getCategory() {
-        return category;
-    }
+	private String chartDataUrl;
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+	// Constructors
+	public WatchlistItemData() {
+	}
 
-    public BigDecimal getPrice() {
-        return price;
-    }
+	public WatchlistItemData(String id, String symbol, String name, String category, BigDecimal price,
+			BigDecimal change, BigDecimal changePercent, boolean positiveChange, String chartDataUrl) {
+		this.id = id;
+		this.symbol = symbol;
+		this.name = name;
+		this.category = category;
+		this.price = price;
+		this.change = change;
+		this.changePercent = changePercent;
+		this.positiveChange = positiveChange;
+		this.chartDataUrl = chartDataUrl;
+	}
 
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public BigDecimal getChange() {
-        return change;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setChange(BigDecimal change) {
-        this.change = change;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public BigDecimal getChangePercent() {
-        return changePercent;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public void setChangePercent(BigDecimal changePercent) {
-        this.changePercent = changePercent;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public boolean isPositiveChange() {
-        return positiveChange;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setPositiveChange(boolean positiveChange) {
-        this.positiveChange = positiveChange;
-    }
+	public String getCategory() {
+		return category;
+	}
 
-    public String getChartDataUrl() {
-        return chartDataUrl;
-    }
+	public void setCategory(String category) {
+		this.category = category;
+	}
 
-    public void setChartDataUrl(String chartDataUrl) {
-        this.chartDataUrl = chartDataUrl;
-    }
+	public BigDecimal getPrice() {
+		return price;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WatchlistItemData that = (WatchlistItemData) o;
-        return positiveChange == that.positiveChange &&
-               Objects.equals(id, that.id) &&
-               Objects.equals(symbol, that.symbol) &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(category, that.category) &&
-               Objects.equals(price, that.price) &&
-               Objects.equals(change, that.change) &&
-               Objects.equals(changePercent, that.changePercent) &&
-               Objects.equals(chartDataUrl, that.chartDataUrl);
-    }
+	public void setPrice(BigDecimal price) {
+		this.price = price;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, symbol, name, category, price, change, changePercent, positiveChange, chartDataUrl);
-    }
+	public BigDecimal getChange() {
+		return change;
+	}
 
-    @Override
-    public String toString() {
-        return "WatchlistItemData{" +
-               "id='" + id + '\'' +
-               ", symbol='" + symbol + '\'' +
-               ", name='" + name + '\'' +
-               ", category='" + category + '\'' +
-               ", price=" + price +
-               ", change=" + change +
-               ", changePercent=" + changePercent +
-               ", positiveChange=" + positiveChange +
-               ", chartDataUrl='" + chartDataUrl + '\'' +
-               '}';
-    }
+	public void setChange(BigDecimal change) {
+		this.change = change;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public BigDecimal getChangePercent() {
+		return changePercent;
+	}
 
-    public static class Builder {
-        private String id;
-        private String symbol;
-        private String name;
-        private String category;
-        private BigDecimal price;
-        private BigDecimal change;
-        private BigDecimal changePercent;
-        private boolean positiveChange;
-        private String chartDataUrl;
+	public void setChangePercent(BigDecimal changePercent) {
+		this.changePercent = changePercent;
+	}
 
-        public Builder withId(String id) {
-            this.id = id;
-            return this;
-        }
+	public boolean isPositiveChange() {
+		return positiveChange;
+	}
 
-        public Builder withSymbol(String symbol) {
-            this.symbol = symbol;
-            return this;
-        }
+	public void setPositiveChange(boolean positiveChange) {
+		this.positiveChange = positiveChange;
+	}
 
-        public Builder withName(String name) {
-            this.name = name;
-            return this;
-        }
+	public String getChartDataUrl() {
+		return chartDataUrl;
+	}
 
-        public Builder withCategory(String category) {
-            this.category = category;
-            return this;
-        }
+	public void setChartDataUrl(String chartDataUrl) {
+		this.chartDataUrl = chartDataUrl;
+	}
 
-        public Builder withPrice(BigDecimal price) {
-            this.price = price;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		WatchlistItemData that = (WatchlistItemData) o;
+		return positiveChange == that.positiveChange && Objects.equals(id, that.id)
+				&& Objects.equals(symbol, that.symbol) && Objects.equals(name, that.name)
+				&& Objects.equals(category, that.category) && Objects.equals(price, that.price)
+				&& Objects.equals(change, that.change) && Objects.equals(changePercent, that.changePercent)
+				&& Objects.equals(chartDataUrl, that.chartDataUrl);
+	}
 
-        public Builder withChange(BigDecimal change) {
-            this.change = change;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(id, symbol, name, category, price, change, changePercent, positiveChange, chartDataUrl);
+	}
 
-        public Builder withChangePercent(BigDecimal changePercent) {
-            this.changePercent = changePercent;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "WatchlistItemData{" + "id='" + id + '\'' + ", symbol='" + symbol + '\'' + ", name='" + name + '\''
+				+ ", category='" + category + '\'' + ", price=" + price + ", change=" + change + ", changePercent="
+				+ changePercent + ", positiveChange=" + positiveChange + ", chartDataUrl='" + chartDataUrl + '\'' + '}';
+	}
 
-        public Builder withPositiveChange(boolean positiveChange) {
-            this.positiveChange = positiveChange;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withChartDataUrl(String chartDataUrl) {
-            this.chartDataUrl = chartDataUrl;
-            return this;
-        }
+	public static class Builder {
 
-        public WatchlistItemData build() {
-            return new WatchlistItemData(id, symbol, name, category, price, change, changePercent, positiveChange, chartDataUrl);
-        }
-    }
+		private String id;
+
+		private String symbol;
+
+		private String name;
+
+		private String category;
+
+		private BigDecimal price;
+
+		private BigDecimal change;
+
+		private BigDecimal changePercent;
+
+		private boolean positiveChange;
+
+		private String chartDataUrl;
+
+		public Builder withId(String id) {
+			this.id = id;
+			return this;
+		}
+
+		public Builder withSymbol(String symbol) {
+			this.symbol = symbol;
+			return this;
+		}
+
+		public Builder withName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Builder withCategory(String category) {
+			this.category = category;
+			return this;
+		}
+
+		public Builder withPrice(BigDecimal price) {
+			this.price = price;
+			return this;
+		}
+
+		public Builder withChange(BigDecimal change) {
+			this.change = change;
+			return this;
+		}
+
+		public Builder withChangePercent(BigDecimal changePercent) {
+			this.changePercent = changePercent;
+			return this;
+		}
+
+		public Builder withPositiveChange(boolean positiveChange) {
+			this.positiveChange = positiveChange;
+			return this;
+		}
+
+		public Builder withChartDataUrl(String chartDataUrl) {
+			this.chartDataUrl = chartDataUrl;
+			return this;
+		}
+
+		public WatchlistItemData build() {
+			return new WatchlistItemData(id, symbol, name, category, price, change, changePercent, positiveChange,
+					chartDataUrl);
+		}
+
+	}
+
 }

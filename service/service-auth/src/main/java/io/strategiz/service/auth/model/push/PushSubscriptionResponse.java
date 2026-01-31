@@ -14,43 +14,36 @@ import java.time.Instant;
  * @param createdAt when the subscription was created
  * @param endpointHint partial endpoint for identification (e.g., "...googleapis.com/...")
  */
-public record PushSubscriptionResponse(
-        String id,
-        String deviceName,
-        boolean pushAuthEnabled,
-        Instant createdAt,
-        String endpointHint
-) {
-    public static PushSubscriptionResponse from(PushSubscriptionEntity entity) {
-        return new PushSubscriptionResponse(
-                entity.getId(),
-                entity.getDeviceName(),
-                entity.getPushAuthEnabled() != null && entity.getPushAuthEnabled(),
-                toInstant(entity.getCreatedDate()),
-                maskEndpoint(entity.getEndpoint())
-        );
-    }
+public record PushSubscriptionResponse(String id, String deviceName, boolean pushAuthEnabled, Instant createdAt,
+		String endpointHint) {
+	public static PushSubscriptionResponse from(PushSubscriptionEntity entity) {
+		return new PushSubscriptionResponse(entity.getId(), entity.getDeviceName(),
+				entity.getPushAuthEnabled() != null && entity.getPushAuthEnabled(), toInstant(entity.getCreatedDate()),
+				maskEndpoint(entity.getEndpoint()));
+	}
 
-    private static Instant toInstant(Timestamp timestamp) {
-        if (timestamp == null) {
-            return null;
-        }
-        return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
-    }
+	private static Instant toInstant(Timestamp timestamp) {
+		if (timestamp == null) {
+			return null;
+		}
+		return Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanos());
+	}
 
-    private static String maskEndpoint(String endpoint) {
-        if (endpoint == null || endpoint.length() < 50) {
-            return "***";
-        }
-        // Extract domain and show partial path
-        try {
-            int protocolEnd = endpoint.indexOf("://") + 3;
-            int domainEnd = endpoint.indexOf("/", protocolEnd);
-            if (domainEnd < 0) domainEnd = endpoint.length();
-            String domain = endpoint.substring(protocolEnd, domainEnd);
-            return "..." + domain + "/...";
-        } catch (Exception e) {
-            return "***";
-        }
-    }
+	private static String maskEndpoint(String endpoint) {
+		if (endpoint == null || endpoint.length() < 50) {
+			return "***";
+		}
+		// Extract domain and show partial path
+		try {
+			int protocolEnd = endpoint.indexOf("://") + 3;
+			int domainEnd = endpoint.indexOf("/", protocolEnd);
+			if (domainEnd < 0)
+				domainEnd = endpoint.length();
+			String domain = endpoint.substring(protocolEnd, domainEnd);
+			return "..." + domain + "/...";
+		}
+		catch (Exception e) {
+			return "***";
+		}
+	}
 }

@@ -74,8 +74,9 @@ public class JobManagementService extends BaseService {
 
 		log.info(
 				"JobManagementService initialized: marketDataBackfill={}, marketDataDailySync={}, marketDataIncremental={}, fundamentalsBackfill={}, fundamentalsIncremental={}, dispatchJob={}",
-				marketDataBackfillJob.isPresent(), marketDataDailySyncJob.isPresent(), marketDataIncrementalJob.isPresent(),
-				fundamentalsBackfillJob.isPresent(), fundamentalsIncrementalJob.isPresent(), dispatchJob.isPresent());
+				marketDataBackfillJob.isPresent(), marketDataDailySyncJob.isPresent(),
+				marketDataIncrementalJob.isPresent(), fundamentalsBackfillJob.isPresent(),
+				fundamentalsIncrementalJob.isPresent(), dispatchJob.isPresent());
 	}
 
 	public List<JobResponse> listJobs() {

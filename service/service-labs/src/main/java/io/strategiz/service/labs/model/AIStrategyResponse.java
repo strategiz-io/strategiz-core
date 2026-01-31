@@ -60,16 +60,20 @@ public class AIStrategyResponse {
 	private String error;
 
 	@JsonProperty("historicalInsightsUsed")
-	private Boolean historicalInsightsUsed; // Whether Historical Market Insights was used for this generation
+	private Boolean historicalInsightsUsed; // Whether Historical Market Insights was used
+											// for this generation
 
 	@JsonProperty("historicalInsights")
-	private SymbolInsights historicalInsights; // Historical market data insights (7 years analyzed)
+	private SymbolInsights historicalInsights; // Historical market data insights (7 years
+												// analyzed)
 
 	@JsonProperty("optimizationSummary")
-	private OptimizationSummary optimizationSummary; // Summary of optimization changes and improvements
+	private OptimizationSummary optimizationSummary; // Summary of optimization changes
+														// and improvements
 
 	@JsonProperty("autonomousModeUsed")
-	private String autonomousModeUsed; // Which autonomous mode was used: "GENERATIVE_AI" or "AUTONOMOUS"
+	private String autonomousModeUsed; // Which autonomous mode was used: "GENERATIVE_AI"
+										// or "AUTONOMOUS"
 
 	// Getters and Setters
 

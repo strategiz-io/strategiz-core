@@ -13,11 +13,9 @@ import java.util.stream.Collectors;
 /**
  * Analyzes swing cycle patterns from historical turning points.
  *
- * Provides insights into:
- * - Average and median swing magnitude (% move between turning points)
- * - Average swing duration (days between turning points)
- * - Optimal holding periods for maximum gains
- * - Win rate at different holding periods
+ * Provides insights into: - Average and median swing magnitude (% move between turning
+ * points) - Average swing duration (days between turning points) - Optimal holding
+ * periods for maximum gains - Win rate at different holding periods
  */
 public class SwingCycleAnalyzer {
 
@@ -224,10 +222,10 @@ public class SwingCycleAnalyzer {
 		}
 
 		if (!downMagnitudes.isEmpty()) {
-			result.setAvgDownSwingMagnitude(
-					downMagnitudes.stream().mapToDouble(Double::doubleValue).average().orElse(0));
-			result.setAvgDownSwingDuration(
-					(int) downDurations.stream().mapToInt(Integer::intValue).average().orElse(0));
+			result
+				.setAvgDownSwingMagnitude(downMagnitudes.stream().mapToDouble(Double::doubleValue).average().orElse(0));
+			result
+				.setAvgDownSwingDuration((int) downDurations.stream().mapToInt(Integer::intValue).average().orElse(0));
 		}
 
 		// Calculate optimal holding period
@@ -297,8 +295,8 @@ public class SwingCycleAnalyzer {
 	}
 
 	/**
-	 * Calculate Kelly Criterion for optimal position sizing.
-	 * Kelly = (Win% * AvgWin - Loss% * AvgLoss) / AvgWin
+	 * Calculate Kelly Criterion for optimal position sizing. Kelly = (Win% * AvgWin -
+	 * Loss% * AvgLoss) / AvgWin
 	 * @param turningPoints Turning points for historical win/loss analysis
 	 * @return Optimal position size as fraction (e.g., 0.25 = 25%)
 	 */
@@ -358,8 +356,7 @@ public class SwingCycleAnalyzer {
 	}
 
 	/**
-	 * Calculate volatility-adjusted position size.
-	 * Higher volatility = smaller position.
+	 * Calculate volatility-adjusted position size. Higher volatility = smaller position.
 	 * @param atrPercent ATR as percentage of price
 	 * @param targetRiskPct Target risk per trade as percentage (e.g., 2%)
 	 * @return Position size as fraction

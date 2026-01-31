@@ -13,8 +13,8 @@ import java.math.RoundingMode;
 import java.util.*;
 
 /**
- * Provides portfolio context data to enrich AI chat responses.
- * Integrates with PortfolioManager to fetch real-time portfolio data.
+ * Provides portfolio context data to enrich AI chat responses. Integrates with
+ * PortfolioManager to fetch real-time portfolio data.
  */
 @Component
 public class PortfolioContextProvider {
@@ -31,7 +31,8 @@ public class PortfolioContextProvider {
 	/**
 	 * Get user's portfolio context for AI analysis
 	 * @param userId the user ID
-	 * @return Map of portfolio data including totals, allocations, top holdings, and risk metrics
+	 * @return Map of portfolio data including totals, allocations, top holdings, and risk
+	 * metrics
 	 */
 	public Map<String, Object> getPortfolioContext(String userId) {
 		logger.debug("Fetching portfolio context for user: {}", userId);
@@ -70,7 +71,8 @@ public class PortfolioContextProvider {
 
 			logger.debug("Portfolio context created successfully for user: {}", userId);
 
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			logger.error("Error fetching portfolio context for user {}: {}", userId, e.getMessage(), e);
 			return createEmptyPortfolioContext();
 		}
@@ -90,7 +92,8 @@ public class PortfolioContextProvider {
 			allocation.put("crypto", formatPercent(allocMap.get("crypto")));
 			allocation.put("stocks", formatPercent(allocMap.get("stocks")));
 			allocation.put("cash", formatPercent(allocMap.get("cash")));
-		} else {
+		}
+		else {
 			// Fallback: calculate simple provider-based allocation
 			int totalProviders = data.getExchanges().size();
 			if (totalProviders > 0) {
@@ -202,12 +205,11 @@ public class PortfolioContextProvider {
 		BigDecimal largestPercent = BigDecimal.ZERO;
 		if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
 			largestPercent = largestPosition.divide(totalValue, 4, RoundingMode.HALF_UP)
-					.multiply(new BigDecimal("100"));
+				.multiply(new BigDecimal("100"));
 		}
 
 		String concentrationRisk = largestPercent.compareTo(new BigDecimal("20")) > 0 ? "HIGH" : "LOW";
-		String diversificationScore = totalPositions >= 15 ? "HIGH" :
-			(totalPositions >= 5 ? "MODERATE" : "LOW");
+		String diversificationScore = totalPositions >= 15 ? "HIGH" : (totalPositions >= 5 ? "MODERATE" : "LOW");
 
 		riskMetrics.put("concentrationRisk", concentrationRisk);
 		riskMetrics.put("diversificationScore", diversificationScore);

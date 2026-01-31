@@ -14,10 +14,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Service for validating strategy name uniqueness
- * Enforces two-tier uniqueness rules:
- * 1. Draft strategies: Names must be unique per user (case-insensitive)
- * 2. Published strategies: Names must be globally unique (case-insensitive)
+ * Service for validating strategy name uniqueness Enforces two-tier uniqueness rules: 1.
+ * Draft strategies: Names must be unique per user (case-insensitive) 2. Published
+ * strategies: Names must be globally unique (case-insensitive)
  */
 @Service
 public class StrategyNameValidationService extends BaseService {
@@ -31,33 +30,31 @@ public class StrategyNameValidationService extends BaseService {
 
 	/**
 	 * Validate name uniqueness for draft strategy within user's portfolio
-	 *
-	 * @param userId            User creating/updating the strategy
-	 * @param name              Strategy name to validate
+	 * @param userId User creating/updating the strategy
+	 * @param name Strategy name to validate
 	 * @param excludeStrategyId Strategy ID to exclude from check (null for create,
-	 *                          strategyId for update)
+	 * strategyId for update)
 	 * @throws StrategizException if duplicate name found
 	 */
 	public void validateDraftNameUniqueness(String userId, String name, String excludeStrategyId) {
 		String normalizedName = StrategyNameUtils.normalizeName(name);
 
-		List<Strategy> conflicts = readStrategyRepository
-			.findByOwnerIdAndNormalizedName(userId, normalizedName)
+		List<Strategy> conflicts = readStrategyRepository.findByOwnerIdAndNormalizedName(userId, normalizedName)
 			.stream()
-			.filter(s -> !Boolean.TRUE.equals(s.getIsPublished())) // DRAFT = isPublished false
+			.filter(s -> !Boolean.TRUE.equals(s.getIsPublished())) // DRAFT = isPublished
+																	// false
 			.filter(s -> excludeStrategyId == null || !s.getId().equals(excludeStrategyId))
 			.collect(Collectors.toList());
 
 		if (!conflicts.isEmpty()) {
-			throwModuleException(ServiceStrategyErrorDetails.DUPLICATE_STRATEGY_NAME, String.format(
-					"You already have a draft strategy named '%s'. Please choose a different name.", name));
+			throwModuleException(ServiceStrategyErrorDetails.DUPLICATE_STRATEGY_NAME, String
+				.format("You already have a draft strategy named '%s'. Please choose a different name.", name));
 		}
 	}
 
 	/**
 	 * Validate name uniqueness globally for published strategies
-	 *
-	 * @param name              Strategy name to validate
+	 * @param name Strategy name to validate
 	 * @param excludeStrategyId Strategy ID to exclude from check
 	 * @throws StrategizException if duplicate published name found
 	 */

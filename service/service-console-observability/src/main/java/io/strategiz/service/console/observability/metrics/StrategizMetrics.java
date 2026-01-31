@@ -13,16 +13,18 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Custom business metrics for Strategiz platform observability.
  *
- * <p>Provides metrics for:
+ * <p>
+ * Provides metrics for:
  * <ul>
- *   <li>Authentication events (logins, MFA, OAuth)</li>
- *   <li>Provider operations (sync, refresh, errors)</li>
- *   <li>Portfolio calculations</li>
- *   <li>Strategy executions</li>
- *   <li>Market data collection</li>
+ * <li>Authentication events (logins, MFA, OAuth)</li>
+ * <li>Provider operations (sync, refresh, errors)</li>
+ * <li>Portfolio calculations</li>
+ * <li>Strategy executions</li>
+ * <li>Market data collection</li>
  * </ul>
  *
- * <p>These metrics are exported to Prometheus and visualized in Grafana dashboards.
+ * <p>
+ * These metrics are exported to Prometheus and visualized in Grafana dashboards.
  */
 @Component
 public class StrategizMetrics {
@@ -171,27 +173,18 @@ public class StrategizMetrics {
 	public void recordProviderSync(String provider, boolean success, long durationMs) {
 		if (success) {
 			providerSyncSuccessCounter.increment();
-			Counter.builder("strategiz.provider.sync.success")
-				.tag("provider", provider)
-				.register(registry)
-				.increment();
+			Counter.builder("strategiz.provider.sync.success").tag("provider", provider).register(registry).increment();
 		}
 		else {
 			providerSyncFailureCounter.increment();
-			Counter.builder("strategiz.provider.sync.failure")
-				.tag("provider", provider)
-				.register(registry)
-				.increment();
+			Counter.builder("strategiz.provider.sync.failure").tag("provider", provider).register(registry).increment();
 		}
 		providerSyncTimer.record(durationMs, TimeUnit.MILLISECONDS);
 	}
 
 	public void recordProviderTokenRefresh(String provider) {
 		providerTokenRefreshCounter.increment();
-		Counter.builder("strategiz.provider.token.refresh")
-			.tag("provider", provider)
-			.register(registry)
-			.increment();
+		Counter.builder("strategiz.provider.token.refresh").tag("provider", provider).register(registry).increment();
 	}
 
 	// Timer methods for measuring durations

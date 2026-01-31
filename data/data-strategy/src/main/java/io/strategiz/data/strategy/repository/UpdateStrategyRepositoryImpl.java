@@ -16,106 +16,112 @@ import java.util.Optional;
  */
 @Repository
 public class UpdateStrategyRepositoryImpl implements UpdateStrategyRepository {
-    
-    private final StrategyBaseRepository baseRepository;
-    
-    @Autowired
-    public UpdateStrategyRepositoryImpl(StrategyBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
-    
-    @Override
-    public Strategy update(String id, String userId, Strategy strategy) {
-        // Verify ownership (strategies are stored in user subcollections, so userId scoping is enforced)
-        Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "Strategy", id);
-        }
 
-        // Ensure ID is set
-        strategy.setId(id);
+	private final StrategyBaseRepository baseRepository;
 
-        return baseRepository.save(strategy, userId);
-    }
-    
-    @Override
-    public boolean updateStatus(String id, String userId, String status) {
-        Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            return false;
-        }
+	@Autowired
+	public UpdateStrategyRepositoryImpl(StrategyBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
 
-        Strategy strategy = existing.get();
-        // Map string status to boolean isPublished
-        // "DRAFT" → false, "PUBLISHED"/"ACTIVE" → true
-        if ("DRAFT".equals(status)) {
-            strategy.setIsPublished(false);
-        } else if ("PUBLISHED".equals(status) || "ACTIVE".equals(status)) {
-            strategy.setIsPublished(true);
-        }
-        // ARCHIVED uses isActive field from BaseEntity (handled separately)
+	@Override
+	public Strategy update(String id, String userId, Strategy strategy) {
+		// Verify ownership (strategies are stored in user subcollections, so userId
+		// scoping is enforced)
+		Optional<Strategy> existing = baseRepository.findById(id);
+		if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND_OR_UNAUTHORIZED, "Strategy",
+					id);
+		}
 
-        baseRepository.save(strategy, userId);
-        return true;
-    }
-    
-    // For now, implement basic field update methods - these can be enhanced later
-    @Override
-    public Optional<Strategy> updateCode(String id, String userId, String code) {
-        return updateField(id, userId, strategy -> strategy.setCode(code));
-    }
-    
-    @Override
-    public Optional<Strategy> updateTags(String id, String userId, List<String> tags) {
-        return updateField(id, userId, strategy -> strategy.setTags(tags));
-    }
-    
-    @Override
-    public Optional<Strategy> updatePerformance(String id, String userId, StrategyPerformance performance) {
-        return updateField(id, userId, strategy -> strategy.setPerformance(performance));
-    }
-    
-    @Override
-    public Optional<Strategy> updateBacktestResults(String id, String userId, Map<String, Object> backtestResults) {
-        return updateField(id, userId, strategy -> strategy.setBacktestResults(backtestResults));
-    }
-    
-    @Override
-    public Optional<Strategy> updateVisibility(String id, String userId, boolean isPublic) {
-        // Set isPublic boolean field directly
-        return updateField(id, userId, strategy -> strategy.setIsPublic(isPublic));
-    }
-    
-    @Override
-    public Optional<Strategy> updateParameters(String id, String userId, Map<String, Object> parameters) {
-        return updateField(id, userId, strategy -> strategy.setParameters(parameters));
-    }
-    
-    @Override
-    public Optional<Strategy> updateDescription(String id, String userId, String description) {
-        return updateField(id, userId, strategy -> strategy.setDescription(description));
-    }
+		// Ensure ID is set
+		strategy.setId(id);
 
-    @Override
-    public Optional<Strategy> updateDeploymentStatus(String id, String userId, String deploymentType, String deploymentId) {
-        // NOTE: This method is deprecated. Deployment instances are now tracked separately
-        // in AlertDeployment and BotDeployment entities. Strategy entity no longer has
-        // deploymentType, deploymentId, or deployedAt fields.
-        // Use deploymentCount field instead if you need to track how many times deployed.
-        return updateField(id, userId, strategy -> {
-            // No-op for now - deployment tracking happens in separate deployment entities
-        });
-    }
+		return baseRepository.save(strategy, userId);
+	}
 
-    private Optional<Strategy> updateField(String id, String userId, java.util.function.Consumer<Strategy> updater) {
-        Optional<Strategy> existing = baseRepository.findById(id);
-        if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
-            return Optional.empty();
-        }
+	@Override
+	public boolean updateStatus(String id, String userId, String status) {
+		Optional<Strategy> existing = baseRepository.findById(id);
+		if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+			return false;
+		}
 
-        Strategy strategy = existing.get();
-        updater.accept(strategy);
+		Strategy strategy = existing.get();
+		// Map string status to boolean isPublished
+		// "DRAFT" → false, "PUBLISHED"/"ACTIVE" → true
+		if ("DRAFT".equals(status)) {
+			strategy.setIsPublished(false);
+		}
+		else if ("PUBLISHED".equals(status) || "ACTIVE".equals(status)) {
+			strategy.setIsPublished(true);
+		}
+		// ARCHIVED uses isActive field from BaseEntity (handled separately)
 
-        return Optional.of(baseRepository.save(strategy, userId));
-    }
+		baseRepository.save(strategy, userId);
+		return true;
+	}
+
+	// For now, implement basic field update methods - these can be enhanced later
+	@Override
+	public Optional<Strategy> updateCode(String id, String userId, String code) {
+		return updateField(id, userId, strategy -> strategy.setCode(code));
+	}
+
+	@Override
+	public Optional<Strategy> updateTags(String id, String userId, List<String> tags) {
+		return updateField(id, userId, strategy -> strategy.setTags(tags));
+	}
+
+	@Override
+	public Optional<Strategy> updatePerformance(String id, String userId, StrategyPerformance performance) {
+		return updateField(id, userId, strategy -> strategy.setPerformance(performance));
+	}
+
+	@Override
+	public Optional<Strategy> updateBacktestResults(String id, String userId, Map<String, Object> backtestResults) {
+		return updateField(id, userId, strategy -> strategy.setBacktestResults(backtestResults));
+	}
+
+	@Override
+	public Optional<Strategy> updateVisibility(String id, String userId, boolean isPublic) {
+		// Set isPublic boolean field directly
+		return updateField(id, userId, strategy -> strategy.setIsPublic(isPublic));
+	}
+
+	@Override
+	public Optional<Strategy> updateParameters(String id, String userId, Map<String, Object> parameters) {
+		return updateField(id, userId, strategy -> strategy.setParameters(parameters));
+	}
+
+	@Override
+	public Optional<Strategy> updateDescription(String id, String userId, String description) {
+		return updateField(id, userId, strategy -> strategy.setDescription(description));
+	}
+
+	@Override
+	public Optional<Strategy> updateDeploymentStatus(String id, String userId, String deploymentType,
+			String deploymentId) {
+		// NOTE: This method is deprecated. Deployment instances are now tracked
+		// separately
+		// in AlertDeployment and BotDeployment entities. Strategy entity no longer has
+		// deploymentType, deploymentId, or deployedAt fields.
+		// Use deploymentCount field instead if you need to track how many times deployed.
+		return updateField(id, userId, strategy -> {
+			// No-op for now - deployment tracking happens in separate deployment entities
+		});
+	}
+
+	private Optional<Strategy> updateField(String id, String userId, java.util.function.Consumer<Strategy> updater) {
+		Optional<Strategy> existing = baseRepository.findById(id);
+		if (existing.isEmpty() || !Boolean.TRUE.equals(existing.get().getIsActive())) {
+			return Optional.empty();
+		}
+
+		Strategy strategy = existing.get();
+		updater.accept(strategy);
+
+		return Optional.of(baseRepository.save(strategy, userId));
+	}
+
 }

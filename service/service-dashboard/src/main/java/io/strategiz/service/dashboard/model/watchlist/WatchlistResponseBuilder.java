@@ -4,32 +4,37 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class WatchlistResponseBuilder {
-    private String userId;
-    private List<WatchlistItem> assets;
-    private List<String> availableCategories;
-    private LocalDateTime lastUpdated;
 
-    public WatchlistResponseBuilder withUserId(String userId) {
-        this.userId = userId;
-        return this;
-    }
+	private String userId;
 
-    public WatchlistResponseBuilder withAssets(List<WatchlistItem> assets) {
-        this.assets = assets;
-        return this;
-    }
+	private List<WatchlistItem> assets;
 
-    public WatchlistResponseBuilder withAvailableCategories(List<String> availableCategories) {
-        this.availableCategories = availableCategories;
-        return this;
-    }
+	private List<String> availableCategories;
 
-    public WatchlistResponseBuilder withLastUpdated(LocalDateTime lastUpdated) {
-        this.lastUpdated = lastUpdated;
-        return this;
-    }
+	private LocalDateTime lastUpdated;
 
-    public WatchlistResponse build() {
-        return new WatchlistResponse(userId, assets, availableCategories, lastUpdated);
-    }
+	public WatchlistResponseBuilder withUserId(String userId) {
+		this.userId = userId;
+		return this;
+	}
+
+	public WatchlistResponseBuilder withAssets(List<WatchlistItem> assets) {
+		this.assets = assets;
+		return this;
+	}
+
+	public WatchlistResponseBuilder withAvailableCategories(List<String> availableCategories) {
+		this.availableCategories = availableCategories;
+		return this;
+	}
+
+	public WatchlistResponseBuilder withLastUpdated(LocalDateTime lastUpdated) {
+		this.lastUpdated = lastUpdated;
+		return this;
+	}
+
+	public WatchlistResponse build() {
+		return new WatchlistResponse(userId, assets, availableCategories, lastUpdated);
+	}
+
 }

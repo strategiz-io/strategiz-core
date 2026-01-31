@@ -9,8 +9,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Warms up the market ticker cache on application startup.
- * This ensures the first user request is fast instead of waiting for external API calls.
+ * Warms up the market ticker cache on application startup. This ensures the first user
+ * request is fast instead of waiting for external API calls.
  *
  * Requires FMP integration to be enabled (strategiz.fmp.enabled=true).
  */
@@ -18,27 +18,29 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "strategiz.fmp.enabled", havingValue = "true")
 public class MarketTickerCacheWarmer {
 
-    private static final Logger log = LoggerFactory.getLogger(MarketTickerCacheWarmer.class);
+	private static final Logger log = LoggerFactory.getLogger(MarketTickerCacheWarmer.class);
 
-    private final MarketTickerService marketTickerService;
+	private final MarketTickerService marketTickerService;
 
-    public MarketTickerCacheWarmer(MarketTickerService marketTickerService) {
-        this.marketTickerService = marketTickerService;
-    }
+	public MarketTickerCacheWarmer(MarketTickerService marketTickerService) {
+		this.marketTickerService = marketTickerService;
+	}
 
-    /**
-     * Warm up the market ticker cache after the application is fully ready.
-     * This runs asynchronously and won't block startup if it fails.
-     */
-    @EventListener(ApplicationReadyEvent.class)
-    public void warmUpCache() {
-        log.info("Warming up market ticker cache...");
-        try {
-            marketTickerService.getMarketTicker();
-            log.info("Market ticker cache warmed up successfully");
-        } catch (Exception e) {
-            log.warn("Failed to warm up market ticker cache: {}", e.getMessage());
-            // Don't fail startup - cache will populate on first request
-        }
-    }
+	/**
+	 * Warm up the market ticker cache after the application is fully ready. This runs
+	 * asynchronously and won't block startup if it fails.
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	public void warmUpCache() {
+		log.info("Warming up market ticker cache...");
+		try {
+			marketTickerService.getMarketTicker();
+			log.info("Market ticker cache warmed up successfully");
+		}
+		catch (Exception e) {
+			log.warn("Failed to warm up market ticker cache: {}", e.getMessage());
+			// Don't fail startup - cache will populate on first request
+		}
+	}
+
 }

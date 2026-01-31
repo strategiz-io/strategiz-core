@@ -6,66 +6,68 @@ import java.io.Serializable;
  * Model for Google user information
  */
 public class GoogleUserInfo implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
-    private final String googleId;
-    private final String email;
-    private final String name;
-    private final String pictureUrl;
-    private final String givenName;
-    private final String familyName;
 
-    public GoogleUserInfo(String googleId, String email, String name) {
-        this(googleId, email, name, null, null, null);
-    }
+	private static final long serialVersionUID = 1L;
 
-    public GoogleUserInfo(String googleId, String email, String name, String pictureUrl) {
-        this(googleId, email, name, pictureUrl, null, null);
-    }
+	private final String googleId;
 
-    public GoogleUserInfo(String googleId, String email, String name, String pictureUrl, String givenName, String familyName) {
-        this.googleId = googleId;
-        this.email = email;
-        this.name = name;
-        this.pictureUrl = pictureUrl;
-        this.givenName = givenName;
-        this.familyName = familyName;
-    }
+	private final String email;
 
-    public String getGoogleId() {
-        return googleId;
-    }
+	private final String name;
 
-    public String getEmail() {
-        return email;
-    }
+	private final String pictureUrl;
 
-    public String getName() {
-        return name;
-    }
+	private final String givenName;
 
-    public String getPictureUrl() {
-        return pictureUrl;
-    }
+	private final String familyName;
 
-    public String getGivenName() {
-        return givenName;
-    }
+	public GoogleUserInfo(String googleId, String email, String name) {
+		this(googleId, email, name, null, null, null);
+	}
 
-    public String getFamilyName() {
-        return familyName;
-    }
+	public GoogleUserInfo(String googleId, String email, String name, String pictureUrl) {
+		this(googleId, email, name, pictureUrl, null, null);
+	}
 
-    @Override
-    public String toString() {
-        return "GoogleUserInfo{" +
-               "googleId='" + googleId + '\'' +
-               ", email='" + email + '\'' +
-               ", name='" + name + '\'' +
-               ", pictureUrl='" + pictureUrl + '\'' +
-               ", givenName='" + givenName + '\'' +
-               ", familyName='" + familyName + '\'' +
-               '}';
-    }
-} 
+	public GoogleUserInfo(String googleId, String email, String name, String pictureUrl, String givenName,
+			String familyName) {
+		this.googleId = googleId;
+		this.email = email;
+		this.name = name;
+		this.pictureUrl = pictureUrl;
+		this.givenName = givenName;
+		this.familyName = familyName;
+	}
+
+	public String getGoogleId() {
+		return googleId;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getPictureUrl() {
+		return pictureUrl;
+	}
+
+	public String getGivenName() {
+		return givenName;
+	}
+
+	public String getFamilyName() {
+		return familyName;
+	}
+
+	@Override
+	public String toString() {
+		return "GoogleUserInfo{" + "googleId='" + googleId + '\'' + ", email='" + email + '\'' + ", name='" + name
+				+ '\'' + ", pictureUrl='" + pictureUrl + '\'' + ", givenName='" + givenName + '\'' + ", familyName='"
+				+ familyName + '\'' + '}';
+	}
+
+}

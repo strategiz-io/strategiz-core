@@ -18,9 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * REST controller for aggregated portfolio data across all connected providers.
- * This controller reads from stored provider_data in Firestore and returns
- * a unified view of the user's complete portfolio.
+ * REST controller for aggregated portfolio data across all connected providers. This
+ * controller reads from stored provider_data in Firestore and returns a unified view of
+ * the user's complete portfolio.
  */
 @RestController
 @RequestMapping(ServicePortfolioConstants.BASE_PATH)
@@ -28,73 +28,73 @@ import org.springframework.web.bind.annotation.*;
 @RequireAuth(minAcr = "1")
 public class PortfolioAggregatorController extends BaseController {
 
-    private static final Logger log = LoggerFactory.getLogger(PortfolioAggregatorController.class);
+	private static final Logger log = LoggerFactory.getLogger(PortfolioAggregatorController.class);
 
-    private final PortfolioAggregatorService portfolioAggregatorService;
+	private final PortfolioAggregatorService portfolioAggregatorService;
 
-    @Autowired
-    public PortfolioAggregatorController(
-            PortfolioAggregatorService portfolioAggregatorService) {
-        this.portfolioAggregatorService = portfolioAggregatorService;
-    }
+	@Autowired
+	public PortfolioAggregatorController(PortfolioAggregatorService portfolioAggregatorService) {
+		this.portfolioAggregatorService = portfolioAggregatorService;
+	}
 
-    @Override
-    protected String getModuleName() {
-        return ServicePortfolioConstants.MODULE_NAME;
-    }
+	@Override
+	protected String getModuleName() {
+		return ServicePortfolioConstants.MODULE_NAME;
+	}
 
-    /**
-     * Get lightweight portfolio summary for dashboard.
-     * Returns only essential data for quick loading.
-     *
-     * @param user Authenticated user from HTTP-only cookie
-     * @return Summary data with total value, day change, and top holdings
-     */
-    @GetMapping(ServicePortfolioConstants.SUMMARY_PATH)
-    public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
+	/**
+	 * Get lightweight portfolio summary for dashboard. Returns only essential data for
+	 * quick loading.
+	 * @param user Authenticated user from HTTP-only cookie
+	 * @return Summary data with total value, day change, and top holdings
+	 */
+	@GetMapping(ServicePortfolioConstants.SUMMARY_PATH)
+	public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(@AuthUser AuthenticatedUser user) {
 
-        String userId = user.getUserId();
-        log.info("Fetching portfolio summary for user: {}", userId);
+		String userId = user.getUserId();
+		log.info("Fetching portfolio summary for user: {}", userId);
 
-        try {
-            PortfolioSummaryResponse summaryData = portfolioAggregatorService.getPortfolioSummary(userId);
-            return ResponseEntity.ok(summaryData);
+		try {
+			PortfolioSummaryResponse summaryData = portfolioAggregatorService.getPortfolioSummary(userId);
+			return ResponseEntity.ok(summaryData);
 
-        } catch (Exception e) {
-            log.error("Error fetching portfolio summary for user {}: {}", userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
-                ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
-        }
-    }
+		}
+		catch (Exception e) {
+			log.error("Error fetching portfolio summary for user {}: {}", userId, e.getMessage(), e);
+			throw new StrategizException(ErrorCode.INTERNAL_ERROR,
+					ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
+		}
+	}
 
-    /**
-     * Get complete portfolio overview for portfolio page.
-     * This endpoint aggregates data from all connected providers.
-     *
-     * @param user Authenticated user from HTTP-only cookie
-     * @return Full portfolio data including all providers and holdings
-     */
-    @GetMapping(ServicePortfolioConstants.OVERVIEW_PATH)
-    public ResponseEntity<PortfolioOverviewResponse> getPortfolioOverview(@AuthUser AuthenticatedUser user) {
+	/**
+	 * Get complete portfolio overview for portfolio page. This endpoint aggregates data
+	 * from all connected providers.
+	 * @param user Authenticated user from HTTP-only cookie
+	 * @return Full portfolio data including all providers and holdings
+	 */
+	@GetMapping(ServicePortfolioConstants.OVERVIEW_PATH)
+	public ResponseEntity<PortfolioOverviewResponse> getPortfolioOverview(@AuthUser AuthenticatedUser user) {
 
-        String userId = user.getUserId();
-        log.info("Fetching portfolio overview for user: {}", userId);
+		String userId = user.getUserId();
+		log.info("Fetching portfolio overview for user: {}", userId);
 
-        try {
-            PortfolioOverviewResponse portfolioData = portfolioAggregatorService.getPortfolioOverview(userId);
+		try {
+			PortfolioOverviewResponse portfolioData = portfolioAggregatorService.getPortfolioOverview(userId);
 
-            // Log summary for debugging
-            if (portfolioData.getProviders() != null) {
-                int providerCount = portfolioData.getProviders().size();
-                log.info("Returning portfolio data for user {} with {} provider(s)", userId, providerCount);
-            }
+			// Log summary for debugging
+			if (portfolioData.getProviders() != null) {
+				int providerCount = portfolioData.getProviders().size();
+				log.info("Returning portfolio data for user {} with {} provider(s)", userId, providerCount);
+			}
 
-            return ResponseEntity.ok(portfolioData);
+			return ResponseEntity.ok(portfolioData);
 
-        } catch (Exception e) {
-            log.error("Error fetching portfolio overview for user {}: {}", userId, e.getMessage(), e);
-            throw new StrategizException(ErrorCode.INTERNAL_ERROR,
-                ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
-        }
-    }
+		}
+		catch (Exception e) {
+			log.error("Error fetching portfolio overview for user {}: {}", userId, e.getMessage(), e);
+			throw new StrategizException(ErrorCode.INTERNAL_ERROR,
+					ServicePortfolioConstants.ERROR_PORTFOLIO_FETCH_FAILED);
+		}
+	}
+
 }

@@ -14,47 +14,35 @@ import org.springframework.context.annotation.Import;
 /**
  * Test Application for service-auth integration tests.
  *
- * <p>This minimal Spring Boot application is used for testing service-auth
- * controllers without requiring the full application-api setup.</p>
+ * <p>
+ * This minimal Spring Boot application is used for testing service-auth controllers
+ * without requiring the full application-api setup.
+ * </p>
  *
  * <h3>Exclusions:</h3>
  * <ul>
- *   <li>DataSource: No database required for controller tests</li>
- *   <li>OAuthVaultConfig: Replaced with TestOAuthConfig to avoid Vault dependency</li>
- *   <li>AuthTokenController/Service: Requires repository dependencies</li>
+ * <li>DataSource: No database required for controller tests</li>
+ * <li>OAuthVaultConfig: Replaced with TestOAuthConfig to avoid Vault dependency</li>
+ * <li>AuthTokenController/Service: Requires repository dependencies</li>
  * </ul>
  *
- * <h3>Usage:</h3>
- * <pre>{@code
- * @SpringBootTest(classes = TestApplication.class)
- * @ActiveProfiles("test")
+ * <h3>Usage:</h3> <pre>{@code
+ * &#64;SpringBootTest(classes = TestApplication.class)
+ * &#64;ActiveProfiles("test")
  * public class MyIntegrationTest extends BaseIntegrationTest {
  *     // Tests
  * }
  * }</pre>
  */
-@SpringBootApplication(
-    exclude = {
-        DataSourceAutoConfiguration.class
-    }
-)
+@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 @ComponentScan(
-    basePackages = {
-        "io.strategiz.service.auth",
-        "io.strategiz.service.base",
-        "io.strategiz.framework.secrets"
-    },
-    excludeFilters = @ComponentScan.Filter(
-        type = FilterType.ASSIGNABLE_TYPE,
-        classes = {
-            OAuthVaultConfig.class,
-            AuthTokenController.class,
-            AuthTokenService.class
-        }
-    )
-)
+		basePackages = { "io.strategiz.service.auth", "io.strategiz.service.base", "io.strategiz.framework.secrets" },
+		excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+				classes = { OAuthVaultConfig.class, AuthTokenController.class, AuthTokenService.class }))
 @Import(TestOAuthConfig.class)
 @TestConfiguration
 public class TestApplication {
-    // Test application entry point for integration tests
+
+	// Test application entry point for integration tests
+
 }

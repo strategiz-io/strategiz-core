@@ -13,10 +13,12 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Detects rapid device rotation — many distinct devices used in a short period
- * is a sign of credential stuffing or account sharing.
+ * Detects rapid device rotation — many distinct devices used in a short period is a sign
+ * of credential stuffing or account sharing.
  *
- * <p>Scoring: &gt;3 devices in 7 days = +15, &gt;2 = +10</p>
+ * <p>
+ * Scoring: &gt;3 devices in 7 days = +15, &gt;2 = +10
+ * </p>
  */
 @Component
 public class DeviceRotationProvider implements RiskSignalProvider {

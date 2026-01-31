@@ -55,8 +55,7 @@ public class ComplianceBreakdown {
 		double serviceWeight = 0.3;
 		double controllerWeight = 0.2;
 
-		return (exceptionHandling.getCompliance() * exceptionWeight)
-				+ (servicePattern.getCompliance() * serviceWeight)
+		return (exceptionHandling.getCompliance() * exceptionWeight) + (servicePattern.getCompliance() * serviceWeight)
 				+ (controllerPattern.getCompliance() * controllerWeight);
 	}
 

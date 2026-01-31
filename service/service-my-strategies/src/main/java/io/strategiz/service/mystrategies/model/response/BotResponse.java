@@ -7,277 +7,278 @@ import com.google.cloud.Timestamp;
 import java.util.List;
 
 /**
- * Response model for strategy bot.
- * Corresponds to the "Bot Card" in the UX spec.
+ * Response model for strategy bot. Corresponds to the "Bot Card" in the UX spec.
  */
 public class BotResponse {
 
-    @JsonProperty("id")
-    private String id;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("userId")
-    private String userId;
+	@JsonProperty("userId")
+	private String userId;
 
-    @JsonProperty("strategyId")
-    private String strategyId;
+	@JsonProperty("strategyId")
+	private String strategyId;
 
-    @JsonProperty("strategyName")
-    private String strategyName;
+	@JsonProperty("strategyName")
+	private String strategyName;
 
-    @JsonProperty("botName")
-    private String botName;
+	@JsonProperty("botName")
+	private String botName;
 
-    @JsonProperty("symbols")
-    private List<String> symbols;
+	@JsonProperty("symbols")
+	private List<String> symbols;
 
-    @JsonProperty("providerId")
-    private String providerId;
+	@JsonProperty("providerId")
+	private String providerId;
 
-    @JsonProperty("exchange")
-    private String exchange;
+	@JsonProperty("exchange")
+	private String exchange;
 
-    @JsonProperty("environment")
-    private String environment; // PAPER or LIVE
+	@JsonProperty("environment")
+	private String environment; // PAPER or LIVE
 
-    // Risk management
-    @JsonProperty("maxPositionSize")
-    private Double maxPositionSize;
+	// Risk management
+	@JsonProperty("maxPositionSize")
+	private Double maxPositionSize;
 
-    @JsonProperty("stopLossPercent")
-    private Double stopLossPercent;
+	@JsonProperty("stopLossPercent")
+	private Double stopLossPercent;
 
-    @JsonProperty("takeProfitPercent")
-    private Double takeProfitPercent;
+	@JsonProperty("takeProfitPercent")
+	private Double takeProfitPercent;
 
-    @JsonProperty("maxDailyLoss")
-    private Double maxDailyLoss;
+	@JsonProperty("maxDailyLoss")
+	private Double maxDailyLoss;
 
-    @JsonProperty("autoExecute")
-    private Boolean autoExecute;
+	@JsonProperty("autoExecute")
+	private Boolean autoExecute;
 
-    // Status
-    @JsonProperty("status")
-    private String status;
+	// Status
+	@JsonProperty("status")
+	private String status;
 
-    // Performance metrics
-    @JsonProperty("totalTrades")
-    private Integer totalTrades;
+	// Performance metrics
+	@JsonProperty("totalTrades")
+	private Integer totalTrades;
 
-    @JsonProperty("profitableTrades")
-    private Integer profitableTrades;
+	@JsonProperty("profitableTrades")
+	private Integer profitableTrades;
 
-    @JsonProperty("totalPnL")
-    private Double totalPnL;
+	@JsonProperty("totalPnL")
+	private Double totalPnL;
 
-    @JsonProperty("winRate")
-    private Double winRate;
+	@JsonProperty("winRate")
+	private Double winRate;
 
-    // Timestamps
-    @JsonProperty("lastExecutedAt")
-    private Timestamp lastExecutedAt;
+	// Timestamps
+	@JsonProperty("lastExecutedAt")
+	private Timestamp lastExecutedAt;
 
-    @JsonProperty("deployedAt")
-    private Timestamp deployedAt;
+	@JsonProperty("deployedAt")
+	private Timestamp deployedAt;
 
-    @JsonProperty("subscriptionTier")
-    private String subscriptionTier;
+	@JsonProperty("subscriptionTier")
+	private String subscriptionTier;
 
-    @JsonProperty("errorMessage")
-    private String errorMessage;
+	@JsonProperty("errorMessage")
+	private String errorMessage;
 
-    @JsonProperty("livePerformance")
-    private BotLivePerformance livePerformance; // Comprehensive live trading performance metrics
+	@JsonProperty("livePerformance")
+	private BotLivePerformance livePerformance; // Comprehensive live trading performance
+												// metrics
 
-    // Getters and Setters
-    public String getId() {
-        return id;
-    }
+	// Getters and Setters
+	public String getId() {
+		return id;
+	}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getUserId() {
-        return userId;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public String getStrategyId() {
-        return strategyId;
-    }
+	public String getStrategyId() {
+		return strategyId;
+	}
 
-    public void setStrategyId(String strategyId) {
-        this.strategyId = strategyId;
-    }
+	public void setStrategyId(String strategyId) {
+		this.strategyId = strategyId;
+	}
+
+	public String getStrategyName() {
+		return strategyName;
+	}
+
+	public void setStrategyName(String strategyName) {
+		this.strategyName = strategyName;
+	}
+
+	public String getBotName() {
+		return botName;
+	}
+
+	public void setBotName(String botName) {
+		this.botName = botName;
+	}
+
+	public List<String> getSymbols() {
+		return symbols;
+	}
+
+	public void setSymbols(List<String> symbols) {
+		this.symbols = symbols;
+	}
+
+	public String getProviderId() {
+		return providerId;
+	}
+
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
+
+	public String getExchange() {
+		return exchange;
+	}
+
+	public void setExchange(String exchange) {
+		this.exchange = exchange;
+	}
+
+	public String getEnvironment() {
+		return environment;
+	}
+
+	public void setEnvironment(String environment) {
+		this.environment = environment;
+	}
+
+	public Double getMaxPositionSize() {
+		return maxPositionSize;
+	}
+
+	public void setMaxPositionSize(Double maxPositionSize) {
+		this.maxPositionSize = maxPositionSize;
+	}
+
+	public Double getStopLossPercent() {
+		return stopLossPercent;
+	}
+
+	public void setStopLossPercent(Double stopLossPercent) {
+		this.stopLossPercent = stopLossPercent;
+	}
+
+	public Double getTakeProfitPercent() {
+		return takeProfitPercent;
+	}
+
+	public void setTakeProfitPercent(Double takeProfitPercent) {
+		this.takeProfitPercent = takeProfitPercent;
+	}
 
-    public String getStrategyName() {
-        return strategyName;
-    }
+	public Double getMaxDailyLoss() {
+		return maxDailyLoss;
+	}
 
-    public void setStrategyName(String strategyName) {
-        this.strategyName = strategyName;
-    }
+	public void setMaxDailyLoss(Double maxDailyLoss) {
+		this.maxDailyLoss = maxDailyLoss;
+	}
 
-    public String getBotName() {
-        return botName;
-    }
+	public Boolean getAutoExecute() {
+		return autoExecute;
+	}
 
-    public void setBotName(String botName) {
-        this.botName = botName;
-    }
+	public void setAutoExecute(Boolean autoExecute) {
+		this.autoExecute = autoExecute;
+	}
 
-    public List<String> getSymbols() {
-        return symbols;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setSymbols(List<String> symbols) {
-        this.symbols = symbols;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
 
-    public String getProviderId() {
-        return providerId;
-    }
+	public Integer getTotalTrades() {
+		return totalTrades;
+	}
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	public void setTotalTrades(Integer totalTrades) {
+		this.totalTrades = totalTrades;
+	}
 
-    public String getExchange() {
-        return exchange;
-    }
+	public Integer getProfitableTrades() {
+		return profitableTrades;
+	}
 
-    public void setExchange(String exchange) {
-        this.exchange = exchange;
-    }
+	public void setProfitableTrades(Integer profitableTrades) {
+		this.profitableTrades = profitableTrades;
+	}
 
-    public String getEnvironment() {
-        return environment;
-    }
+	public Double getTotalPnL() {
+		return totalPnL;
+	}
 
-    public void setEnvironment(String environment) {
-        this.environment = environment;
-    }
+	public void setTotalPnL(Double totalPnL) {
+		this.totalPnL = totalPnL;
+	}
 
-    public Double getMaxPositionSize() {
-        return maxPositionSize;
-    }
+	public Double getWinRate() {
+		return winRate;
+	}
 
-    public void setMaxPositionSize(Double maxPositionSize) {
-        this.maxPositionSize = maxPositionSize;
-    }
+	public void setWinRate(Double winRate) {
+		this.winRate = winRate;
+	}
 
-    public Double getStopLossPercent() {
-        return stopLossPercent;
-    }
+	public Timestamp getLastExecutedAt() {
+		return lastExecutedAt;
+	}
 
-    public void setStopLossPercent(Double stopLossPercent) {
-        this.stopLossPercent = stopLossPercent;
-    }
+	public void setLastExecutedAt(Timestamp lastExecutedAt) {
+		this.lastExecutedAt = lastExecutedAt;
+	}
 
-    public Double getTakeProfitPercent() {
-        return takeProfitPercent;
-    }
+	public Timestamp getDeployedAt() {
+		return deployedAt;
+	}
 
-    public void setTakeProfitPercent(Double takeProfitPercent) {
-        this.takeProfitPercent = takeProfitPercent;
-    }
+	public void setDeployedAt(Timestamp deployedAt) {
+		this.deployedAt = deployedAt;
+	}
 
-    public Double getMaxDailyLoss() {
-        return maxDailyLoss;
-    }
+	public String getSubscriptionTier() {
+		return subscriptionTier;
+	}
 
-    public void setMaxDailyLoss(Double maxDailyLoss) {
-        this.maxDailyLoss = maxDailyLoss;
-    }
+	public void setSubscriptionTier(String subscriptionTier) {
+		this.subscriptionTier = subscriptionTier;
+	}
 
-    public Boolean getAutoExecute() {
-        return autoExecute;
-    }
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 
-    public void setAutoExecute(Boolean autoExecute) {
-        this.autoExecute = autoExecute;
-    }
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public BotLivePerformance getLivePerformance() {
+		return livePerformance;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setLivePerformance(BotLivePerformance livePerformance) {
+		this.livePerformance = livePerformance;
+	}
 
-    public Integer getTotalTrades() {
-        return totalTrades;
-    }
-
-    public void setTotalTrades(Integer totalTrades) {
-        this.totalTrades = totalTrades;
-    }
-
-    public Integer getProfitableTrades() {
-        return profitableTrades;
-    }
-
-    public void setProfitableTrades(Integer profitableTrades) {
-        this.profitableTrades = profitableTrades;
-    }
-
-    public Double getTotalPnL() {
-        return totalPnL;
-    }
-
-    public void setTotalPnL(Double totalPnL) {
-        this.totalPnL = totalPnL;
-    }
-
-    public Double getWinRate() {
-        return winRate;
-    }
-
-    public void setWinRate(Double winRate) {
-        this.winRate = winRate;
-    }
-
-    public Timestamp getLastExecutedAt() {
-        return lastExecutedAt;
-    }
-
-    public void setLastExecutedAt(Timestamp lastExecutedAt) {
-        this.lastExecutedAt = lastExecutedAt;
-    }
-
-    public Timestamp getDeployedAt() {
-        return deployedAt;
-    }
-
-    public void setDeployedAt(Timestamp deployedAt) {
-        this.deployedAt = deployedAt;
-    }
-
-    public String getSubscriptionTier() {
-        return subscriptionTier;
-    }
-
-    public void setSubscriptionTier(String subscriptionTier) {
-        this.subscriptionTier = subscriptionTier;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public BotLivePerformance getLivePerformance() {
-        return livePerformance;
-    }
-
-    public void setLivePerformance(BotLivePerformance livePerformance) {
-        this.livePerformance = livePerformance;
-    }
 }

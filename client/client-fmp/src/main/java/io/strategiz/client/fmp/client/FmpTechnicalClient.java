@@ -24,8 +24,9 @@ import java.util.Map;
  * Client for fetching technical indicators from Financial Modeling Prep API.
  *
  * <p>
- * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig to ensure
- * proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist first).
+ * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig
+ * to ensure proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist
+ * first).
  * </p>
  *
  * <p>

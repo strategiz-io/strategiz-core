@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Client for OpenAI via Google Vertex AI.
- * Implements LLMProvider interface for unified LLM access.
+ * Client for OpenAI via Google Vertex AI. Implements LLMProvider interface for unified
+ * LLM access.
  */
 @Component
 @ConditionalOnProperty(name = "openai.vertex.enabled", havingValue = "true", matchIfMissing = true)
@@ -52,7 +52,8 @@ public class OpenAIVertexClient implements LLMProvider {
 	public OpenAIVertexClient(OpenAIVertexConfig config) {
 		this.config = config;
 		this.objectMapper = new ObjectMapper();
-		this.webClient = WebClient.builder().defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+		this.webClient = WebClient.builder()
+			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.build();
 
 		// Initialize Google credentials once during construction
@@ -60,7 +61,8 @@ public class OpenAIVertexClient implements LLMProvider {
 			this.credentials = GoogleCredentials.getApplicationDefault()
 				.createScoped("https://www.googleapis.com/auth/cloud-platform");
 			logger.info("Initialized Google Cloud credentials for Vertex AI (OpenAI)");
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			logger.error("Failed to initialize Google Cloud credentials. OpenAI Vertex AI calls will fail.", e);
 			this.credentials = null;
 		}
@@ -85,13 +87,16 @@ public class OpenAIVertexClient implements LLMProvider {
 
 			String url = buildEndpointUrl(vertexModel);
 
-			return webClient.post().uri(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-				.bodyValue(requestBody).retrieve()
-				.onStatus(status -> status.isError(),
-						response -> response.bodyToMono(String.class)
-							.flatMap(errorBody -> Mono
-								.error(new RuntimeException("OpenAI API error: " + response.statusCode() + " - " + errorBody))))
-				.bodyToMono(String.class).map(responseBody -> parseResponse(responseBody, model))
+			return webClient.post()
+				.uri(url)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.bodyValue(requestBody)
+				.retrieve()
+				.onStatus(status -> status.isError(), response -> response.bodyToMono(String.class)
+					.flatMap(errorBody -> Mono
+						.error(new RuntimeException("OpenAI API error: " + response.statusCode() + " - " + errorBody))))
+				.bodyToMono(String.class)
+				.map(responseBody -> parseResponse(responseBody, model))
 				.doOnSuccess(response -> logger.debug("Received response from OpenAI"))
 				.doOnError(error -> logger.error("Error calling OpenAI API", error))
 				.onErrorResume(error -> Mono.just(LLMResponse.error("Failed to call OpenAI: " + error.getMessage())));
@@ -117,9 +122,15 @@ public class OpenAIVertexClient implements LLMProvider {
 
 			String url = buildStreamingEndpointUrl(vertexModel);
 
-			return webClient.post().uri(url).header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-				.accept(MediaType.TEXT_EVENT_STREAM).bodyValue(requestBody).retrieve().bodyToFlux(String.class)
-				.filter(chunk -> chunk != null && !chunk.isEmpty()).map(chunk -> parseStreamChunk(chunk, model))
+			return webClient.post()
+				.uri(url)
+				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+				.accept(MediaType.TEXT_EVENT_STREAM)
+				.bodyValue(requestBody)
+				.retrieve()
+				.bodyToFlux(String.class)
+				.filter(chunk -> chunk != null && !chunk.isEmpty())
+				.map(chunk -> parseStreamChunk(chunk, model))
 				.filter(response -> response.getContent() != null && !response.getContent().isEmpty())
 				.doOnError(error -> logger.error("Error in OpenAI streaming", error))
 				.onErrorResume(error -> Flux.just(LLMResponse.error("Stream error: " + error.getMessage())));
@@ -305,8 +316,8 @@ public class OpenAIVertexClient implements LLMProvider {
 	}
 
 	/**
-	 * Get access token for Vertex AI API calls.
-	 * GoogleCredentials handles automatic token refresh and caching.
+	 * Get access token for Vertex AI API calls. GoogleCredentials handles automatic token
+	 * refresh and caching.
 	 */
 	private String getAccessToken() throws IOException {
 		if (credentials == null) {

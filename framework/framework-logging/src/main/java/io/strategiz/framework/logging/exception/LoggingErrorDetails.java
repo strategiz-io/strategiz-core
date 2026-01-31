@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error codes for logging framework operations.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error codes for logging framework operations. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  *
  * Usage: throw new StrategizException(LoggingErrorDetails.INVALID_ARGUMENT, MODULE_NAME);
  */

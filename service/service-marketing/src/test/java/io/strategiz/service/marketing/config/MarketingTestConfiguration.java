@@ -10,28 +10,29 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Test configuration for service-marketing module
- * Provides mock beans and test-specific configurations for market data clients
+ * Test configuration for service-marketing module Provides mock beans and test-specific
+ * configurations for market data clients
  */
 @TestConfiguration
 @Profile("test")
 public class MarketingTestConfiguration {
 
-    @Bean
-    @Primary
-    public CoinbaseClient mockCoinbaseClient() {
-        return Mockito.mock(CoinbaseClient.class);
-    }
+	@Bean
+	@Primary
+	public CoinbaseClient mockCoinbaseClient() {
+		return Mockito.mock(CoinbaseClient.class);
+	}
 
-    @Bean
-    @Primary
-    public CoinGeckoClient mockCoinGeckoClient() {
-        return Mockito.mock(CoinGeckoClient.class);
-    }
+	@Bean
+	@Primary
+	public CoinGeckoClient mockCoinGeckoClient() {
+		return Mockito.mock(CoinGeckoClient.class);
+	}
 
-    @Bean
-    @Primary
-    public AlphaVantageClient mockAlphaVantageClient() {
-        return Mockito.mock(AlphaVantageClient.class);
-    }
+	@Bean
+	@Primary
+	public AlphaVantageClient mockAlphaVantageClient() {
+		return Mockito.mock(AlphaVantageClient.class);
+	}
+
 }

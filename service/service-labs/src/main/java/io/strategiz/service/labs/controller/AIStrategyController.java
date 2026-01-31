@@ -22,8 +22,7 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * REST controller for AI-powered strategy generation, explanation, and
- * optimization.
+ * REST controller for AI-powered strategy generation, explanation, and optimization.
  */
 @RestController
 @RequestMapping("/v1/labs/ai")
@@ -51,7 +50,8 @@ public class AIStrategyController extends BaseController {
 	 */
 	@PostMapping("/generate-strategy")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Generate strategy from prompt", description = "Uses AI to generate a trading strategy with both visual configuration and Python code from a natural language prompt")
+	@Operation(summary = "Generate strategy from prompt",
+			description = "Uses AI to generate a trading strategy with both visual configuration and Python code from a natural language prompt")
 	public ResponseEntity<AIStrategyResponse> generateStrategy(@Valid @RequestBody AIStrategyRequest request,
 			@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
@@ -61,7 +61,8 @@ public class AIStrategyController extends BaseController {
 		if (!featureFlagService.isLabsAIEnabled()) {
 			logger.warn("Labs AI Strategy Generator is currently disabled");
 			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+				.body(AIStrategyResponse
+					.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
 		}
 
 		// HISTORICAL MARKET INSIGHTS CHECKS (Autonomous AI)
@@ -70,14 +71,18 @@ public class AIStrategyController extends BaseController {
 			if (!featureFlagService.isHistoricalInsightsEnabled()) {
 				logger.warn("Historical Market Insights is currently disabled");
 				return ResponseEntity.status(503)
-					.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+					.body(AIStrategyResponse
+						.error("Historical Market Insights is currently unavailable. Please try again later."));
 			}
 
-			// Check if user's subscription tier level allows Historical Insights (requires tier level 1+)
+			// Check if user's subscription tier level allows Historical Insights
+			// (requires tier level 1+)
 			if (!subscriptionService.canUseHistoricalInsights(userId)) {
-				logger.warn("User {} attempted to use Historical Market Insights without sufficient subscription tier", userId);
+				logger.warn("User {} attempted to use Historical Market Insights without sufficient subscription tier",
+						userId);
 				return ResponseEntity.status(403)
-					.body(AIStrategyResponse.error("Historical Market Insights requires a paid subscription. Upgrade to unlock."));
+					.body(AIStrategyResponse
+						.error("Historical Market Insights requires a paid subscription. Upgrade to unlock."));
 			}
 
 			logger.info("Historical Market Insights enabled for user {}", userId);
@@ -89,7 +94,8 @@ public class AIStrategyController extends BaseController {
 			if (!subscriptionService.canSendMessage(userId)) {
 				logger.warn("User {} exceeded daily AI chat limit", userId);
 				return ResponseEntity.status(429)
-					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+					.body(AIStrategyResponse
+						.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
 			}
 		}
 		catch (Exception e) {
@@ -126,7 +132,8 @@ public class AIStrategyController extends BaseController {
 	 */
 	@PostMapping("/refine-strategy")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Refine existing strategy", description = "Uses AI to refine an existing strategy based on user feedback while maintaining consistency between visual config and code")
+	@Operation(summary = "Refine existing strategy",
+			description = "Uses AI to refine an existing strategy based on user feedback while maintaining consistency between visual config and code")
 	public ResponseEntity<AIStrategyResponse> refineStrategy(@Valid @RequestBody AIStrategyRequest request,
 			@AuthUser AuthenticatedUser user) {
 		String userId = user.getUserId();
@@ -136,7 +143,8 @@ public class AIStrategyController extends BaseController {
 		if (!featureFlagService.isLabsAIEnabled()) {
 			logger.warn("Labs AI Strategy Generator is currently disabled");
 			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+				.body(AIStrategyResponse
+					.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
 		}
 
 		// Check if user can send AI message (refinement counts as AI chat)
@@ -145,7 +153,8 @@ public class AIStrategyController extends BaseController {
 			if (!subscriptionService.canSendMessage(userId)) {
 				logger.warn("User {} exceeded daily AI chat limit", userId);
 				return ResponseEntity.status(429)
-					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+					.body(AIStrategyResponse
+						.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
 			}
 		}
 		catch (Exception e) {
@@ -181,7 +190,8 @@ public class AIStrategyController extends BaseController {
 	 * Parse Python code to extract visual configuration.
 	 */
 	@PostMapping("/parse-code")
-	@Operation(summary = "Parse code to visual config", description = "Analyzes Python code and extracts a visual rule configuration for the UI")
+	@Operation(summary = "Parse code to visual config",
+			description = "Analyzes Python code and extracts a visual rule configuration for the UI")
 	public ResponseEntity<AIStrategyResponse> parseCode(@RequestBody Map<String, String> request) {
 		String code = request.get("code");
 		if (code == null || code.isEmpty()) {
@@ -190,7 +200,8 @@ public class AIStrategyController extends BaseController {
 
 		String visualEditorSchema = request.get("visualEditorSchema");
 
-		logger.info("Received code parsing request with schema: {}", visualEditorSchema != null ? "provided" : "not provided");
+		logger.info("Received code parsing request with schema: {}",
+				visualEditorSchema != null ? "provided" : "not provided");
 
 		try {
 			AIStrategyResponse response = aiStrategyService.parseCodeToVisual(code, visualEditorSchema);
@@ -206,7 +217,8 @@ public class AIStrategyController extends BaseController {
 	 * Explain a specific element (rule, condition, or code section).
 	 */
 	@PostMapping("/explain")
-	@Operation(summary = "Explain strategy element", description = "Uses AI to explain a specific rule, condition, or code section in plain English")
+	@Operation(summary = "Explain strategy element",
+			description = "Uses AI to explain a specific rule, condition, or code section in plain English")
 	public ResponseEntity<AIStrategyResponse> explainElement(@Valid @RequestBody AIStrategyRequest request) {
 		if (request.getElementToExplain() == null || request.getElementToExplain().isEmpty()) {
 			return ResponseEntity.badRequest().body(AIStrategyResponse.error("Element to explain is required"));
@@ -228,7 +240,8 @@ public class AIStrategyController extends BaseController {
 	 * Get optimization suggestions based on backtest results.
 	 */
 	@PostMapping("/optimize")
-	@Operation(summary = "Get optimization suggestions", description = "Analyzes backtest results and suggests improvements to the strategy with expected impact")
+	@Operation(summary = "Get optimization suggestions",
+			description = "Analyzes backtest results and suggests improvements to the strategy with expected impact")
 	public ResponseEntity<AIStrategyResponse> optimizeStrategy(@Valid @RequestBody AIStrategyRequest request) {
 		if (request.getBacktestResults() == null) {
 			return ResponseEntity.badRequest().body(AIStrategyResponse.error("Backtest results are required"));
@@ -247,14 +260,15 @@ public class AIStrategyController extends BaseController {
 	}
 
 	/**
-	 * Optimize a backtested strategy using AI and historical insights.
-	 * Returns a complete optimized strategy (either brand new or enhanced existing).
+	 * Optimize a backtested strategy using AI and historical insights. Returns a complete
+	 * optimized strategy (either brand new or enhanced existing).
 	 */
 	@PostMapping("/optimize-strategy")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Optimize backtested strategy", description = "Uses AI and historical market insights to generate an optimized " +
-			"version of a backtested strategy. Two modes: GENERATE_NEW (create new strategy that beats baseline) or " +
-			"ENHANCE_EXISTING (improve current strategy). Returns complete optimized strategy, not just suggestions.")
+	@Operation(summary = "Optimize backtested strategy",
+			description = "Uses AI and historical market insights to generate an optimized "
+					+ "version of a backtested strategy. Two modes: GENERATE_NEW (create new strategy that beats baseline) or "
+					+ "ENHANCE_EXISTING (improve current strategy). Returns complete optimized strategy, not just suggestions.")
 	public ResponseEntity<AIStrategyResponse> optimizeBacktestedStrategy(@Valid @RequestBody AIStrategyRequest request,
 			@AuthUser AuthenticatedUser user) {
 
@@ -265,7 +279,8 @@ public class AIStrategyController extends BaseController {
 		if (!featureFlagService.isLabsAIEnabled()) {
 			logger.warn("Labs AI is currently disabled");
 			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("AI Strategy Optimizer is temporarily unavailable. Please try again later."));
+				.body(AIStrategyResponse
+					.error("AI Strategy Optimizer is temporarily unavailable. Please try again later."));
 		}
 
 		// HISTORICAL MARKET INSIGHTS CHECKS (Autonomous AI)
@@ -274,14 +289,18 @@ public class AIStrategyController extends BaseController {
 			if (!featureFlagService.isHistoricalInsightsEnabled()) {
 				logger.warn("Historical Market Insights is currently disabled");
 				return ResponseEntity.status(503)
-					.body(AIStrategyResponse.error("Historical Market Insights is currently unavailable. Please try again later."));
+					.body(AIStrategyResponse
+						.error("Historical Market Insights is currently unavailable. Please try again later."));
 			}
 
-			// Check if user's subscription tier level allows Historical Insights (requires tier level 1+)
+			// Check if user's subscription tier level allows Historical Insights
+			// (requires tier level 1+)
 			if (!subscriptionService.canUseHistoricalInsights(userId)) {
-				logger.warn("User {} attempted to use Historical Market Insights without sufficient subscription tier", userId);
+				logger.warn("User {} attempted to use Historical Market Insights without sufficient subscription tier",
+						userId);
 				return ResponseEntity.status(403)
-					.body(AIStrategyResponse.error("Historical Market Insights requires a paid subscription. Upgrade to unlock."));
+					.body(AIStrategyResponse
+						.error("Historical Market Insights requires a paid subscription. Upgrade to unlock."));
 			}
 
 			logger.info("Historical Market Insights enabled for user {}", userId);
@@ -292,7 +311,8 @@ public class AIStrategyController extends BaseController {
 			if (!subscriptionService.canSendMessage(userId)) {
 				logger.warn("User {} exceeded daily AI chat limit", userId);
 				return ResponseEntity.status(429)
-					.body(AIStrategyResponse.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
+					.body(AIStrategyResponse
+						.error("Daily AI chat limit exceeded. Upgrade your plan for more messages."));
 			}
 		}
 		catch (Exception e) {
@@ -308,8 +328,8 @@ public class AIStrategyController extends BaseController {
 		AIStrategyRequest.BacktestResults bt = request.getBacktestResults();
 		if (bt.getTotalTrades() < 10) {
 			return ResponseEntity.badRequest()
-				.body(AIStrategyResponse.error("Insufficient trade data for optimization. " +
-						"Strategy must have at least 10 trades. Current: " + bt.getTotalTrades()));
+				.body(AIStrategyResponse.error("Insufficient trade data for optimization. "
+						+ "Strategy must have at least 10 trades. Current: " + bt.getTotalTrades()));
 		}
 
 		if (Double.isNaN(bt.getSharpeRatio()) || Double.isInfinite(bt.getSharpeRatio())) {
@@ -318,17 +338,15 @@ public class AIStrategyController extends BaseController {
 		}
 
 		// Validate mode-specific requirements
-		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ?
-				request.getOptimizationMode() :
-				AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
+		AIStrategyRequest.OptimizationMode mode = request.getOptimizationMode() != null ? request.getOptimizationMode()
+				: AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING;
 
 		if (mode == AIStrategyRequest.OptimizationMode.ENHANCE_EXISTING) {
-			if (request.getContext() == null ||
-					request.getContext().getCurrentCode() == null ||
-					request.getContext().getCurrentVisualConfig() == null) {
+			if (request.getContext() == null || request.getContext().getCurrentCode() == null
+					|| request.getContext().getCurrentVisualConfig() == null) {
 				return ResponseEntity.badRequest()
-					.body(AIStrategyResponse.error("ENHANCE_EXISTING mode requires current strategy " +
-							"(code and visual config)"));
+					.body(AIStrategyResponse
+						.error("ENHANCE_EXISTING mode requires current strategy " + "(code and visual config)"));
 			}
 		}
 
@@ -352,8 +370,7 @@ public class AIStrategyController extends BaseController {
 		}
 		catch (Exception e) {
 			logger.error("Error optimizing strategy", e);
-			return ResponseEntity.internalServerError()
-				.body(AIStrategyResponse.error(e.getMessage()));
+			return ResponseEntity.internalServerError().body(AIStrategyResponse.error(e.getMessage()));
 		}
 	}
 
@@ -362,7 +379,8 @@ public class AIStrategyController extends BaseController {
 	 */
 	@PostMapping("/convert-to-pinescript")
 	@RequireAuth(minAcr = "1")
-	@Operation(summary = "Convert Python to PineScript", description = "Uses AI to convert Python trading strategy code to TradingView PineScript v5 with caching")
+	@Operation(summary = "Convert Python to PineScript",
+			description = "Uses AI to convert Python trading strategy code to TradingView PineScript v5 with caching")
 	public ResponseEntity<AIStrategyResponse> convertToPineScript(@RequestBody Map<String, String> request,
 			@AuthUser AuthenticatedUser user) {
 		String pythonCode = request.get("pythonCode");
@@ -376,7 +394,8 @@ public class AIStrategyController extends BaseController {
 		// Check if Labs AI is enabled
 		if (!featureFlagService.isLabsAIEnabled()) {
 			return ResponseEntity.status(503)
-				.body(AIStrategyResponse.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
+				.body(AIStrategyResponse
+					.error("AI Strategy Generator is temporarily unavailable. Please try again later."));
 		}
 
 		try {
@@ -393,7 +412,8 @@ public class AIStrategyController extends BaseController {
 	 * Detect indicators from a partial prompt (for live preview while typing).
 	 */
 	@PostMapping("/preview-indicators")
-	@Operation(summary = "Preview detected indicators", description = "Detects which technical indicators are mentioned in a partial prompt for live preview")
+	@Operation(summary = "Preview detected indicators",
+			description = "Detects which technical indicators are mentioned in a partial prompt for live preview")
 	public ResponseEntity<AIStrategyResponse> previewIndicators(@RequestBody Map<String, String> request) {
 		String prompt = request.get("prompt");
 		if (prompt == null || prompt.isEmpty()) {
@@ -420,7 +440,8 @@ public class AIStrategyController extends BaseController {
 	 * Parse a natural language backtest query.
 	 */
 	@PostMapping("/parse-backtest-query")
-	@Operation(summary = "Parse backtest query", description = "Parses natural language backtest queries like 'How would this do in the 2022 crash?' into date parameters")
+	@Operation(summary = "Parse backtest query",
+			description = "Parses natural language backtest queries like 'How would this do in the 2022 crash?' into date parameters")
 	public ResponseEntity<Map<String, Object>> parseBacktestQuery(@RequestBody Map<String, String> request) {
 		String query = request.get("query");
 		if (query == null || query.isEmpty()) {

@@ -4,60 +4,88 @@ import java.util.List;
 import java.util.Map;
 
 public class HealthStatus {
-    private String status;
-    private List<String> supportedLanguages;
-    private int maxTimeoutSeconds;
-    private int maxMemoryMb;
-    private Map<String, String> metadata;
 
-    public static HealthStatusBuilder builder() { return new HealthStatusBuilder(); }
+	private String status;
 
-    public static class HealthStatusBuilder {
-        private String status;
-        private List<String> supportedLanguages;
-        private int maxTimeoutSeconds;
-        private int maxMemoryMb;
-        private Map<String, String> metadata;
+	private List<String> supportedLanguages;
 
-        public HealthStatusBuilder status(String status) {
-            this.status = status;
-            return this;
-        }
+	private int maxTimeoutSeconds;
 
-        public HealthStatusBuilder supportedLanguages(List<String> supportedLanguages) {
-            this.supportedLanguages = supportedLanguages;
-            return this;
-        }
+	private int maxMemoryMb;
 
-        public HealthStatusBuilder maxTimeoutSeconds(int maxTimeoutSeconds) {
-            this.maxTimeoutSeconds = maxTimeoutSeconds;
-            return this;
-        }
+	private Map<String, String> metadata;
 
-        public HealthStatusBuilder maxMemoryMb(int maxMemoryMb) {
-            this.maxMemoryMb = maxMemoryMb;
-            return this;
-        }
+	public static HealthStatusBuilder builder() {
+		return new HealthStatusBuilder();
+	}
 
-        public HealthStatusBuilder metadata(Map<String, String> metadata) {
-            this.metadata = metadata;
-            return this;
-        }
+	public static class HealthStatusBuilder {
 
-        public HealthStatus build() {
-            HealthStatus status = new HealthStatus();
-            status.status = this.status;
-            status.supportedLanguages = this.supportedLanguages;
-            status.maxTimeoutSeconds = this.maxTimeoutSeconds;
-            status.maxMemoryMb = this.maxMemoryMb;
-            status.metadata = this.metadata;
-            return status;
-        }
-    }
+		private String status;
 
-    public String getStatus() { return status; }
-    public List<String> getSupportedLanguages() { return supportedLanguages; }
-    public int getMaxTimeoutSeconds() { return maxTimeoutSeconds; }
-    public int getMaxMemoryMb() { return maxMemoryMb; }
-    public Map<String, String> getMetadata() { return metadata; }
+		private List<String> supportedLanguages;
+
+		private int maxTimeoutSeconds;
+
+		private int maxMemoryMb;
+
+		private Map<String, String> metadata;
+
+		public HealthStatusBuilder status(String status) {
+			this.status = status;
+			return this;
+		}
+
+		public HealthStatusBuilder supportedLanguages(List<String> supportedLanguages) {
+			this.supportedLanguages = supportedLanguages;
+			return this;
+		}
+
+		public HealthStatusBuilder maxTimeoutSeconds(int maxTimeoutSeconds) {
+			this.maxTimeoutSeconds = maxTimeoutSeconds;
+			return this;
+		}
+
+		public HealthStatusBuilder maxMemoryMb(int maxMemoryMb) {
+			this.maxMemoryMb = maxMemoryMb;
+			return this;
+		}
+
+		public HealthStatusBuilder metadata(Map<String, String> metadata) {
+			this.metadata = metadata;
+			return this;
+		}
+
+		public HealthStatus build() {
+			HealthStatus status = new HealthStatus();
+			status.status = this.status;
+			status.supportedLanguages = this.supportedLanguages;
+			status.maxTimeoutSeconds = this.maxTimeoutSeconds;
+			status.maxMemoryMb = this.maxMemoryMb;
+			status.metadata = this.metadata;
+			return status;
+		}
+
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public List<String> getSupportedLanguages() {
+		return supportedLanguages;
+	}
+
+	public int getMaxTimeoutSeconds() {
+		return maxTimeoutSeconds;
+	}
+
+	public int getMaxMemoryMb() {
+		return maxMemoryMb;
+	}
+
+	public Map<String, String> getMetadata() {
+		return metadata;
+	}
+
 }

@@ -11,27 +11,28 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class CreatePortfolioHistoryRepositoryImpl extends PortfolioHistoryBaseRepository
-        implements CreatePortfolioHistoryRepository {
+		implements CreatePortfolioHistoryRepository {
 
-    public CreatePortfolioHistoryRepositoryImpl(Firestore firestore) {
-        super(firestore);
-    }
+	public CreatePortfolioHistoryRepositoryImpl(Firestore firestore) {
+		super(firestore);
+	}
 
-    @Override
-    public PortfolioHistoryEntity createSnapshot(PortfolioHistoryEntity snapshot) {
-        if (snapshot.getUserId() == null) {
-            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
-                "PortfolioHistoryEntity", "userId is required to create portfolio history snapshot");
-        }
-        return save(snapshot, snapshot.getUserId());
-    }
+	@Override
+	public PortfolioHistoryEntity createSnapshot(PortfolioHistoryEntity snapshot) {
+		if (snapshot.getUserId() == null) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT, "PortfolioHistoryEntity",
+					"userId is required to create portfolio history snapshot");
+		}
+		return save(snapshot, snapshot.getUserId());
+	}
 
-    @Override
-    public PortfolioHistoryEntity saveSnapshot(PortfolioHistoryEntity snapshot) {
-        if (snapshot.getUserId() == null) {
-            throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT,
-                "PortfolioHistoryEntity", "userId is required to save portfolio history snapshot");
-        }
-        return save(snapshot, snapshot.getUserId());
-    }
+	@Override
+	public PortfolioHistoryEntity saveSnapshot(PortfolioHistoryEntity snapshot) {
+		if (snapshot.getUserId() == null) {
+			throw new ProviderIntegrationException(DataProviderErrorDetails.INVALID_ARGUMENT, "PortfolioHistoryEntity",
+					"userId is required to save portfolio history snapshot");
+		}
+		return save(snapshot, snapshot.getUserId());
+	}
+
 }

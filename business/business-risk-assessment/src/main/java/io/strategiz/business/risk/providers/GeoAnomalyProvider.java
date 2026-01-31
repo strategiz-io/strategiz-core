@@ -15,10 +15,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Detects geographic anomalies by comparing the current IP location
- * against the user's recent session locations.
+ * Detects geographic anomalies by comparing the current IP location against the user's
+ * recent session locations.
  *
- * <p>Scoring: New country = +30, New city = +15</p>
+ * <p>
+ * Scoring: New country = +30, New city = +15
+ * </p>
  */
 @Component
 public class GeoAnomalyProvider implements RiskSignalProvider {

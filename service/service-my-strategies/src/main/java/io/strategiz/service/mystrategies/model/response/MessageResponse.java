@@ -7,49 +7,50 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class MessageResponse {
 
-    @JsonProperty("message")
-    private String message;
+	@JsonProperty("message")
+	private String message;
 
-    @JsonProperty("id")
-    private String id; // Optional, for create operations
+	@JsonProperty("id")
+	private String id; // Optional, for create operations
 
-    @JsonProperty("status")
-    private String status; // Optional, for status updates
+	@JsonProperty("status")
+	private String status; // Optional, for status updates
 
-    public MessageResponse() {
-    }
+	public MessageResponse() {
+	}
 
-    public MessageResponse(String message) {
-        this.message = message;
-    }
+	public MessageResponse(String message) {
+		this.message = message;
+	}
 
-    public MessageResponse(String id, String message) {
-        this.id = id;
-        this.message = message;
-    }
+	public MessageResponse(String id, String message) {
+		this.id = id;
+		this.message = message;
+	}
 
-    // Getters and Setters
-    public String getMessage() {
-        return message;
-    }
+	// Getters and Setters
+	public String getMessage() {
+		return message;
+	}
 
-    public void setMessage(String message) {
-        this.message = message;
-    }
+	public void setMessage(String message) {
+		this.message = message;
+	}
 
-    public String getId() {
-        return id;
-    }
+	public String getId() {
+		return id;
+	}
 
-    public void setId(String id) {
-        this.id = id;
-    }
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public String getStatus() {
-        return status;
-    }
+	public String getStatus() {
+		return status;
+	}
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+	public void setStatus(String status) {
+		this.status = status;
+	}
+
 }

@@ -23,17 +23,21 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * PASETO Token Issuer - Responsible for TOKEN CREATION only.
- * All token validation is handled by framework-authorization.
+ * PASETO Token Issuer - Responsible for TOKEN CREATION only. All token validation is
+ * handled by framework-authorization.
  *
- * <p>This class provides methods to create various types of PASETO v4.local tokens:</p>
+ * <p>
+ * This class provides methods to create various types of PASETO v4.local tokens:
+ * </p>
  * <ul>
- *   <li>Identity tokens - For signup/profile creation flow</li>
- *   <li>Authentication tokens - For authenticated sessions with ACR/AMR</li>
- *   <li>Refresh tokens - For token refresh flow</li>
+ * <li>Identity tokens - For signup/profile creation flow</li>
+ * <li>Authentication tokens - For authenticated sessions with ACR/AMR</li>
+ * <li>Refresh tokens - For token refresh flow</li>
  * </ul>
  *
- * <p>Uses paseto4j library for PASETO v4.local token creation.</p>
+ * <p>
+ * Uses paseto4j library for PASETO v4.local token creation.
+ * </p>
  */
 @Component
 public class PasetoTokenIssuer {
@@ -100,7 +104,8 @@ public class PasetoTokenIssuer {
 
 		if (identityKey == null || sessionKey == null) {
 			log.error("CRITICAL: Token keys not found in Vault. Token issuance will fail until keys are loaded.");
-			log.error("Check Vault connectivity and ensure keys exist at: tokens.{}.identity-key and tokens.{}.session-key",
+			log.error(
+					"Check Vault connectivity and ensure keys exist at: tokens.{}.identity-key and tokens.{}.session-key",
 					env, env);
 			// Don't throw - allow application to start but token operations will fail
 			// gracefully
@@ -140,8 +145,8 @@ public class PasetoTokenIssuer {
 	}
 
 	/**
-	 * Creates a recovery token for account recovery flow. Limited scope, short-lived
-	 * (15 minutes), uses identity key.
+	 * Creates a recovery token for account recovery flow. Limited scope, short-lived (15
+	 * minutes), uses identity key.
 	 *
 	 * <p>
 	 * Recovery tokens allow users to:

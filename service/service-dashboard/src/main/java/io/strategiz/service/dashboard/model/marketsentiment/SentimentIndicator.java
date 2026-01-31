@@ -8,169 +8,179 @@ import java.util.Objects;
  * Individual sentiment indicator.
  */
 public class SentimentIndicator {
-    private String name;
-    private BigDecimal value;
-    private String signal; // "bullish", "neutral", "bearish"
-    private String description;
-    private BigDecimal score;
-    private String category;
-    private LocalDateTime timestamp;
 
-    // Constructors
-    public SentimentIndicator() {}
+	private String name;
 
-    public SentimentIndicator(String name, BigDecimal value, String signal, String description,
-                             BigDecimal score, String category, LocalDateTime timestamp) {
-        this.name = name;
-        this.value = value;
-        this.signal = signal;
-        this.description = description;
-        this.score = score;
-        this.category = category;
-        this.timestamp = timestamp;
-    }
+	private BigDecimal value;
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
+	private String signal; // "bullish", "neutral", "bearish"
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private String description;
 
-    public BigDecimal getValue() {
-        return value;
-    }
+	private BigDecimal score;
 
-    public void setValue(BigDecimal value) {
-        this.value = value;
-    }
+	private String category;
 
-    public String getSignal() {
-        return signal;
-    }
+	private LocalDateTime timestamp;
 
-    public void setSignal(String signal) {
-        this.signal = signal;
-    }
+	// Constructors
+	public SentimentIndicator() {
+	}
 
-    public String getDescription() {
-        return description;
-    }
+	public SentimentIndicator(String name, BigDecimal value, String signal, String description, BigDecimal score,
+			String category, LocalDateTime timestamp) {
+		this.name = name;
+		this.value = value;
+		this.signal = signal;
+		this.description = description;
+		this.score = score;
+		this.category = category;
+		this.timestamp = timestamp;
+	}
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+	// Getters and Setters
+	public String getName() {
+		return name;
+	}
 
-    public BigDecimal getScore() {
-        return score;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setScore(BigDecimal score) {
-        this.score = score;
-    }
+	public BigDecimal getValue() {
+		return value;
+	}
 
-    public String getCategory() {
-        return category;
-    }
+	public void setValue(BigDecimal value) {
+		this.value = value;
+	}
 
-    public void setCategory(String category) {
-        this.category = category;
-    }
+	public String getSignal() {
+		return signal;
+	}
 
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
+	public void setSignal(String signal) {
+		this.signal = signal;
+	}
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
+	public String getDescription() {
+		return description;
+	}
 
-    // equals, hashCode, toString
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SentimentIndicator that = (SentimentIndicator) o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(value, that.value) &&
-               Objects.equals(signal, that.signal) &&
-               Objects.equals(description, that.description) &&
-               Objects.equals(score, that.score) &&
-               Objects.equals(category, that.category) &&
-               Objects.equals(timestamp, that.timestamp);
-    }
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, value, signal, description, score, category, timestamp);
-    }
+	public BigDecimal getScore() {
+		return score;
+	}
 
-    @Override
-    public String toString() {
-        return "SentimentIndicator{" +
-               "name='" + name + '\'' +
-               ", value=" + value +
-               ", signal='" + signal + '\'' +
-               ", description='" + description + '\'' +
-               ", score=" + score +
-               ", category='" + category + '\'' +
-               ", timestamp=" + timestamp +
-               '}';
-    }
+	public void setScore(BigDecimal score) {
+		this.score = score;
+	}
 
-    // Builder pattern
-    public static Builder builder() {
-        return new Builder();
-    }
+	public String getCategory() {
+		return category;
+	}
 
-    public static class Builder {
-        private String name;
-        private BigDecimal value;
-        private String signal;
-        private String description;
-        private BigDecimal score;
-        private String category;
-        private LocalDateTime timestamp;
+	public void setCategory(String category) {
+		this.category = category;
+	}
 
-        public Builder withName(String name) {
-            this.name = name;
-            return this;
-        }
+	public LocalDateTime getTimestamp() {
+		return timestamp;
+	}
 
-        public Builder withValue(BigDecimal value) {
-            this.value = value;
-            return this;
-        }
+	public void setTimestamp(LocalDateTime timestamp) {
+		this.timestamp = timestamp;
+	}
 
-        public Builder withSignal(String signal) {
-            this.signal = signal;
-            return this;
-        }
+	// equals, hashCode, toString
+	@Override
+	public boolean equals(Object o) {
+		if (this == o)
+			return true;
+		if (o == null || getClass() != o.getClass())
+			return false;
+		SentimentIndicator that = (SentimentIndicator) o;
+		return Objects.equals(name, that.name) && Objects.equals(value, that.value)
+				&& Objects.equals(signal, that.signal) && Objects.equals(description, that.description)
+				&& Objects.equals(score, that.score) && Objects.equals(category, that.category)
+				&& Objects.equals(timestamp, that.timestamp);
+	}
 
-        public Builder withDescription(String description) {
-            this.description = description;
-            return this;
-        }
+	@Override
+	public int hashCode() {
+		return Objects.hash(name, value, signal, description, score, category, timestamp);
+	}
 
-        public Builder withScore(BigDecimal score) {
-            this.score = score;
-            return this;
-        }
+	@Override
+	public String toString() {
+		return "SentimentIndicator{" + "name='" + name + '\'' + ", value=" + value + ", signal='" + signal + '\''
+				+ ", description='" + description + '\'' + ", score=" + score + ", category='" + category + '\''
+				+ ", timestamp=" + timestamp + '}';
+	}
 
-        public Builder withCategory(String category) {
-            this.category = category;
-            return this;
-        }
+	// Builder pattern
+	public static Builder builder() {
+		return new Builder();
+	}
 
-        public Builder withTimestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
+	public static class Builder {
 
-        public SentimentIndicator build() {
-            return new SentimentIndicator(name, value, signal, description, score, category, timestamp);
-        }
-    }
+		private String name;
+
+		private BigDecimal value;
+
+		private String signal;
+
+		private String description;
+
+		private BigDecimal score;
+
+		private String category;
+
+		private LocalDateTime timestamp;
+
+		public Builder withName(String name) {
+			this.name = name;
+			return this;
+		}
+
+		public Builder withValue(BigDecimal value) {
+			this.value = value;
+			return this;
+		}
+
+		public Builder withSignal(String signal) {
+			this.signal = signal;
+			return this;
+		}
+
+		public Builder withDescription(String description) {
+			this.description = description;
+			return this;
+		}
+
+		public Builder withScore(BigDecimal score) {
+			this.score = score;
+			return this;
+		}
+
+		public Builder withCategory(String category) {
+			this.category = category;
+			return this;
+		}
+
+		public Builder withTimestamp(LocalDateTime timestamp) {
+			this.timestamp = timestamp;
+			return this;
+		}
+
+		public SentimentIndicator build() {
+			return new SentimentIndicator(name, value, signal, description, score, category, timestamp);
+		}
+
+	}
+
 }

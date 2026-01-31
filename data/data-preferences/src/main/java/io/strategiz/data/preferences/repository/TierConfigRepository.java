@@ -17,8 +17,10 @@ import java.util.stream.Collectors;
 /**
  * Repository for TierConfig stored at config/tiers/{tierId}.
  *
- * <p>This repository manages configurable tier settings. Tier configs are cached
- * in memory for performance since they change infrequently.</p>
+ * <p>
+ * This repository manages configurable tier settings. Tier configs are cached in memory
+ * for performance since they change infrequently.
+ * </p>
  */
 @Repository
 public class TierConfigRepository extends BaseRepository<TierConfig> {
@@ -42,9 +44,7 @@ public class TierConfigRepository extends BaseRepository<TierConfig> {
 	}
 
 	/**
-	 * Get tier config by ID.
-	 * Returns default if not found in database.
-	 *
+	 * Get tier config by ID. Returns default if not found in database.
 	 * @param tierId The tier ID (explorer, strategist, quant)
 	 * @return The tier config
 	 */
@@ -69,9 +69,7 @@ public class TierConfigRepository extends BaseRepository<TierConfig> {
 	}
 
 	/**
-	 * Get all tier configs.
-	 * Returns defaults for any missing tiers.
-	 *
+	 * Get all tier configs. Returns defaults for any missing tiers.
 	 * @return List of all tier configs
 	 */
 	public List<TierConfig> getAllTiers() {
@@ -117,7 +115,6 @@ public class TierConfigRepository extends BaseRepository<TierConfig> {
 
 	/**
 	 * Save tier config.
-	 *
 	 * @param config The config to save
 	 * @param updatedBy The user making the change
 	 * @return The saved config

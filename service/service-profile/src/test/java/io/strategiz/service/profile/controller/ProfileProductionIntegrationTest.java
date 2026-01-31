@@ -18,22 +18,18 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Production Integration Tests for Profile API.
  *
- * These tests run against the REAL API (local or production) to verify:
- * 1. Profile CRUD operations work correctly
- * 2. Bio, location, occupation, education fields persist properly
- * 3. Profile retrieval returns all expected fields
+ * These tests run against the REAL API (local or production) to verify: 1. Profile CRUD
+ * operations work correctly 2. Bio, location, occupation, education fields persist
+ * properly 3. Profile retrieval returns all expected fields
  *
- * Configuration:
- * - STRATEGIZ_API_URL: Base URL (default: http://localhost:8080)
- * - STRATEGIZ_AUTH_TOKEN: Authentication token (required)
- * - STRATEGIZ_PROD_TEST: Set to "true" to enable these tests
+ * Configuration: - STRATEGIZ_API_URL: Base URL (default: http://localhost:8080) -
+ * STRATEGIZ_AUTH_TOKEN: Authentication token (required) - STRATEGIZ_PROD_TEST: Set to
+ * "true" to enable these tests
  *
- * Run with:
- *   STRATEGIZ_PROD_TEST=true STRATEGIZ_AUTH_TOKEN=your-token \
- *   mvn test -Dtest=ProfileProductionIntegrationTest
+ * Run with: STRATEGIZ_PROD_TEST=true STRATEGIZ_AUTH_TOKEN=your-token \ mvn test
+ * -Dtest=ProfileProductionIntegrationTest
  *
- * For local testing, start the server first:
- *   mvn spring-boot:run -pl application-api
+ * For local testing, start the server first: mvn spring-boot:run -pl application-api
  */
 @EnabledIfEnvironmentVariable(named = "STRATEGIZ_PROD_TEST", matches = "true")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -41,29 +37,37 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProfileProductionIntegrationTest {
 
 	private static final String DEFAULT_API_URL = "http://localhost:8080";
+
 	private static final ObjectMapper objectMapper = new ObjectMapper();
+
 	private static HttpClient httpClient;
+
 	private static String apiUrl;
+
 	private static String authToken;
 
 	// Test data - unique for each test run
 	private static String testBio;
+
 	private static String testLocation;
+
 	private static String testOccupation;
+
 	private static String testEducation;
 
 	// Store original values to restore after tests
 	private static String originalBio;
+
 	private static String originalLocation;
+
 	private static String originalOccupation;
+
 	private static String originalEducation;
 
 	@BeforeAll
 	static void setup() throws Exception {
 		// Initialize HTTP client
-		httpClient = HttpClient.newBuilder()
-			.connectTimeout(Duration.ofSeconds(30))
-			.build();
+		httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(30)).build();
 
 		// Get configuration from environment
 		apiUrl = System.getenv("STRATEGIZ_API_URL");
@@ -73,8 +77,8 @@ class ProfileProductionIntegrationTest {
 
 		authToken = System.getenv("STRATEGIZ_AUTH_TOKEN");
 		if (authToken == null || authToken.isEmpty()) {
-			fail("STRATEGIZ_AUTH_TOKEN environment variable is required. " +
-					"Get a token by logging into the app and extracting it from browser dev tools.");
+			fail("STRATEGIZ_AUTH_TOKEN environment variable is required. "
+					+ "Get a token by logging into the app and extracting it from browser dev tools.");
 		}
 
 		// Generate unique test data
@@ -122,10 +126,9 @@ class ProfileProductionIntegrationTest {
 			originalLocation = profile.path("location").asText(null);
 			originalOccupation = profile.path("occupation").asText(null);
 			originalEducation = profile.path("education").asText(null);
-			System.out.println("Original values stored: bio=" + (originalBio != null) +
-					", location=" + (originalLocation != null) +
-					", occupation=" + (originalOccupation != null) +
-					", education=" + (originalEducation != null));
+			System.out.println("Original values stored: bio=" + (originalBio != null) + ", location="
+					+ (originalLocation != null) + ", occupation=" + (originalOccupation != null) + ", education="
+					+ (originalEducation != null));
 		}
 	}
 
@@ -403,8 +406,8 @@ class ProfileProductionIntegrationTest {
 		String newOccupation = "Updated Occupation - " + UUID.randomUUID().toString().substring(0, 8);
 		String newEducation = "Updated Education - " + UUID.randomUUID().toString().substring(0, 8);
 
-		String requestBody = objectMapper.writeValueAsString(Map.of("bio", newBio, "location", newLocation, "occupation",
-				newOccupation, "education", newEducation));
+		String requestBody = objectMapper.writeValueAsString(
+				Map.of("bio", newBio, "location", newLocation, "occupation", newOccupation, "education", newEducation));
 
 		HttpRequest updateRequest = HttpRequest.newBuilder()
 			.uri(URI.create(apiUrl + "/v1/users/profiles/me"))

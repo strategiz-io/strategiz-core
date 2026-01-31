@@ -4,93 +4,102 @@ package io.strategiz.service.auth.model.config;
  * Authentication OAuth provider settings
  */
 public class AuthOAuthSettings {
-    private String clientId;
-    private String clientSecret;
-    private String redirectUri;
-    private String signupRedirectUri;
-    private String authUrl;
-    private String tokenUrl;
-    private String userInfoUrl;
-    private String scope;
 
-    // Default constructor
-    public AuthOAuthSettings() {
-    }
+	private String clientId;
 
-    // Copy constructor
-    public AuthOAuthSettings(AuthOAuthSettings other) {
-        this.clientId = other.clientId;
-        this.clientSecret = other.clientSecret;
-        this.redirectUri = other.redirectUri;
-        this.signupRedirectUri = other.signupRedirectUri;
-        this.authUrl = other.authUrl;
-        this.tokenUrl = other.tokenUrl;
-        this.userInfoUrl = other.userInfoUrl;
-        this.scope = other.scope;
-    }
+	private String clientSecret;
 
-    // Getters and setters
-    public String getClientId() {
-        return clientId;
-    }
+	private String redirectUri;
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
+	private String signupRedirectUri;
 
-    public String getClientSecret() {
-        return clientSecret;
-    }
+	private String authUrl;
 
-    public void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
-    }
+	private String tokenUrl;
 
-    public String getRedirectUri() {
-        return redirectUri;
-    }
+	private String userInfoUrl;
 
-    public void setRedirectUri(String redirectUri) {
-        this.redirectUri = redirectUri;
-    }
+	private String scope;
 
-    public String getSignupRedirectUri() {
-        return signupRedirectUri;
-    }
+	// Default constructor
+	public AuthOAuthSettings() {
+	}
 
-    public void setSignupRedirectUri(String signupRedirectUri) {
-        this.signupRedirectUri = signupRedirectUri;
-    }
+	// Copy constructor
+	public AuthOAuthSettings(AuthOAuthSettings other) {
+		this.clientId = other.clientId;
+		this.clientSecret = other.clientSecret;
+		this.redirectUri = other.redirectUri;
+		this.signupRedirectUri = other.signupRedirectUri;
+		this.authUrl = other.authUrl;
+		this.tokenUrl = other.tokenUrl;
+		this.userInfoUrl = other.userInfoUrl;
+		this.scope = other.scope;
+	}
 
-    public String getAuthUrl() {
-        return authUrl;
-    }
+	// Getters and setters
+	public String getClientId() {
+		return clientId;
+	}
 
-    public void setAuthUrl(String authUrl) {
-        this.authUrl = authUrl;
-    }
+	public void setClientId(String clientId) {
+		this.clientId = clientId;
+	}
 
-    public String getTokenUrl() {
-        return tokenUrl;
-    }
+	public String getClientSecret() {
+		return clientSecret;
+	}
 
-    public void setTokenUrl(String tokenUrl) {
-        this.tokenUrl = tokenUrl;
-    }
+	public void setClientSecret(String clientSecret) {
+		this.clientSecret = clientSecret;
+	}
 
-    public String getUserInfoUrl() {
-        return userInfoUrl;
-    }
+	public String getRedirectUri() {
+		return redirectUri;
+	}
 
-    public void setUserInfoUrl(String userInfoUrl) {
-        this.userInfoUrl = userInfoUrl;
-    }
+	public void setRedirectUri(String redirectUri) {
+		this.redirectUri = redirectUri;
+	}
 
-    public String getScope() {
-        return scope;
-    }
+	public String getSignupRedirectUri() {
+		return signupRedirectUri;
+	}
 
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
+	public void setSignupRedirectUri(String signupRedirectUri) {
+		this.signupRedirectUri = signupRedirectUri;
+	}
+
+	public String getAuthUrl() {
+		return authUrl;
+	}
+
+	public void setAuthUrl(String authUrl) {
+		this.authUrl = authUrl;
+	}
+
+	public String getTokenUrl() {
+		return tokenUrl;
+	}
+
+	public void setTokenUrl(String tokenUrl) {
+		this.tokenUrl = tokenUrl;
+	}
+
+	public String getUserInfoUrl() {
+		return userInfoUrl;
+	}
+
+	public void setUserInfoUrl(String userInfoUrl) {
+		this.userInfoUrl = userInfoUrl;
+	}
+
+	public String getScope() {
+		return scope;
+	}
+
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
 }

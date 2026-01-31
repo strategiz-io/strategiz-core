@@ -15,8 +15,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Controller for provider-specific synchronization operations.
- * Handles manual sync requests for individual providers (e.g., Coinbase, Kraken).
+ * Controller for provider-specific synchronization operations. Handles manual sync
+ * requests for individual providers (e.g., Coinbase, Kraken).
  *
  * @author Strategiz Team
  * @version 1.0
@@ -26,55 +26,48 @@ import java.util.Map;
 @RequireAuth(minAcr = "1")
 public class SyncProviderController extends BaseController {
 
-    @Override
-    protected String getModuleName() {
-        return "service-provider";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-provider";
+	}
 
-    private final SyncProviderService syncProviderService;
+	private final SyncProviderService syncProviderService;
 
-    @Autowired
-    public SyncProviderController(SyncProviderService syncProviderService) {
-        this.syncProviderService = syncProviderService;
-    }
+	@Autowired
+	public SyncProviderController(SyncProviderService syncProviderService) {
+		this.syncProviderService = syncProviderService;
+	}
 
-    /**
-     * Sync a specific provider's data.
-     * This endpoint allows syncing individual providers without affecting others.
-     *
-     * @param user The authenticated user from HTTP-only cookie
-     * @param providerId The provider to sync (e.g., "coinbase", "kraken")
-     * @return Sync result with status and updated data
-     */
-    @PostMapping("/{providerId}/sync")
-    public ResponseEntity<Map<String, Object>> syncProvider(
-            @AuthUser AuthenticatedUser user,
-            @PathVariable String providerId) {
+	/**
+	 * Sync a specific provider's data. This endpoint allows syncing individual providers
+	 * without affecting others.
+	 * @param user The authenticated user from HTTP-only cookie
+	 * @param providerId The provider to sync (e.g., "coinbase", "kraken")
+	 * @return Sync result with status and updated data
+	 */
+	@PostMapping("/{providerId}/sync")
+	public ResponseEntity<Map<String, Object>> syncProvider(@AuthUser AuthenticatedUser user,
+			@PathVariable String providerId) {
 
-        String userId = user.getUserId();
-        log.info("SyncProvider: userId: {}, providerId: {}", userId, providerId);
+		String userId = user.getUserId();
+		log.info("SyncProvider: userId: {}, providerId: {}", userId, providerId);
 
-        try {
-            // Sync the specific provider
-            Map<String, Object> syncResult = syncProviderService.syncProvider(userId, providerId);
+		try {
+			// Sync the specific provider
+			Map<String, Object> syncResult = syncProviderService.syncProvider(userId, providerId);
 
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "providerId", providerId,
-                "syncResult", syncResult,
-                "timestamp", Instant.now().toString()
-            ));
+			return ResponseEntity.ok(Map.of("status", "success", "providerId", providerId, "syncResult", syncResult,
+					"timestamp", Instant.now().toString()));
 
-        } catch (StrategizException e) {
-            throw e; // Re-throw to be handled by global exception handler
+		}
+		catch (StrategizException e) {
+			throw e; // Re-throw to be handled by global exception handler
 
-        } catch (Exception e) {
-            throw new StrategizException(
-                ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED,
-                getModuleName(),
-                providerId,
-                e.getMessage()
-            );
-        }
-    }
+		}
+		catch (Exception e) {
+			throw new StrategizException(ServiceProviderErrorDetails.PROVIDER_DATA_SYNC_FAILED, getModuleName(),
+					providerId, e.getMessage());
+		}
+	}
+
 }

@@ -19,8 +19,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Service for handling Stripe webhook events.
- * Verifies signatures and routes events to appropriate handlers.
+ * Service for handling Stripe webhook events. Verifies signatures and routes events to
+ * appropriate handlers.
  */
 @Service
 public class StripeWebhookService {
@@ -354,7 +354,8 @@ public class StripeWebhookService {
 			return Optional.empty();
 		}
 
-		// Platform subscriptions have a "tier" metadata key (and no "type" or type=platform_subscription)
+		// Platform subscriptions have a "tier" metadata key (and no "type" or
+		// type=platform_subscription)
 		String tier = metadata.get("tier");
 		String userId = metadata.get("userId");
 		if (tier == null || userId == null) {
@@ -421,15 +422,15 @@ public class StripeWebhookService {
 	/**
 	 * Data from a checkout.session.completed for platform subscription.
 	 */
-	public record PlatformSubscriptionCheckoutData(String sessionId, String userId, String tier,
-			String subscriptionId, String customerId, Long amountTotal) {
+	public record PlatformSubscriptionCheckoutData(String sessionId, String userId, String tier, String subscriptionId,
+			String customerId, Long amountTotal) {
 	}
 
 	/**
 	 * Data from an invoice.paid for platform subscription renewal.
 	 */
-	public record PlatformSubscriptionInvoiceData(String invoiceId, String subscriptionId, String userId,
-			String tier, Long amountPaid) {
+	public record PlatformSubscriptionInvoiceData(String invoiceId, String subscriptionId, String userId, String tier,
+			Long amountPaid) {
 	}
 
 	/**

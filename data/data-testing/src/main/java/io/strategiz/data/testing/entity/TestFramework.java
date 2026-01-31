@@ -4,28 +4,30 @@ package io.strategiz.data.testing.entity;
  * Test frameworks supported by the test runner
  */
 public enum TestFramework {
-    /**
-     * Playwright - Frontend E2E testing
-     */
-    PLAYWRIGHT,
 
-    /**
-     * Jest - Frontend unit testing
-     */
-    JEST,
+	/**
+	 * Playwright - Frontend E2E testing
+	 */
+	PLAYWRIGHT,
 
-    /**
-     * JUnit - Java unit testing
-     */
-    JUNIT,
+	/**
+	 * Jest - Frontend unit testing
+	 */
+	JEST,
 
-    /**
-     * Cucumber - BDD testing (Java)
-     */
-    CUCUMBER,
+	/**
+	 * JUnit - Java unit testing
+	 */
+	JUNIT,
 
-    /**
-     * pytest - Python unit and integration testing
-     */
-    PYTEST
+	/**
+	 * Cucumber - BDD testing (Java)
+	 */
+	CUCUMBER,
+
+	/**
+	 * pytest - Python unit and integration testing
+	 */
+	PYTEST
+
 }

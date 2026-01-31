@@ -23,205 +23,216 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service for handling OAuth signup processes
- * Specifically designed for signup flows where profile data comes from OAuth providers
+ * Service for handling OAuth signup processes Specifically designed for signup flows
+ * where profile data comes from OAuth providers
  */
 @Service
 public class SignupService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-auth";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-auth";
+	}
 
-    private final UserRepository userRepository;
-    private final UserFactory userFactory;
-    private final SignupResponseBuilder responseBuilder;
-    private final FirestoreTransactionTemplate transactionTemplate;
-    private final AuthenticationMethodRepository authenticationMethodRepository;
-    private final FraudDetectionService fraudDetectionService;
-    private final SubscriptionService subscriptionService;
-    private final FeatureFlagService featureFlagService;
-    private final EmailReservationService emailReservationService;
+	private final UserRepository userRepository;
 
-    @Autowired
-    public SignupService(
-        UserRepository userRepository,
-        UserFactory userFactory,
-        SignupResponseBuilder responseBuilder,
-        FirestoreTransactionTemplate transactionTemplate,
-        AuthenticationMethodRepository authenticationMethodRepository,
-        FeatureFlagService featureFlagService,
-        EmailReservationService emailReservationService,
-        @Autowired(required = false) FraudDetectionService fraudDetectionService,
-        @Autowired(required = false) SubscriptionService subscriptionService
-    ) {
-        this.userRepository = userRepository;
-        this.userFactory = userFactory;
-        this.responseBuilder = responseBuilder;
-        this.transactionTemplate = transactionTemplate;
-        this.authenticationMethodRepository = authenticationMethodRepository;
-        this.featureFlagService = featureFlagService;
-        this.emailReservationService = emailReservationService;
-        this.fraudDetectionService = fraudDetectionService;
-        this.subscriptionService = subscriptionService;
-    }
+	private final UserFactory userFactory;
 
-    /**
-     * Process OAuth signup with profile data from external provider.
-     * Uses Firestore transaction to ensure atomic user creation with email uniqueness check.
-     *
-     * @param request OAuth signup request containing OAuth profile data
-     * @param deviceId Device ID for token generation
-     * @param ipAddress IP address for token generation
-     * @return OAuthSignupResponse with user details and authentication tokens
-     */
-    public OAuthSignupResponse processSignup(OAuthSignupRequest request, String deviceId, String ipAddress) {
-        String authMethod = request.getAuthMethod().toLowerCase();
-        String email = request.getEmail().toLowerCase();
-        log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", email, authMethod);
+	private final SignupResponseBuilder responseBuilder;
 
-        // Check if OAuth signup is enabled
-        if (!featureFlagService.isOAuthSignupEnabled()) {
-            log.warn("OAuth signup is disabled - rejecting signup for email: {}", email);
-            throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED,
-                "OAuth signup is currently disabled");
-        }
+	private final FirestoreTransactionTemplate transactionTemplate;
 
-        // Reserve email first - this guarantees uniqueness at database level
-        // Generate session ID for the reservation (OAuth callbacks don't have sessions)
-        String sessionId = "oauth_" + authMethod + "_" + System.currentTimeMillis();
-        String signupType = "oauth_" + authMethod;
-        String reservedUserId = emailReservationService.reserveEmail(email, signupType, sessionId);
-        log.info("=====> SIGNUP SERVICE: Email reserved for OAuth signup - email: {}, userId: {}", email, reservedUserId);
+	private final AuthenticationMethodRepository authenticationMethodRepository;
 
-        try {
-            // Verify reCAPTCHA token for fraud detection (after reservation to avoid orphaned reservations)
-            if (fraudDetectionService != null) {
-                fraudDetectionService.verifySignup(request.getRecaptchaToken(), email);
-                log.info("=====> SIGNUP SERVICE: reCAPTCHA verification passed for email: {}", email);
-            }
+	private final FraudDetectionService fraudDetectionService;
 
-            // Create the user entity with profile information using the factory
-            // Override userId with reserved one for consistency
-            UserEntity user = userFactory.createUser(request);
-            user.setUserId(reservedUserId);
-            String createdBy = email;
+	private final SubscriptionService subscriptionService;
 
-            // Execute user creation within a Firestore transaction
-            // This ensures atomic confirmation + user creation
-            // CRITICAL: Security subcollection is created INSIDE transaction for atomicity
-            UserEntity createdUser = transactionTemplate.execute(transaction -> {
-                // Confirm email reservation within transaction
-                // This ensures atomicity with user creation
-                emailReservationService.confirmReservation(email);
+	private final FeatureFlagService featureFlagService;
 
-                // Create user - this will use the transaction from ThreadLocal
-                UserEntity created = userRepository.createUser(user);
+	private final EmailReservationService emailReservationService;
 
-                // Create security subcollection INSIDE transaction for atomicity
-                // SubcollectionRepository is now transaction-aware and will use the active transaction
-                log.info("=====> SECURITY_INIT: Creating OAuth authentication method inside transaction for user: {}", created.getUserId());
-                AuthenticationMethodEntity authMethodEntity = buildOAuthAuthenticationMethod(request.getAuthMethod(), createdBy);
-                authenticationMethodRepository.saveForUser(created.getUserId(), authMethodEntity);
-                log.info("=====> SECURITY_INIT: Successfully saved OAuth authentication method for user: {}", created.getUserId());
+	@Autowired
+	public SignupService(UserRepository userRepository, UserFactory userFactory, SignupResponseBuilder responseBuilder,
+			FirestoreTransactionTemplate transactionTemplate,
+			AuthenticationMethodRepository authenticationMethodRepository, FeatureFlagService featureFlagService,
+			EmailReservationService emailReservationService,
+			@Autowired(required = false) FraudDetectionService fraudDetectionService,
+			@Autowired(required = false) SubscriptionService subscriptionService) {
+		this.userRepository = userRepository;
+		this.userFactory = userFactory;
+		this.responseBuilder = responseBuilder;
+		this.transactionTemplate = transactionTemplate;
+		this.authenticationMethodRepository = authenticationMethodRepository;
+		this.featureFlagService = featureFlagService;
+		this.emailReservationService = emailReservationService;
+		this.fraudDetectionService = fraudDetectionService;
+		this.subscriptionService = subscriptionService;
+	}
 
-                return created;
-            });
+	/**
+	 * Process OAuth signup with profile data from external provider. Uses Firestore
+	 * transaction to ensure atomic user creation with email uniqueness check.
+	 * @param request OAuth signup request containing OAuth profile data
+	 * @param deviceId Device ID for token generation
+	 * @param ipAddress IP address for token generation
+	 * @return OAuthSignupResponse with user details and authentication tokens
+	 */
+	public OAuthSignupResponse processSignup(OAuthSignupRequest request, String deviceId, String ipAddress) {
+		String authMethod = request.getAuthMethod().toLowerCase();
+		String email = request.getEmail().toLowerCase();
+		log.info("=====> SIGNUP SERVICE: Processing OAuth signup for email: {} with auth method: {}", email,
+				authMethod);
 
-            log.info("=====> SIGNUP SERVICE: OAuth user created successfully in transaction with security subcollection: {}", createdUser.getUserId());
+		// Check if OAuth signup is enabled
+		if (!featureFlagService.isOAuthSignupEnabled()) {
+			log.warn("OAuth signup is disabled - rejecting signup for email: {}", email);
+			throw new StrategizException(AuthErrors.AUTH_METHOD_DISABLED, "OAuth signup is currently disabled");
+		}
 
-            // Initialize 30-day trial subscription for new user
-            // Done outside transaction - subscription can be created separately
-            if (subscriptionService != null) {
-                try {
-                    subscriptionService.initializeTrial(createdUser.getUserId());
-                    log.info("=====> SIGNUP SERVICE: Initialized 30-day trial for user: {}", createdUser.getUserId());
-                } catch (Exception e) {
-                    // Non-fatal - subscription will be created lazily if this fails
-                    log.warn("Failed to initialize trial subscription for user {}: {}", createdUser.getUserId(), e.getMessage());
-                }
-            }
+		// Reserve email first - this guarantees uniqueness at database level
+		// Generate session ID for the reservation (OAuth callbacks don't have sessions)
+		String sessionId = "oauth_" + authMethod + "_" + System.currentTimeMillis();
+		String signupType = "oauth_" + authMethod;
+		String reservedUserId = emailReservationService.reserveEmail(email, signupType, sessionId);
+		log.info("=====> SIGNUP SERVICE: Email reserved for OAuth signup - email: {}, userId: {}", email,
+				reservedUserId);
 
-            // Watchlist initialization removed - Dashboard will create watchlist on-demand
-            // This makes signup instant and prevents failures from external API issues
+		try {
+			// Verify reCAPTCHA token for fraud detection (after reservation to avoid
+			// orphaned reservations)
+			if (fraudDetectionService != null) {
+				fraudDetectionService.verifySignup(request.getRecaptchaToken(), email);
+				log.info("=====> SIGNUP SERVICE: reCAPTCHA verification passed for email: {}", email);
+			}
 
-            // Build success response with tokens (outside transaction - tokens don't need atomicity)
-            List<String> authMethods = List.of(authMethod);
-            return responseBuilder.buildSuccessResponse(
-                createdUser,
-                "OAuth signup completed successfully",
-                authMethods,
-                deviceId,
-                ipAddress
-            );
+			// Create the user entity with profile information using the factory
+			// Override userId with reserved one for consistency
+			UserEntity user = userFactory.createUser(request);
+			user.setUserId(reservedUserId);
+			String createdBy = email;
 
-        } catch (StrategizException e) {
-            log.warn("OAuth signup failed for {}: {}", email, e.getMessage());
-            // Release reservation on failure (only for non-email-exists errors)
-            if (e.getErrorDetails() != AuthErrors.EMAIL_ALREADY_EXISTS) {
-                emailReservationService.releaseReservation(email);
-            }
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error during OAuth signup for {}: {}", email, e.getMessage(), e);
-            // Release reservation on failure
-            emailReservationService.releaseReservation(email);
-            throw new StrategizException(AuthErrors.SIGNUP_FAILED, "OAuth signup failed due to internal error");
-        }
-    }
+			// Execute user creation within a Firestore transaction
+			// This ensures atomic confirmation + user creation
+			// CRITICAL: Security subcollection is created INSIDE transaction for
+			// atomicity
+			UserEntity createdUser = transactionTemplate.execute(transaction -> {
+				// Confirm email reservation within transaction
+				// This ensures atomicity with user creation
+				emailReservationService.confirmReservation(email);
 
-    /**
-     * Build OAuth authentication method entity (pure function - no I/O).
-     * This method is called INSIDE a transaction to ensure atomicity.
-     *
-     * @param authMethod The OAuth provider (e.g., "google", "facebook")
-     * @param createdBy Email of the user who created this
-     * @return AuthenticationMethodEntity ready to be saved
-     */
-    private AuthenticationMethodEntity buildOAuthAuthenticationMethod(String authMethod, String createdBy) {
-        // Determine the authentication method type based on the auth method
-        AuthenticationMethodType authType;
-        String displayName;
+				// Create user - this will use the transaction from ThreadLocal
+				UserEntity created = userRepository.createUser(user);
 
-        switch (authMethod.toLowerCase()) {
-            case "google":
-                authType = AuthenticationMethodType.OAUTH_GOOGLE;
-                displayName = "Google Account";
-                break;
-            case "facebook":
-                authType = AuthenticationMethodType.OAUTH_FACEBOOK;
-                displayName = "Facebook Account";
-                break;
-            case "microsoft":
-                authType = AuthenticationMethodType.OAUTH_MICROSOFT;
-                displayName = "Microsoft Account";
-                break;
-            case "github":
-                authType = AuthenticationMethodType.OAUTH_GITHUB;
-                displayName = "GitHub Account";
-                break;
-            default:
-                log.warn("Unknown OAuth provider: {}, defaulting to OAUTH_GOOGLE", authMethod);
-                authType = AuthenticationMethodType.OAUTH_GOOGLE;
-                displayName = "OAuth Account";
-        }
+				// Create security subcollection INSIDE transaction for atomicity
+				// SubcollectionRepository is now transaction-aware and will use the
+				// active transaction
+				log.info("=====> SECURITY_INIT: Creating OAuth authentication method inside transaction for user: {}",
+						created.getUserId());
+				AuthenticationMethodEntity authMethodEntity = buildOAuthAuthenticationMethod(request.getAuthMethod(),
+						createdBy);
+				authenticationMethodRepository.saveForUser(created.getUserId(), authMethodEntity);
+				log.info("=====> SECURITY_INIT: Successfully saved OAuth authentication method for user: {}",
+						created.getUserId());
 
-        // Create authentication method entity
-        // NOTE: Do NOT manually set audit fields (createdBy, modifiedBy, isActive)
-        // The repository layer's _initAudit() method will initialize them automatically
-        AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
-        authMethodEntity.setAuthenticationMethod(authType);
-        authMethodEntity.setName(displayName);
-        authMethodEntity.setLastUsedAt(Instant.now());
+				return created;
+			});
 
-        // Add metadata
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("provider", authMethod.toLowerCase());
-        metadata.put("registeredAt", Instant.now().toString());
-        authMethodEntity.setMetadata(metadata);
+			log.info(
+					"=====> SIGNUP SERVICE: OAuth user created successfully in transaction with security subcollection: {}",
+					createdUser.getUserId());
 
-        return authMethodEntity;
-    }
+			// Initialize 30-day trial subscription for new user
+			// Done outside transaction - subscription can be created separately
+			if (subscriptionService != null) {
+				try {
+					subscriptionService.initializeTrial(createdUser.getUserId());
+					log.info("=====> SIGNUP SERVICE: Initialized 30-day trial for user: {}", createdUser.getUserId());
+				}
+				catch (Exception e) {
+					// Non-fatal - subscription will be created lazily if this fails
+					log.warn("Failed to initialize trial subscription for user {}: {}", createdUser.getUserId(),
+							e.getMessage());
+				}
+			}
+
+			// Watchlist initialization removed - Dashboard will create watchlist
+			// on-demand
+			// This makes signup instant and prevents failures from external API issues
+
+			// Build success response with tokens (outside transaction - tokens don't need
+			// atomicity)
+			List<String> authMethods = List.of(authMethod);
+			return responseBuilder.buildSuccessResponse(createdUser, "OAuth signup completed successfully", authMethods,
+					deviceId, ipAddress);
+
+		}
+		catch (StrategizException e) {
+			log.warn("OAuth signup failed for {}: {}", email, e.getMessage());
+			// Release reservation on failure (only for non-email-exists errors)
+			if (e.getErrorDetails() != AuthErrors.EMAIL_ALREADY_EXISTS) {
+				emailReservationService.releaseReservation(email);
+			}
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Unexpected error during OAuth signup for {}: {}", email, e.getMessage(), e);
+			// Release reservation on failure
+			emailReservationService.releaseReservation(email);
+			throw new StrategizException(AuthErrors.SIGNUP_FAILED, "OAuth signup failed due to internal error");
+		}
+	}
+
+	/**
+	 * Build OAuth authentication method entity (pure function - no I/O). This method is
+	 * called INSIDE a transaction to ensure atomicity.
+	 * @param authMethod The OAuth provider (e.g., "google", "facebook")
+	 * @param createdBy Email of the user who created this
+	 * @return AuthenticationMethodEntity ready to be saved
+	 */
+	private AuthenticationMethodEntity buildOAuthAuthenticationMethod(String authMethod, String createdBy) {
+		// Determine the authentication method type based on the auth method
+		AuthenticationMethodType authType;
+		String displayName;
+
+		switch (authMethod.toLowerCase()) {
+			case "google":
+				authType = AuthenticationMethodType.OAUTH_GOOGLE;
+				displayName = "Google Account";
+				break;
+			case "facebook":
+				authType = AuthenticationMethodType.OAUTH_FACEBOOK;
+				displayName = "Facebook Account";
+				break;
+			case "microsoft":
+				authType = AuthenticationMethodType.OAUTH_MICROSOFT;
+				displayName = "Microsoft Account";
+				break;
+			case "github":
+				authType = AuthenticationMethodType.OAUTH_GITHUB;
+				displayName = "GitHub Account";
+				break;
+			default:
+				log.warn("Unknown OAuth provider: {}, defaulting to OAUTH_GOOGLE", authMethod);
+				authType = AuthenticationMethodType.OAUTH_GOOGLE;
+				displayName = "OAuth Account";
+		}
+
+		// Create authentication method entity
+		// NOTE: Do NOT manually set audit fields (createdBy, modifiedBy, isActive)
+		// The repository layer's _initAudit() method will initialize them automatically
+		AuthenticationMethodEntity authMethodEntity = new AuthenticationMethodEntity();
+		authMethodEntity.setAuthenticationMethod(authType);
+		authMethodEntity.setName(displayName);
+		authMethodEntity.setLastUsedAt(Instant.now());
+
+		// Add metadata
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("provider", authMethod.toLowerCase());
+		metadata.put("registeredAt", Instant.now().toString());
+		authMethodEntity.setMetadata(metadata);
+
+		return authMethodEntity;
+	}
 
 }

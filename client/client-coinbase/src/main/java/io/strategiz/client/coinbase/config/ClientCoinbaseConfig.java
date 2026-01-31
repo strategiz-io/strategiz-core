@@ -10,8 +10,9 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class ClientCoinbaseConfig {
 
-    @Bean("coinbaseRestTemplate")
-    public RestTemplate coinbaseRestTemplate() {
-        return new RestTemplate();
-    }
+	@Bean("coinbaseRestTemplate")
+	public RestTemplate coinbaseRestTemplate() {
+		return new RestTemplate();
+	}
+
 }

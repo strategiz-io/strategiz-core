@@ -27,8 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Publishes deployment batch messages to Google Cloud Pub/Sub.
  *
- * Topic: publisher-deployment-processing
- * Subscription: subscriber-deployment-processing (push to strategiz-console)
+ * Topic: publisher-deployment-processing Subscription: subscriber-deployment-processing
+ * (push to strategiz-console)
  */
 @Component
 @ConditionalOnProperty(name = "live-strategies.pubsub.enabled", havingValue = "true")

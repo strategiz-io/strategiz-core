@@ -23,8 +23,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for StrategyOptimizationEngine.
- * Tests parameter generation, parallel execution, and result ranking.
+ * Unit tests for StrategyOptimizationEngine. Tests parameter generation, parallel
+ * execution, and result ranking.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -52,12 +52,7 @@ class StrategyOptimizationEngineTest {
 		@DisplayName("Should generate RSI combinations with valid parameter ranges")
 		void shouldGenerateValidRSICombinations() {
 			// Test RSI template with various parameters
-			Map<String, Object> params = Map.of(
-				"period", 14,
-				"oversold", 30,
-				"overbought", 70,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("period", 14, "oversold", 30, "overbought", 70, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.RSI_MEAN_REVERSION, params);
 
@@ -72,12 +67,7 @@ class StrategyOptimizationEngineTest {
 		@Test
 		@DisplayName("Should generate MACD combinations with valid parameters")
 		void shouldGenerateValidMACDCombinations() {
-			Map<String, Object> params = Map.of(
-				"fast", 12,
-				"slow", 26,
-				"signal_period", 9,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("fast", 12, "slow", 26, "signal_period", 9, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.MACD_TREND_FOLLOWING, params);
 
@@ -91,11 +81,7 @@ class StrategyOptimizationEngineTest {
 		@Test
 		@DisplayName("Should generate Bollinger Bands code with correct bands")
 		void shouldGenerateBollingerBandsCode() {
-			Map<String, Object> params = Map.of(
-				"period", 20,
-				"std_mult", 2.0,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.BOLLINGER_MEAN_REVERSION, params);
 
@@ -109,12 +95,8 @@ class StrategyOptimizationEngineTest {
 		@Test
 		@DisplayName("Should generate swing trading code with thresholds")
 		void shouldGenerateSwingTradingCode() {
-			Map<String, Object> params = Map.of(
-				"buy_threshold", 10,
-				"sell_threshold", 15,
-				"lookback", 20,
-				"atr_multiplier", 2.0
-			);
+			Map<String, Object> params = Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20,
+					"atr_multiplier", 2.0);
 
 			String code = StrategyCodeTemplates.generateCode(StrategyType.SWING_TRADING, params);
 
@@ -136,6 +118,7 @@ class StrategyOptimizationEngineTest {
 				assertTrue(code.contains("import pandas"), "Should import pandas for " + type);
 			}
 		}
+
 	}
 
 	@Nested
@@ -146,7 +129,8 @@ class StrategyOptimizationEngineTest {
 		@DisplayName("Should run optimization and return best strategy by total return")
 		void shouldReturnBestStrategyByTotalReturn() {
 			// Mock execution service to return varying results
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"), anyString(), any()))
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"),
+					anyString(), any()))
 				.thenAnswer(invocation -> {
 					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
 					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
@@ -169,14 +153,16 @@ class StrategyOptimizationEngineTest {
 			assertTrue(result.getTotalCombinationsTested() > 100, "Should test many combinations");
 
 			// Verify execution service was called
-			verify(executionService, atLeast(50)).executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"), anyString(), any());
+			verify(executionService, atLeast(50)).executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"),
+					eq("3y"), anyString(), any());
 		}
 
 		@Test
 		@DisplayName("Should handle execution failures gracefully")
 		void shouldHandleExecutionFailures() {
 			// Mock some failures
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"), anyString(), any()))
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"),
+					anyString(), any()))
 				.thenThrow(new RuntimeException("Execution failed"));
 
 			OptimizationResult result = optimizationEngine.optimize("AAPL", "1D", "3y", "test-user");
@@ -206,6 +192,7 @@ class StrategyOptimizationEngineTest {
 			assertTrue(result2.compareTo(result1) < 0, "Higher return should come first");
 			assertTrue(result1.compareTo(result3) < 0, "50% should come before 25%");
 		}
+
 	}
 
 	@Nested
@@ -215,7 +202,8 @@ class StrategyOptimizationEngineTest {
 		@Test
 		@DisplayName("Should build optimization result with all metrics")
 		void shouldBuildCompleteResult() {
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("TSLA"), eq("1D"), eq("3y"), anyString(), any()))
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("TSLA"), eq("1D"), eq("3y"),
+					anyString(), any()))
 				.thenAnswer(invocation -> {
 					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
 					ExecuteStrategyResponse.Performance perf = new ExecuteStrategyResponse.Performance();
@@ -246,7 +234,8 @@ class StrategyOptimizationEngineTest {
 		@DisplayName("Should calculate outperformance correctly")
 		void shouldCalculateOutperformance() {
 			// Mock strategy with 80% return
-			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"), anyString(), any()))
+			when(executionService.executeStrategy(anyString(), eq("python"), eq("AAPL"), eq("1D"), eq("3y"),
+					anyString(), any()))
 				.thenAnswer(invocation -> {
 					String code = invocation.getArgument(0);
 					ExecuteStrategyResponse response = new ExecuteStrategyResponse();
@@ -255,7 +244,8 @@ class StrategyOptimizationEngineTest {
 					// Buy-and-hold code is simple, detect it
 					if (code.contains("Buy and Hold Strategy")) {
 						perf.setTotalReturn(50.0); // Buy and hold return
-					} else {
+					}
+					else {
 						perf.setTotalReturn(80.0); // Strategy return
 					}
 					perf.setWinRate(55.0);
@@ -272,10 +262,12 @@ class StrategyOptimizationEngineTest {
 			assertNotNull(result);
 			// Outperformance = strategy return - buy and hold return
 			if (result.getBestStrategy() != null) {
-				double expectedOutperformance = result.getBestStrategy().getTotalReturn() - result.getBuyAndHoldReturn();
+				double expectedOutperformance = result.getBestStrategy().getTotalReturn()
+						- result.getBuyAndHoldReturn();
 				assertEquals(expectedOutperformance, result.getOutperformance(), 0.01);
 			}
 		}
+
 	}
 
 	@Nested
@@ -305,6 +297,7 @@ class StrategyOptimizationEngineTest {
 
 			assertEquals("RSI Mean Reversion", mrResult.getStrategyType().getDisplayName());
 		}
+
 	}
 
 	// Helper method to get default parameters for each strategy type
@@ -312,11 +305,16 @@ class StrategyOptimizationEngineTest {
 		return switch (type) {
 			case RSI_MEAN_REVERSION -> Map.of("period", 14, "oversold", 30, "overbought", 70, "atr_multiplier", 2.0);
 			case MACD_TREND_FOLLOWING -> Map.of("fast", 12, "slow", 26, "signal_period", 9, "atr_multiplier", 2.0);
-			case BOLLINGER_MEAN_REVERSION, BOLLINGER_BREAKOUT -> Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
+			case BOLLINGER_MEAN_REVERSION, BOLLINGER_BREAKOUT ->
+				Map.of("period", 20, "std_mult", 2.0, "atr_multiplier", 2.0);
 			case MA_CROSSOVER_EMA, MA_CROSSOVER_SMA -> Map.of("fast", 10, "slow", 50, "atr_multiplier", 2.0);
-			case STOCHASTIC -> Map.of("k_period", 14, "d_period", 3, "oversold", 20, "overbought", 80, "atr_multiplier", 2.0);
-			case SWING_TRADING -> Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20, "atr_multiplier", 2.0);
-			case COMBINED_ADX -> Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30, "rsi_overbought", 70, "atr_multiplier", 2.0);
+			case STOCHASTIC ->
+				Map.of("k_period", 14, "d_period", 3, "oversold", 20, "overbought", 80, "atr_multiplier", 2.0);
+			case SWING_TRADING ->
+				Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20, "atr_multiplier", 2.0);
+			case COMBINED_ADX -> Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30, "rsi_overbought", 70,
+					"atr_multiplier", 2.0);
 		};
 	}
+
 }

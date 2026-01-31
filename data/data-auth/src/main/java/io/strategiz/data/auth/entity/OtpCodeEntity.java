@@ -16,19 +16,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Entity for OTP codes stored in otp_codes collection.
- * Used for email and SMS one-time password verification.
+ * Entity for OTP codes stored in otp_codes collection. Used for email and SMS one-time
+ * password verification.
  *
- * <p>OTP flow:</p>
+ * <p>
+ * OTP flow:
+ * </p>
  * <ol>
- *   <li>User requests OTP → code generated and stored</li>
- *   <li>User submits code → verified against stored hash</li>
- *   <li>On success, OTP record deleted</li>
- *   <li>On failure, attempts incremented</li>
- *   <li>Expired OTPs are cleaned up by scheduled job</li>
+ * <li>User requests OTP → code generated and stored</li>
+ * <li>User submits code → verified against stored hash</li>
+ * <li>On success, OTP record deleted</li>
+ * <li>On failure, attempts incremented</li>
+ * <li>Expired OTPs are cleaned up by scheduled job</li>
  * </ol>
  *
- * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate, modifiedDate, isActive, version)
+ * Inherits audit fields from BaseEntity (createdBy, modifiedBy, createdDate,
+ * modifiedDate, isActive, version)
  */
 @Entity
 @Table(name = "email_otp_codes")

@@ -1,10 +1,10 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Optimal entry/exit thresholds derived from historical turning point analysis.
- * These thresholds are calculated by analyzing what indicator values were present
- * at actual market peaks and troughs, allowing us to recommend thresholds that
- * would have captured most historical opportunities.
+ * Optimal entry/exit thresholds derived from historical turning point analysis. These
+ * thresholds are calculated by analyzing what indicator values were present at actual
+ * market peaks and troughs, allowing us to recommend thresholds that would have captured
+ * most historical opportunities.
  */
 public class OptimalThresholds {
 

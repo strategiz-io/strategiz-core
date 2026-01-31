@@ -9,22 +9,23 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Auto-configuration for the token issuance framework.
- * Provides automatic bean registration for PasetoTokenIssuer.
+ * Auto-configuration for the token issuance framework. Provides automatic bean
+ * registration for PasetoTokenIssuer.
  */
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.framework.token")
 public class TokenAutoConfiguration {
 
-    private static final Logger log = LoggerFactory.getLogger(TokenAutoConfiguration.class);
+	private static final Logger log = LoggerFactory.getLogger(TokenAutoConfiguration.class);
 
-    /**
-     * Creates the PasetoTokenIssuer bean if not already defined.
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public PasetoTokenIssuer pasetoTokenIssuer() {
-        log.info("Creating PasetoTokenIssuer bean");
-        return new PasetoTokenIssuer();
-    }
+	/**
+	 * Creates the PasetoTokenIssuer bean if not already defined.
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	public PasetoTokenIssuer pasetoTokenIssuer() {
+		log.info("Creating PasetoTokenIssuer bean");
+		return new PasetoTokenIssuer();
+	}
+
 }

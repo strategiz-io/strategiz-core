@@ -29,7 +29,8 @@ import java.util.Map;
  *
  * <p>
  * Note: This class is NOT a @Component. It is instantiated as a @Bean by ClientFmpConfig
- * to ensure proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist first).
+ * to ensure proper dependency ordering (fmpRestTemplate and fmpRateLimiter must exist
+ * first).
  * </p>
  *
  * <p>
@@ -48,8 +49,8 @@ public class FmpFundamentalsClient {
 
 	private final ObjectMapper objectMapper;
 
-	public FmpFundamentalsClient(FmpConfig config, RestTemplate restTemplate,
-			Bucket rateLimiter, ObjectMapper objectMapper) {
+	public FmpFundamentalsClient(FmpConfig config, RestTemplate restTemplate, Bucket rateLimiter,
+			ObjectMapper objectMapper) {
 		this.config = config;
 		this.restTemplate = restTemplate;
 		this.rateLimiter = rateLimiter;
@@ -57,8 +58,8 @@ public class FmpFundamentalsClient {
 	}
 
 	/**
-	 * Get fundamentals data for a symbol. Fetches income statement, balance sheet, cash flow,
-	 * and key metrics.
+	 * Get fundamentals data for a symbol. Fetches income statement, balance sheet, cash
+	 * flow, and key metrics.
 	 * @param symbol Stock symbol
 	 * @return FmpFundamentals object with combined data
 	 */
@@ -198,8 +199,8 @@ public class FmpFundamentalsClient {
 			}
 
 			String url = String.format("%s/earning_calendar?from=%s&to=%s&apikey=%s", config.getBaseUrl(),
-					fromDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-					toDate.format(DateTimeFormatter.ISO_LOCAL_DATE), config.getApiKey());
+					fromDate.format(DateTimeFormatter.ISO_LOCAL_DATE), toDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+					config.getApiKey());
 
 			ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
@@ -381,11 +382,12 @@ public class FmpFundamentalsClient {
 	}
 
 	/**
-	 * Get real-time quote for multiple symbols. Fetches each symbol individually due to FMP
-	 * subscription limitations.
+	 * Get real-time quote for multiple symbols. Fetches each symbol individually due to
+	 * FMP subscription limitations.
 	 * @param symbols List of stock symbols (e.g., ["AAPL", "MSFT", "GOOG"])
 	 * @return List of FmpQuote objects with current prices
-	 * @deprecated Use {@link FmpQuoteClient#getBatchQuotes(List)} instead for quote functionality.
+	 * @deprecated Use {@link FmpQuoteClient#getBatchQuotes(List)} instead for quote
+	 * functionality.
 	 */
 	@Deprecated
 	public List<FmpQuote> getQuotes(List<String> symbols) {
@@ -415,8 +417,7 @@ public class FmpFundamentalsClient {
 				}
 
 				// Build URL for single symbol
-				String url = String.format("%s/stable/quote?symbol=%s&apikey=%s", baseUrl, symbol,
-						config.getApiKey());
+				String url = String.format("%s/stable/quote?symbol=%s&apikey=%s", baseUrl, symbol, config.getApiKey());
 
 				// Execute request
 				ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);

@@ -8,8 +8,8 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 /**
- * Interface for Language Model providers (Gemini, Claude, etc.)
- * Provides a unified API for generating content across different LLM backends.
+ * Interface for Language Model providers (Gemini, Claude, etc.) Provides a unified API
+ * for generating content across different LLM backends.
  */
 public interface LLMProvider {
 
@@ -17,7 +17,8 @@ public interface LLMProvider {
 	 * Generate content from a prompt with conversation history
 	 * @param prompt the user prompt
 	 * @param history previous messages in the conversation
-	 * @param model the specific model to use (e.g., "gemini-1.5-flash", "claude-3-5-sonnet")
+	 * @param model the specific model to use (e.g., "gemini-1.5-flash",
+	 * "claude-3-5-sonnet")
 	 * @return LLMResponse containing the generated content
 	 */
 	Mono<LLMResponse> generateContent(String prompt, List<LLMMessage> history, String model);

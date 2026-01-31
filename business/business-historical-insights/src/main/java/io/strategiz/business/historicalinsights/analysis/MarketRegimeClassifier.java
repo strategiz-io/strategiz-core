@@ -8,10 +8,9 @@ import io.strategiz.data.marketdata.entity.MarketDataEntity;
 import java.util.List;
 
 /**
- * Classifies the current market regime based on multiple factors:
- * - Trend direction and strength (using regression and ADX)
- * - Volatility level (using ATR)
- * - Mean-reversion tendency (using Hurst exponent)
+ * Classifies the current market regime based on multiple factors: - Trend direction and
+ * strength (using regression and ADX) - Volatility level (using ATR) - Mean-reversion
+ * tendency (using Hurst exponent)
  *
  * The regime determines which type of trading strategy is most appropriate.
  */
@@ -212,8 +211,8 @@ public class MarketRegimeClassifier {
 	}
 
 	/**
-	 * Calculate Average Directional Index (ADX).
-	 * ADX measures trend strength regardless of direction.
+	 * Calculate Average Directional Index (ADX). ADX measures trend strength regardless
+	 * of direction.
 	 */
 	private double calculateADX(List<MarketDataEntity> data, int period) {
 		if (data.size() < period * 2) {

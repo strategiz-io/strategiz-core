@@ -6,8 +6,8 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Represents the final result of a strategy optimization run.
- * Contains the best performing strategy along with top alternatives and metadata.
+ * Represents the final result of a strategy optimization run. Contains the best
+ * performing strategy along with top alternatives and metadata.
  */
 public class OptimizationResult {
 
@@ -109,10 +109,13 @@ public class OptimizationResult {
 
 		StringBuilder sb = new StringBuilder();
 		sb.append(String.format(
-				"After testing %d strategy combinations across %d days of historical data, " + "the **%s** strategy with parameters (%s) achieved the best results:\n\n",
-				totalCombinationsTested, daysAnalyzed, bestStrategy.getStrategyType().getDisplayName(), bestStrategy.getParametersDisplay()));
+				"After testing %d strategy combinations across %d days of historical data, "
+						+ "the **%s** strategy with parameters (%s) achieved the best results:\n\n",
+				totalCombinationsTested, daysAnalyzed, bestStrategy.getStrategyType().getDisplayName(),
+				bestStrategy.getParametersDisplay()));
 
-		sb.append(String.format("- **Total Return:** %.2f%% (vs %.2f%% buy-and-hold)\n", bestStrategy.getTotalReturn(), buyAndHoldReturn));
+		sb.append(String.format("- **Total Return:** %.2f%% (vs %.2f%% buy-and-hold)\n", bestStrategy.getTotalReturn(),
+				buyAndHoldReturn));
 		sb.append(String.format("- **Outperformance:** %.2f%%\n", outperformance));
 		sb.append(String.format("- **Win Rate:** %.1f%%\n", bestStrategy.getWinRate() * 100));
 		sb.append(String.format("- **Sharpe Ratio:** %.2f\n", bestStrategy.getSharpeRatio()));
@@ -120,7 +123,8 @@ public class OptimizationResult {
 		sb.append(String.format("- **Total Trades:** %d\n\n", bestStrategy.getTotalTrades()));
 
 		sb.append(String.format("Market Regime: %s\n\n", marketRegime));
-		sb.append(String.format("The strategy was optimized by testing all parameter combinations " + "and ranking by total return rather than win rate alone."));
+		sb.append(String.format("The strategy was optimized by testing all parameter combinations "
+				+ "and ranking by total return rather than win rate alone."));
 
 		return sb.toString();
 	}

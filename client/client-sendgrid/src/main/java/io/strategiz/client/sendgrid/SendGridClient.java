@@ -20,8 +20,8 @@ import java.io.IOException;
 /**
  * SendGrid implementation of EmailProvider for sending alert notifications.
  *
- * Supports both plain text/HTML emails and SendGrid dynamic templates.
- * Configuration is loaded from Vault via SendGridVaultConfig.
+ * Supports both plain text/HTML emails and SendGrid dynamic templates. Configuration is
+ * loaded from Vault via SendGridVaultConfig.
  */
 @Component
 @ConditionalOnProperty(name = "sendgrid.enabled", havingValue = "true", matchIfMissing = true)
@@ -44,8 +44,8 @@ public class SendGridClient implements EmailProvider {
 	}
 
 	/**
-	 * Lazily initialize the SendGrid client on first use.
-	 * This ensures Vault configuration is loaded before we try to use the API key.
+	 * Lazily initialize the SendGrid client on first use. This ensures Vault
+	 * configuration is loaded before we try to use the API key.
 	 */
 	private synchronized void ensureInitialized() {
 		if (initAttempted) {
@@ -65,8 +65,9 @@ public class SendGridClient implements EmailProvider {
 			}
 		}
 		else {
-			logger.warn("SendGrid client not configured - email notifications will be disabled. "
-					+ "API key present: {}, From email present: {}",
+			logger.warn(
+					"SendGrid client not configured - email notifications will be disabled. "
+							+ "API key present: {}, From email present: {}",
 					config.getApiKey() != null && !config.getApiKey().isEmpty(),
 					config.getFromEmail() != null && !config.getFromEmail().isEmpty());
 		}

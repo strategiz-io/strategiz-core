@@ -8,221 +8,230 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Passkey challenge entity
- * This is a database entity for WebAuthn challenges
+ * Passkey challenge entity This is a database entity for WebAuthn challenges
  */
 @Collection("passkey_challenges")
 public class PasskeyChallenge extends BaseEntity {
-    
-    private String id;
-    private String challenge;
-    private String userId;
-    private String sessionId;
-    private String credentialId; // Associated credential ID for authentication challenges
-    private String type; // "registration" or "authentication"
-    private boolean used = false;
-    private Instant createdAt;
-    private Instant expiresAt;
-    private Map<String, Object> metadata;
 
-    // === CONSTRUCTORS ===
+	private String id;
 
-    public PasskeyChallenge() {
-        super(); // Initialize BaseEntity
-        this.createdAt = Instant.now();
-        this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES); // 5 minute expiry
-        this.metadata = new HashMap<>();
-    }
+	private String challenge;
 
-    public PasskeyChallenge(String challenge, String userId, String type) {
-        super(userId); // Initialize BaseEntity with userId for audit fields
-        this.challenge = challenge;
-        this.userId = userId;
-        this.type = type;
-        this.createdAt = Instant.now();
-        this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);
-        this.metadata = new HashMap<>();
-    }
-    
-    public PasskeyChallenge(String userId, String challenge, Instant createdAt, Instant expiresAt, String type) {
-        super(userId); // Initialize BaseEntity with userId for audit fields
-        this.id = null; // Will be set when saved
-        this.userId = userId;
-        this.challenge = challenge;
-        this.createdAt = createdAt;
-        this.expiresAt = expiresAt;
-        this.type = type;
-        this.used = false;
-        this.metadata = new HashMap<>();
-    }
+	private String userId;
 
-    // === CONVENIENCE METHODS ===
+	private String sessionId;
 
-    public boolean hasExpired() {
-        return expiresAt != null && Instant.now().isAfter(expiresAt);
-    }
+	private String credentialId; // Associated credential ID for authentication challenges
 
-    public boolean isValid() {
-        return !used && !hasExpired();
-    }
+	private String type; // "registration" or "authentication"
 
-    public void markAsUsed() {
-        this.used = true;
-    }
+	private boolean used = false;
 
-    // === STATIC FACTORY METHODS ===
+	private Instant createdAt;
 
-    public static PasskeyChallenge createRegistrationChallenge(String challenge, String userId) {
-        return new PasskeyChallenge(challenge, userId, "registration");
-    }
+	private Instant expiresAt;
 
-    public static PasskeyChallenge createAuthenticationChallenge(String challenge, String userId) {
-        return new PasskeyChallenge(challenge, userId, "authentication");
-    }
+	private Map<String, Object> metadata;
 
-    // === GETTERS AND SETTERS ===
+	// === CONSTRUCTORS ===
 
-    @Override
-    public String getId() {
-        return id;
-    }
+	public PasskeyChallenge() {
+		super(); // Initialize BaseEntity
+		this.createdAt = Instant.now();
+		this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES); // 5 minute expiry
+		this.metadata = new HashMap<>();
+	}
 
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
+	public PasskeyChallenge(String challenge, String userId, String type) {
+		super(userId); // Initialize BaseEntity with userId for audit fields
+		this.challenge = challenge;
+		this.userId = userId;
+		this.type = type;
+		this.createdAt = Instant.now();
+		this.expiresAt = Instant.now().plus(5, ChronoUnit.MINUTES);
+		this.metadata = new HashMap<>();
+	}
 
-    public String getChallenge() {
-        return challenge;
-    }
+	public PasskeyChallenge(String userId, String challenge, Instant createdAt, Instant expiresAt, String type) {
+		super(userId); // Initialize BaseEntity with userId for audit fields
+		this.id = null; // Will be set when saved
+		this.userId = userId;
+		this.challenge = challenge;
+		this.createdAt = createdAt;
+		this.expiresAt = expiresAt;
+		this.type = type;
+		this.used = false;
+		this.metadata = new HashMap<>();
+	}
 
-    public void setChallenge(String challenge) {
-        this.challenge = challenge;
-    }
+	// === CONVENIENCE METHODS ===
 
-    public String getUserId() {
-        return userId;
-    }
+	public boolean hasExpired() {
+		return expiresAt != null && Instant.now().isAfter(expiresAt);
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public boolean isValid() {
+		return !used && !hasExpired();
+	}
 
-    public String getSessionId() {
-        return sessionId;
-    }
+	public void markAsUsed() {
+		this.used = true;
+	}
 
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
+	// === STATIC FACTORY METHODS ===
 
-    public String getCredentialId() {
-        return credentialId;
-    }
+	public static PasskeyChallenge createRegistrationChallenge(String challenge, String userId) {
+		return new PasskeyChallenge(challenge, userId, "registration");
+	}
 
-    public void setCredentialId(String credentialId) {
-        this.credentialId = credentialId;
-    }
+	public static PasskeyChallenge createAuthenticationChallenge(String challenge, String userId) {
+		return new PasskeyChallenge(challenge, userId, "authentication");
+	}
 
-    public String getType() {
-        return type;
-    }
+	// === GETTERS AND SETTERS ===
 
-    public void setType(String type) {
-        this.type = type;
-    }
+	@Override
+	public String getId() {
+		return id;
+	}
 
-    public boolean isUsed() {
-        return used;
-    }
+	@Override
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    public void setUsed(boolean used) {
-        this.used = used;
-    }
+	public String getChallenge() {
+		return challenge;
+	}
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+	public void setChallenge(String challenge) {
+		this.challenge = challenge;
+	}
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public String getSessionId() {
+		return sessionId;
+	}
 
-    public Map<String, Object> getMetadata() {
-        if (metadata == null) {
-            metadata = new HashMap<>();
-        }
-        return metadata;
-    }
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public String getCredentialId() {
+		return credentialId;
+	}
 
-    // === ADDITIONAL GETTERS/SETTERS FOR FIRESTORE MAPPING ===
-    
-    // Firestore expects these field names based on what's stored in the database
-    public String getChallengeType() {
-        return type;
-    }
-    
-    public void setChallengeType(String challengeType) {
-        this.type = challengeType;
-    }
-    
-    // === FIRESTORE COMPATIBILITY METHODS ===
-    // These methods exist to prevent warnings when Firestore tries to map fields
-    // that exist in the database but are handled by BaseEntity's audit system
-    
-    public void setIsActive(Boolean isActive) {
-        super.setIsActive(isActive);
-    }
-    
-    public void setActive(boolean active) {
-        super.setIsActive(active);
-    }
-    
-    public void setVersion(Long version) {
-        super.setVersion(version);
-    }
-    
-    public void setCollectionName(String collectionName) {
-        // Static value, ignore setter
-    }
-    
-    public void setValid(boolean valid) {
-        // Computed property, ignore setter
-    }
-    
-    public void setDeleted(boolean deleted) {
-        super.setIsActive(!deleted);
-    }
-    
-    public void setCreatedBy(String createdBy) {
-        super.setCreatedBy(createdBy);
-    }
-    
-    public void setModifiedBy(String modifiedBy) {
-        super.setModifiedBy(modifiedBy);
-    }
-    
-    public void setCreatedDate(com.google.cloud.Timestamp createdDate) {
-        super.setCreatedDate(createdDate);
-    }
-    
-    public void setModifiedDate(com.google.cloud.Timestamp modifiedDate) {
-        super.setModifiedDate(modifiedDate);
-    }
-    
-    public void setExpired(boolean expired) {
-        // Computed property based on expiresAt
-    }
+	public void setCredentialId(String credentialId) {
+		this.credentialId = credentialId;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public boolean isUsed() {
+		return used;
+	}
+
+	public void setUsed(boolean used) {
+		this.used = used;
+	}
+
+	public Instant getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
+	public Map<String, Object> getMetadata() {
+		if (metadata == null) {
+			metadata = new HashMap<>();
+		}
+		return metadata;
+	}
+
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
+	// === ADDITIONAL GETTERS/SETTERS FOR FIRESTORE MAPPING ===
+
+	// Firestore expects these field names based on what's stored in the database
+	public String getChallengeType() {
+		return type;
+	}
+
+	public void setChallengeType(String challengeType) {
+		this.type = challengeType;
+	}
+
+	// === FIRESTORE COMPATIBILITY METHODS ===
+	// These methods exist to prevent warnings when Firestore tries to map fields
+	// that exist in the database but are handled by BaseEntity's audit system
+
+	public void setIsActive(Boolean isActive) {
+		super.setIsActive(isActive);
+	}
+
+	public void setActive(boolean active) {
+		super.setIsActive(active);
+	}
+
+	public void setVersion(Long version) {
+		super.setVersion(version);
+	}
+
+	public void setCollectionName(String collectionName) {
+		// Static value, ignore setter
+	}
+
+	public void setValid(boolean valid) {
+		// Computed property, ignore setter
+	}
+
+	public void setDeleted(boolean deleted) {
+		super.setIsActive(!deleted);
+	}
+
+	public void setCreatedBy(String createdBy) {
+		super.setCreatedBy(createdBy);
+	}
+
+	public void setModifiedBy(String modifiedBy) {
+		super.setModifiedBy(modifiedBy);
+	}
+
+	public void setCreatedDate(com.google.cloud.Timestamp createdDate) {
+		super.setCreatedDate(createdDate);
+	}
+
+	public void setModifiedDate(com.google.cloud.Timestamp modifiedDate) {
+		super.setModifiedDate(modifiedDate);
+	}
+
+	public void setExpired(boolean expired) {
+		// Computed property based on expiresAt
+	}
+
 }

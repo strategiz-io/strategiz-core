@@ -5,15 +5,17 @@ import io.strategiz.data.auth.entity.OtpCodeEntity;
 import java.util.Optional;
 
 /**
- * Repository for managing OTP codes.
- * OTP codes are stored in the otp_codes top-level collection.
+ * Repository for managing OTP codes. OTP codes are stored in the otp_codes top-level
+ * collection.
  *
- * <p>Key operations:</p>
+ * <p>
+ * Key operations:
+ * </p>
  * <ul>
- *   <li>Save OTP codes with hashed values</li>
- *   <li>Find OTP by email and purpose</li>
- *   <li>Delete OTP after successful verification</li>
- *   <li>Cleanup of expired OTPs</li>
+ * <li>Save OTP codes with hashed values</li>
+ * <li>Find OTP by email and purpose</li>
+ * <li>Delete OTP after successful verification</li>
+ * <li>Cleanup of expired OTPs</li>
  * </ul>
  */
 public interface OtpCodeRepository {
@@ -56,16 +58,14 @@ public interface OtpCodeRepository {
 	void deleteById(String id);
 
 	/**
-	 * Delete an OTP code by email and purpose.
-	 * Called after successful verification.
+	 * Delete an OTP code by email and purpose. Called after successful verification.
 	 * @param email the email address
 	 * @param purpose the OTP purpose
 	 */
 	void deleteByEmailAndPurpose(String email, String purpose);
 
 	/**
-	 * Delete all expired OTP codes.
-	 * Called periodically to clean up old codes.
+	 * Delete all expired OTP codes. Called periodically to clean up old codes.
 	 * @return number of deleted codes
 	 */
 	int deleteExpired();
@@ -78,8 +78,7 @@ public interface OtpCodeRepository {
 	Optional<OtpCodeEntity> findBySessionId(String sessionId);
 
 	/**
-	 * Count OTP codes for an email in the last N hours.
-	 * Used for rate limiting.
+	 * Count OTP codes for an email in the last N hours. Used for rate limiting.
 	 * @param email the email address
 	 * @param hours the time window in hours
 	 * @return number of codes sent

@@ -23,41 +23,41 @@ import java.time.Duration;
 @Configuration
 @EnableCaching
 public class ClientCoinGeckoConfig {
-    
-    private static final Logger log = LoggerFactory.getLogger(ClientCoinGeckoConfig.class);
-    private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int READ_TIMEOUT = 30000;
-    private static final int CACHE_TTL_SECONDS = 60; // Cache for 1 minute
 
-    /**
-     * Creates a specialized RestTemplate for CoinGecko API with caching and timeouts
-     * 
-     * @return Configured RestTemplate for CoinGecko API
-     */
-    @Bean(name = "coinGeckoRestTemplate")
-    public RestTemplate coinGeckoRestTemplate() {
-        log.info("Initializing CoinGecko RestTemplate with timeouts: connect={}ms, read={}ms", 
-                CONNECTION_TIMEOUT, READ_TIMEOUT);
-        
-        // Configure timeouts for the RestTemplate using the modern API
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
-                .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
-                .setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
-                .build();
-        
-        HttpClientBuilder clientBuilder = HttpClients.custom()
-                .setDefaultRequestConfig(requestConfig);
-        
-        CloseableHttpClient httpClient = clientBuilder.build();
-        
-        HttpComponentsClientHttpRequestFactory requestFactory = 
-                new HttpComponentsClientHttpRequestFactory(httpClient);
-        
-        return new RestTemplateBuilder()
-                .requestFactory(() -> requestFactory)
-                .setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
-                .setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
-                .build();
-    }
+	private static final Logger log = LoggerFactory.getLogger(ClientCoinGeckoConfig.class);
+
+	private static final int CONNECTION_TIMEOUT = 10000;
+
+	private static final int READ_TIMEOUT = 30000;
+
+	private static final int CACHE_TTL_SECONDS = 60; // Cache for 1 minute
+
+	/**
+	 * Creates a specialized RestTemplate for CoinGecko API with caching and timeouts
+	 * @return Configured RestTemplate for CoinGecko API
+	 */
+	@Bean(name = "coinGeckoRestTemplate")
+	public RestTemplate coinGeckoRestTemplate() {
+		log.info("Initializing CoinGecko RestTemplate with timeouts: connect={}ms, read={}ms", CONNECTION_TIMEOUT,
+				READ_TIMEOUT);
+
+		// Configure timeouts for the RestTemplate using the modern API
+		RequestConfig requestConfig = RequestConfig.custom()
+			.setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+			.setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
+			.setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+			.build();
+
+		HttpClientBuilder clientBuilder = HttpClients.custom().setDefaultRequestConfig(requestConfig);
+
+		CloseableHttpClient httpClient = clientBuilder.build();
+
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+
+		return new RestTemplateBuilder().requestFactory(() -> requestFactory)
+			.setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
+			.setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
+			.build();
+	}
+
 }

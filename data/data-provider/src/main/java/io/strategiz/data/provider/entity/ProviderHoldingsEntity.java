@@ -11,8 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Entity representing detailed holdings data for a provider.
- * This is the heavy data stored in a subcollection for lazy loading.
+ * Entity representing detailed holdings data for a provider. This is the heavy data
+ * stored in a subcollection for lazy loading.
  *
  * Firestore path: users/{userId}/portfolio/providers/{providerId}/holdings/current
  *
@@ -21,514 +21,516 @@ import java.util.Map;
  */
 public class ProviderHoldingsEntity extends BaseEntity {
 
-    @DocumentId
-    @PropertyName("id")
-    @JsonProperty("id")
-    private String id = "current"; // Fixed ID - only one holdings doc per provider
-
-    @PropertyName("providerId")
-    @JsonProperty("providerId")
-    private String providerId;
-
-    @PropertyName("totalValue")
-    @JsonProperty("totalValue")
-    private BigDecimal totalValue;
-
-    @PropertyName("dayChange")
-    @JsonProperty("dayChange")
-    private BigDecimal dayChange;
-
-    @PropertyName("dayChangePercent")
-    @JsonProperty("dayChangePercent")
-    private BigDecimal dayChangePercent;
-
-    @PropertyName("totalProfitLoss")
-    @JsonProperty("totalProfitLoss")
-    private BigDecimal totalProfitLoss;
-
-    @PropertyName("totalProfitLossPercent")
-    @JsonProperty("totalProfitLossPercent")
-    private BigDecimal totalProfitLossPercent;
-
-    @PropertyName("cashBalance")
-    @JsonProperty("cashBalance")
-    private BigDecimal cashBalance;
-
-    @PropertyName("buyingPower")
-    @JsonProperty("buyingPower")
-    private BigDecimal buyingPower;
-
-    @PropertyName("marginBalance")
-    @JsonProperty("marginBalance")
-    private BigDecimal marginBalance;
-
-    @PropertyName("liquidationValue")
-    @JsonProperty("liquidationValue")
-    private BigDecimal liquidationValue;
-
-    @PropertyName("holdings")
-    @JsonProperty("holdings")
-    private List<Holding> holdings;
-
-    @PropertyName("balances")
-    @JsonProperty("balances")
-    private Map<String, Object> balances; // Raw balance data from provider
-
-    @PropertyName("transactions")
-    @JsonProperty("transactions")
-    private List<Transaction> transactions;
-
-    @PropertyName("lastUpdatedAt")
-    @JsonProperty("lastUpdatedAt")
-    private Instant lastUpdatedAt;
-
-    @PropertyName("syncStatus")
-    @JsonProperty("syncStatus")
-    private String syncStatus; // success, error, syncing
-
-    @PropertyName("errorMessage")
-    @JsonProperty("errorMessage")
-    private String errorMessage;
-
-    // Constructors
-    public ProviderHoldingsEntity() {
-        super();
-        this.id = "current";
-    }
-
-    public ProviderHoldingsEntity(String providerId, String userId) {
-        super(userId);
-        this.id = "current";
-        this.providerId = providerId;
-    }
-
-    // Getters and Setters
-    @Override
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public String getProviderId() {
-        return providerId;
-    }
-
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
-
-    public BigDecimal getTotalValue() {
-        return totalValue;
-    }
-
-    public void setTotalValue(BigDecimal totalValue) {
-        this.totalValue = totalValue;
-    }
-
-    public BigDecimal getDayChange() {
-        return dayChange;
-    }
-
-    public void setDayChange(BigDecimal dayChange) {
-        this.dayChange = dayChange;
-    }
-
-    public BigDecimal getDayChangePercent() {
-        return dayChangePercent;
-    }
-
-    public void setDayChangePercent(BigDecimal dayChangePercent) {
-        this.dayChangePercent = dayChangePercent;
-    }
-
-    public BigDecimal getTotalProfitLoss() {
-        return totalProfitLoss;
-    }
-
-    public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
-        this.totalProfitLoss = totalProfitLoss;
-    }
-
-    public BigDecimal getTotalProfitLossPercent() {
-        return totalProfitLossPercent;
-    }
+	@DocumentId
+	@PropertyName("id")
+	@JsonProperty("id")
+	private String id = "current"; // Fixed ID - only one holdings doc per provider
+
+	@PropertyName("providerId")
+	@JsonProperty("providerId")
+	private String providerId;
+
+	@PropertyName("totalValue")
+	@JsonProperty("totalValue")
+	private BigDecimal totalValue;
+
+	@PropertyName("dayChange")
+	@JsonProperty("dayChange")
+	private BigDecimal dayChange;
+
+	@PropertyName("dayChangePercent")
+	@JsonProperty("dayChangePercent")
+	private BigDecimal dayChangePercent;
+
+	@PropertyName("totalProfitLoss")
+	@JsonProperty("totalProfitLoss")
+	private BigDecimal totalProfitLoss;
+
+	@PropertyName("totalProfitLossPercent")
+	@JsonProperty("totalProfitLossPercent")
+	private BigDecimal totalProfitLossPercent;
+
+	@PropertyName("cashBalance")
+	@JsonProperty("cashBalance")
+	private BigDecimal cashBalance;
+
+	@PropertyName("buyingPower")
+	@JsonProperty("buyingPower")
+	private BigDecimal buyingPower;
+
+	@PropertyName("marginBalance")
+	@JsonProperty("marginBalance")
+	private BigDecimal marginBalance;
+
+	@PropertyName("liquidationValue")
+	@JsonProperty("liquidationValue")
+	private BigDecimal liquidationValue;
+
+	@PropertyName("holdings")
+	@JsonProperty("holdings")
+	private List<Holding> holdings;
+
+	@PropertyName("balances")
+	@JsonProperty("balances")
+	private Map<String, Object> balances; // Raw balance data from provider
+
+	@PropertyName("transactions")
+	@JsonProperty("transactions")
+	private List<Transaction> transactions;
+
+	@PropertyName("lastUpdatedAt")
+	@JsonProperty("lastUpdatedAt")
+	private Instant lastUpdatedAt;
+
+	@PropertyName("syncStatus")
+	@JsonProperty("syncStatus")
+	private String syncStatus; // success, error, syncing
+
+	@PropertyName("errorMessage")
+	@JsonProperty("errorMessage")
+	private String errorMessage;
+
+	// Constructors
+	public ProviderHoldingsEntity() {
+		super();
+		this.id = "current";
+	}
+
+	public ProviderHoldingsEntity(String providerId, String userId) {
+		super(userId);
+		this.id = "current";
+		this.providerId = providerId;
+	}
+
+	// Getters and Setters
+	@Override
+	public String getId() {
+		return id;
+	}
+
+	@Override
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public String getProviderId() {
+		return providerId;
+	}
+
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
+
+	public BigDecimal getTotalValue() {
+		return totalValue;
+	}
+
+	public void setTotalValue(BigDecimal totalValue) {
+		this.totalValue = totalValue;
+	}
+
+	public BigDecimal getDayChange() {
+		return dayChange;
+	}
+
+	public void setDayChange(BigDecimal dayChange) {
+		this.dayChange = dayChange;
+	}
+
+	public BigDecimal getDayChangePercent() {
+		return dayChangePercent;
+	}
+
+	public void setDayChangePercent(BigDecimal dayChangePercent) {
+		this.dayChangePercent = dayChangePercent;
+	}
+
+	public BigDecimal getTotalProfitLoss() {
+		return totalProfitLoss;
+	}
+
+	public void setTotalProfitLoss(BigDecimal totalProfitLoss) {
+		this.totalProfitLoss = totalProfitLoss;
+	}
+
+	public BigDecimal getTotalProfitLossPercent() {
+		return totalProfitLossPercent;
+	}
 
-    public void setTotalProfitLossPercent(BigDecimal totalProfitLossPercent) {
-        this.totalProfitLossPercent = totalProfitLossPercent;
-    }
+	public void setTotalProfitLossPercent(BigDecimal totalProfitLossPercent) {
+		this.totalProfitLossPercent = totalProfitLossPercent;
+	}
 
-    public BigDecimal getCashBalance() {
-        return cashBalance;
-    }
+	public BigDecimal getCashBalance() {
+		return cashBalance;
+	}
 
-    public void setCashBalance(BigDecimal cashBalance) {
-        this.cashBalance = cashBalance;
-    }
+	public void setCashBalance(BigDecimal cashBalance) {
+		this.cashBalance = cashBalance;
+	}
 
-    public BigDecimal getBuyingPower() {
-        return buyingPower;
-    }
+	public BigDecimal getBuyingPower() {
+		return buyingPower;
+	}
 
-    public void setBuyingPower(BigDecimal buyingPower) {
-        this.buyingPower = buyingPower;
-    }
+	public void setBuyingPower(BigDecimal buyingPower) {
+		this.buyingPower = buyingPower;
+	}
 
-    public BigDecimal getMarginBalance() {
-        return marginBalance;
-    }
+	public BigDecimal getMarginBalance() {
+		return marginBalance;
+	}
 
-    public void setMarginBalance(BigDecimal marginBalance) {
-        this.marginBalance = marginBalance;
-    }
+	public void setMarginBalance(BigDecimal marginBalance) {
+		this.marginBalance = marginBalance;
+	}
 
-    public BigDecimal getLiquidationValue() {
-        return liquidationValue;
-    }
+	public BigDecimal getLiquidationValue() {
+		return liquidationValue;
+	}
 
-    public void setLiquidationValue(BigDecimal liquidationValue) {
-        this.liquidationValue = liquidationValue;
-    }
+	public void setLiquidationValue(BigDecimal liquidationValue) {
+		this.liquidationValue = liquidationValue;
+	}
 
-    public List<Holding> getHoldings() {
-        return holdings;
-    }
+	public List<Holding> getHoldings() {
+		return holdings;
+	}
 
-    public void setHoldings(List<Holding> holdings) {
-        this.holdings = holdings;
-    }
+	public void setHoldings(List<Holding> holdings) {
+		this.holdings = holdings;
+	}
 
-    public Map<String, Object> getBalances() {
-        return balances;
-    }
+	public Map<String, Object> getBalances() {
+		return balances;
+	}
 
-    public void setBalances(Map<String, Object> balances) {
-        this.balances = balances;
-    }
+	public void setBalances(Map<String, Object> balances) {
+		this.balances = balances;
+	}
 
-    public List<Transaction> getTransactions() {
-        return transactions;
-    }
+	public List<Transaction> getTransactions() {
+		return transactions;
+	}
 
-    public void setTransactions(List<Transaction> transactions) {
-        this.transactions = transactions;
-    }
+	public void setTransactions(List<Transaction> transactions) {
+		this.transactions = transactions;
+	}
 
-    public Instant getLastUpdatedAt() {
-        return lastUpdatedAt;
-    }
+	public Instant getLastUpdatedAt() {
+		return lastUpdatedAt;
+	}
 
-    public void setLastUpdatedAt(Instant lastUpdatedAt) {
-        this.lastUpdatedAt = lastUpdatedAt;
-    }
+	public void setLastUpdatedAt(Instant lastUpdatedAt) {
+		this.lastUpdatedAt = lastUpdatedAt;
+	}
 
-    public String getSyncStatus() {
-        return syncStatus;
-    }
+	public String getSyncStatus() {
+		return syncStatus;
+	}
 
-    public void setSyncStatus(String syncStatus) {
-        this.syncStatus = syncStatus;
-    }
+	public void setSyncStatus(String syncStatus) {
+		this.syncStatus = syncStatus;
+	}
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	public String getErrorMessage() {
+		return errorMessage;
+	}
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
 
-    /**
-     * Nested class for individual holdings.
-     * Reused from ProviderDataEntity for compatibility.
-     */
-    public static class Holding {
+	/**
+	 * Nested class for individual holdings. Reused from ProviderDataEntity for
+	 * compatibility.
+	 */
+	public static class Holding {
 
-        @PropertyName("asset")
-        private String asset;
+		@PropertyName("asset")
+		private String asset;
 
-        @PropertyName("name")
-        private String name;
+		@PropertyName("name")
+		private String name;
 
-        @PropertyName("quantity")
-        private BigDecimal quantity;
+		@PropertyName("quantity")
+		private BigDecimal quantity;
 
-        @PropertyName("currentPrice")
-        private BigDecimal currentPrice;
+		@PropertyName("currentPrice")
+		private BigDecimal currentPrice;
 
-        @PropertyName("currentValue")
-        private BigDecimal currentValue;
+		@PropertyName("currentValue")
+		private BigDecimal currentValue;
 
-        @PropertyName("costBasis")
-        private BigDecimal costBasis;
+		@PropertyName("costBasis")
+		private BigDecimal costBasis;
 
-        @PropertyName("profitLoss")
-        private BigDecimal profitLoss;
+		@PropertyName("profitLoss")
+		private BigDecimal profitLoss;
 
-        @PropertyName("profitLossPercent")
-        private BigDecimal profitLossPercent;
+		@PropertyName("profitLossPercent")
+		private BigDecimal profitLossPercent;
 
-        @PropertyName("averageBuyPrice")
-        private BigDecimal averageBuyPrice;
+		@PropertyName("averageBuyPrice")
+		private BigDecimal averageBuyPrice;
 
-        @PropertyName("priceChange24h")
-        private BigDecimal priceChange24h;
+		@PropertyName("priceChange24h")
+		private BigDecimal priceChange24h;
 
-        @PropertyName("sector")
-        private String sector;
+		@PropertyName("sector")
+		private String sector;
 
-        @PropertyName("assetType")
-        private String assetType; // crypto, fiat, stablecoin
+		@PropertyName("assetType")
+		private String assetType; // crypto, fiat, stablecoin
 
-        @PropertyName("category")
-        private String category; // Layer1, DeFi, Gaming, etc.
+		@PropertyName("category")
+		private String category; // Layer1, DeFi, Gaming, etc.
 
-        @PropertyName("marketCapRank")
-        private Integer marketCapRank;
+		@PropertyName("marketCapRank")
+		private Integer marketCapRank;
 
-        @PropertyName("isStaked")
-        private Boolean isStaked;
+		@PropertyName("isStaked")
+		private Boolean isStaked;
 
-        @PropertyName("stakingAPR")
-        private BigDecimal stakingAPR;
+		@PropertyName("stakingAPR")
+		private BigDecimal stakingAPR;
 
-        @PropertyName("originalSymbol")
-        private String originalSymbol;
+		@PropertyName("originalSymbol")
+		private String originalSymbol;
 
-        // Getters and Setters
-        public String getAsset() {
-            return asset;
-        }
+		// Getters and Setters
+		public String getAsset() {
+			return asset;
+		}
 
-        public void setAsset(String asset) {
-            this.asset = asset;
-        }
+		public void setAsset(String asset) {
+			this.asset = asset;
+		}
 
-        public String getName() {
-            return name;
-        }
+		public String getName() {
+			return name;
+		}
 
-        public void setName(String name) {
-            this.name = name;
-        }
+		public void setName(String name) {
+			this.name = name;
+		}
 
-        public BigDecimal getQuantity() {
-            return quantity;
-        }
+		public BigDecimal getQuantity() {
+			return quantity;
+		}
 
-        public void setQuantity(BigDecimal quantity) {
-            this.quantity = quantity;
-        }
+		public void setQuantity(BigDecimal quantity) {
+			this.quantity = quantity;
+		}
 
-        public BigDecimal getCurrentPrice() {
-            return currentPrice;
-        }
+		public BigDecimal getCurrentPrice() {
+			return currentPrice;
+		}
 
-        public void setCurrentPrice(BigDecimal currentPrice) {
-            this.currentPrice = currentPrice;
-        }
+		public void setCurrentPrice(BigDecimal currentPrice) {
+			this.currentPrice = currentPrice;
+		}
 
-        public BigDecimal getCurrentValue() {
-            return currentValue;
-        }
+		public BigDecimal getCurrentValue() {
+			return currentValue;
+		}
 
-        public void setCurrentValue(BigDecimal currentValue) {
-            this.currentValue = currentValue;
-        }
+		public void setCurrentValue(BigDecimal currentValue) {
+			this.currentValue = currentValue;
+		}
 
-        public BigDecimal getCostBasis() {
-            return costBasis;
-        }
+		public BigDecimal getCostBasis() {
+			return costBasis;
+		}
 
-        public void setCostBasis(BigDecimal costBasis) {
-            this.costBasis = costBasis;
-        }
+		public void setCostBasis(BigDecimal costBasis) {
+			this.costBasis = costBasis;
+		}
 
-        public BigDecimal getProfitLoss() {
-            return profitLoss;
-        }
+		public BigDecimal getProfitLoss() {
+			return profitLoss;
+		}
 
-        public void setProfitLoss(BigDecimal profitLoss) {
-            this.profitLoss = profitLoss;
-        }
+		public void setProfitLoss(BigDecimal profitLoss) {
+			this.profitLoss = profitLoss;
+		}
 
-        public BigDecimal getProfitLossPercent() {
-            return profitLossPercent;
-        }
+		public BigDecimal getProfitLossPercent() {
+			return profitLossPercent;
+		}
 
-        public void setProfitLossPercent(BigDecimal profitLossPercent) {
-            this.profitLossPercent = profitLossPercent;
-        }
+		public void setProfitLossPercent(BigDecimal profitLossPercent) {
+			this.profitLossPercent = profitLossPercent;
+		}
 
-        public BigDecimal getAverageBuyPrice() {
-            return averageBuyPrice;
-        }
+		public BigDecimal getAverageBuyPrice() {
+			return averageBuyPrice;
+		}
 
-        public void setAverageBuyPrice(BigDecimal averageBuyPrice) {
-            this.averageBuyPrice = averageBuyPrice;
-        }
+		public void setAverageBuyPrice(BigDecimal averageBuyPrice) {
+			this.averageBuyPrice = averageBuyPrice;
+		}
 
-        public BigDecimal getPriceChange24h() {
-            return priceChange24h;
-        }
+		public BigDecimal getPriceChange24h() {
+			return priceChange24h;
+		}
 
-        public void setPriceChange24h(BigDecimal priceChange24h) {
-            this.priceChange24h = priceChange24h;
-        }
+		public void setPriceChange24h(BigDecimal priceChange24h) {
+			this.priceChange24h = priceChange24h;
+		}
 
-        public String getSector() {
-            return sector;
-        }
+		public String getSector() {
+			return sector;
+		}
 
-        public void setSector(String sector) {
-            this.sector = sector;
-        }
+		public void setSector(String sector) {
+			this.sector = sector;
+		}
 
-        public String getAssetType() {
-            return assetType;
-        }
+		public String getAssetType() {
+			return assetType;
+		}
 
-        public void setAssetType(String assetType) {
-            this.assetType = assetType;
-        }
+		public void setAssetType(String assetType) {
+			this.assetType = assetType;
+		}
 
-        public String getCategory() {
-            return category;
-        }
+		public String getCategory() {
+			return category;
+		}
 
-        public void setCategory(String category) {
-            this.category = category;
-        }
+		public void setCategory(String category) {
+			this.category = category;
+		}
 
-        public Integer getMarketCapRank() {
-            return marketCapRank;
-        }
+		public Integer getMarketCapRank() {
+			return marketCapRank;
+		}
 
-        public void setMarketCapRank(Integer marketCapRank) {
-            this.marketCapRank = marketCapRank;
-        }
+		public void setMarketCapRank(Integer marketCapRank) {
+			this.marketCapRank = marketCapRank;
+		}
 
-        public Boolean getIsStaked() {
-            return isStaked;
-        }
+		public Boolean getIsStaked() {
+			return isStaked;
+		}
 
-        public void setIsStaked(Boolean isStaked) {
-            this.isStaked = isStaked;
-        }
+		public void setIsStaked(Boolean isStaked) {
+			this.isStaked = isStaked;
+		}
 
-        public BigDecimal getStakingAPR() {
-            return stakingAPR;
-        }
+		public BigDecimal getStakingAPR() {
+			return stakingAPR;
+		}
 
-        public void setStakingAPR(BigDecimal stakingAPR) {
-            this.stakingAPR = stakingAPR;
-        }
+		public void setStakingAPR(BigDecimal stakingAPR) {
+			this.stakingAPR = stakingAPR;
+		}
 
-        public String getOriginalSymbol() {
-            return originalSymbol;
-        }
+		public String getOriginalSymbol() {
+			return originalSymbol;
+		}
 
-        public void setOriginalSymbol(String originalSymbol) {
-            this.originalSymbol = originalSymbol;
-        }
-    }
+		public void setOriginalSymbol(String originalSymbol) {
+			this.originalSymbol = originalSymbol;
+		}
 
-    /**
-     * Nested class for transactions.
-     * Reused from ProviderDataEntity for compatibility.
-     */
-    public static class Transaction {
+	}
 
-        @PropertyName("transactionId")
-        private String transactionId;
+	/**
+	 * Nested class for transactions. Reused from ProviderDataEntity for compatibility.
+	 */
+	public static class Transaction {
 
-        @PropertyName("type")
-        private String type; // buy, sell, deposit, withdrawal
+		@PropertyName("transactionId")
+		private String transactionId;
 
-        @PropertyName("asset")
-        private String asset;
+		@PropertyName("type")
+		private String type; // buy, sell, deposit, withdrawal
 
-        @PropertyName("quantity")
-        private BigDecimal quantity;
+		@PropertyName("asset")
+		private String asset;
 
-        @PropertyName("price")
-        private BigDecimal price;
+		@PropertyName("quantity")
+		private BigDecimal quantity;
 
-        @PropertyName("totalValue")
-        private BigDecimal totalValue;
+		@PropertyName("price")
+		private BigDecimal price;
 
-        @PropertyName("fee")
-        private BigDecimal fee;
+		@PropertyName("totalValue")
+		private BigDecimal totalValue;
 
-        @PropertyName("timestamp")
-        private Instant timestamp;
+		@PropertyName("fee")
+		private BigDecimal fee;
 
-        // Getters and Setters
-        public String getTransactionId() {
-            return transactionId;
-        }
+		@PropertyName("timestamp")
+		private Instant timestamp;
 
-        public void setTransactionId(String transactionId) {
-            this.transactionId = transactionId;
-        }
+		// Getters and Setters
+		public String getTransactionId() {
+			return transactionId;
+		}
 
-        public String getType() {
-            return type;
-        }
+		public void setTransactionId(String transactionId) {
+			this.transactionId = transactionId;
+		}
 
-        public void setType(String type) {
-            this.type = type;
-        }
+		public String getType() {
+			return type;
+		}
 
-        public String getAsset() {
-            return asset;
-        }
+		public void setType(String type) {
+			this.type = type;
+		}
 
-        public void setAsset(String asset) {
-            this.asset = asset;
-        }
+		public String getAsset() {
+			return asset;
+		}
 
-        public BigDecimal getQuantity() {
-            return quantity;
-        }
+		public void setAsset(String asset) {
+			this.asset = asset;
+		}
 
-        public void setQuantity(BigDecimal quantity) {
-            this.quantity = quantity;
-        }
+		public BigDecimal getQuantity() {
+			return quantity;
+		}
 
-        public BigDecimal getPrice() {
-            return price;
-        }
+		public void setQuantity(BigDecimal quantity) {
+			this.quantity = quantity;
+		}
 
-        public void setPrice(BigDecimal price) {
-            this.price = price;
-        }
+		public BigDecimal getPrice() {
+			return price;
+		}
 
-        public BigDecimal getTotalValue() {
-            return totalValue;
-        }
+		public void setPrice(BigDecimal price) {
+			this.price = price;
+		}
 
-        public void setTotalValue(BigDecimal totalValue) {
-            this.totalValue = totalValue;
-        }
+		public BigDecimal getTotalValue() {
+			return totalValue;
+		}
 
-        public BigDecimal getFee() {
-            return fee;
-        }
+		public void setTotalValue(BigDecimal totalValue) {
+			this.totalValue = totalValue;
+		}
 
-        public void setFee(BigDecimal fee) {
-            this.fee = fee;
-        }
+		public BigDecimal getFee() {
+			return fee;
+		}
 
-        public Instant getTimestamp() {
-            return timestamp;
-        }
+		public void setFee(BigDecimal fee) {
+			this.fee = fee;
+		}
 
-        public void setTimestamp(Instant timestamp) {
-            this.timestamp = timestamp;
-        }
-    }
+		public Instant getTimestamp() {
+			return timestamp;
+		}
+
+		public void setTimestamp(Instant timestamp) {
+			this.timestamp = timestamp;
+		}
+
+	}
+
 }

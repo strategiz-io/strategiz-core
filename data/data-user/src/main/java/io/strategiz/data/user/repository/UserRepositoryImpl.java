@@ -29,417 +29,420 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of UserRepository using BaseRepository
- * Handles CRUD operations for the main user document and aggregation methods
+ * Implementation of UserRepository using BaseRepository Handles CRUD operations for the
+ * main user document and aggregation methods
  */
 @Repository
 public class UserRepositoryImpl extends BaseRepository<UserEntity> implements UserRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
+	private static final Logger log = LoggerFactory.getLogger(UserRepositoryImpl.class);
 
-    @Autowired
-    public UserRepositoryImpl(Firestore firestore) {
-        super(firestore, UserEntity.class);
-    }
+	@Autowired
+	public UserRepositoryImpl(Firestore firestore) {
+		super(firestore, UserEntity.class);
+	}
 
-    @Override
-    protected String getModuleName() {
-        return "data-user";
-    }
+	@Override
+	protected String getModuleName() {
+		return "data-user";
+	}
 
-    // ===============================
-    // Main User Document Operations
-    // ===============================
+	// ===============================
+	// Main User Document Operations
+	// ===============================
 
-    @Override
-    public UserEntity createUser(UserEntity user) {
-        log.info("=== USER REPOSITORY: createUser START ===");
-        log.info("UserRepositoryImpl.createUser - userId before save: [{}]", user.getUserId());
-        log.info("UserRepositoryImpl.createUser - user.getId() before save: [{}]", user.getId());
-        log.info("UserRepositoryImpl.createUser - email: {}", user.getProfile() != null ? user.getProfile().getEmail() : "null");
+	@Override
+	public UserEntity createUser(UserEntity user) {
+		log.info("=== USER REPOSITORY: createUser START ===");
+		log.info("UserRepositoryImpl.createUser - userId before save: [{}]", user.getUserId());
+		log.info("UserRepositoryImpl.createUser - user.getId() before save: [{}]", user.getId());
+		log.info("UserRepositoryImpl.createUser - email: {}",
+				user.getProfile() != null ? user.getProfile().getEmail() : "null");
 
-        // Use email as createdBy for user entities (since user is creating their own account)
-        String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null)
-            ? user.getProfile().getEmail()
-            : user.getUserId();
-        log.info("UserRepositoryImpl.createUser - createdBy: {}", createdBy);
+		// Use email as createdBy for user entities (since user is creating their own
+		// account)
+		String createdBy = (user.getProfile() != null && user.getProfile().getEmail() != null)
+				? user.getProfile().getEmail() : user.getUserId();
+		log.info("UserRepositoryImpl.createUser - createdBy: {}", createdBy);
 
-        // Use forceCreate because UserEntity.getId() returns userId which is typically pre-set.
-        // The standard save() would treat this as an update instead of a create.
-        log.info("UserRepositoryImpl.createUser - Calling super.forceCreate()");
-        UserEntity savedUser = super.forceCreate(user, createdBy);
+		// Use forceCreate because UserEntity.getId() returns userId which is typically
+		// pre-set.
+		// The standard save() would treat this as an update instead of a create.
+		log.info("UserRepositoryImpl.createUser - Calling super.forceCreate()");
+		UserEntity savedUser = super.forceCreate(user, createdBy);
 
-        log.info("UserRepositoryImpl.createUser - savedUser.getId(): [{}]", savedUser.getId());
-        log.info("UserRepositoryImpl.createUser - savedUser.getUserId(): [{}]", savedUser.getUserId());
-        log.info("=== USER REPOSITORY: createUser END ===");
-        return savedUser;
-    }
+		log.info("UserRepositoryImpl.createUser - savedUser.getId(): [{}]", savedUser.getId());
+		log.info("UserRepositoryImpl.createUser - savedUser.getUserId(): [{}]", savedUser.getUserId());
+		log.info("=== USER REPOSITORY: createUser END ===");
+		return savedUser;
+	}
 
-    @Override
-    public Optional<UserEntity> findById(String userId) {
-        return super.findById(userId);
-    }
+	@Override
+	public Optional<UserEntity> findById(String userId) {
+		return super.findById(userId);
+	}
 
-    @Override
-    public UserEntity updateUser(UserEntity user) {
-        // Use email as modifiedBy for user entities
-        String modifiedBy = (user.getProfile() != null && user.getProfile().getEmail() != null) 
-            ? user.getProfile().getEmail() 
-            : user.getUserId();
-        return super.save(user, modifiedBy);
-    }
+	@Override
+	public UserEntity updateUser(UserEntity user) {
+		// Use email as modifiedBy for user entities
+		String modifiedBy = (user.getProfile() != null && user.getProfile().getEmail() != null)
+				? user.getProfile().getEmail() : user.getUserId();
+		return super.save(user, modifiedBy);
+	}
 
-    @Override
-    public void deleteUser(String userId) {
-        super.delete(userId, userId);
-    }
+	@Override
+	public void deleteUser(String userId) {
+		super.delete(userId, userId);
+	}
 
-    @Override
-    public void hardDeleteUser(String userId, String deletedBy) {
-        log.warn("=== HARD DELETE USER START: userId={}, deletedBy={} ===", userId, deletedBy);
+	@Override
+	public void hardDeleteUser(String userId, String deletedBy) {
+		log.warn("=== HARD DELETE USER START: userId={}, deletedBy={} ===", userId, deletedBy);
 
-        // List of all known subcollections under users/{userId}/
-        String[] subcollections = {
-            "security",
-            "devices",
-            "watchlist",
-            "preferences",
-            "provider_data",
-            "provider_integrations",
-            "portfolio",
-            "portfolio_history",
-            "botDeployments",
-            "alertDeployments",
-            "token_usage",
-            "subscription",
-            "ownerSubscriptionSettings"
-        };
+		// List of all known subcollections under users/{userId}/
+		String[] subcollections = { "security", "devices", "watchlist", "preferences", "provider_data",
+				"provider_integrations", "portfolio", "portfolio_history", "botDeployments", "alertDeployments",
+				"token_usage", "subscription", "ownerSubscriptionSettings" };
 
-        try {
-            DocumentReference userDocRef = firestore.collection("users").document(userId);
+		try {
+			DocumentReference userDocRef = firestore.collection("users").document(userId);
 
-            // Check if document exists (regardless of isActive status)
-            DocumentSnapshot userDoc = userDocRef.get().get();
-            if (!userDoc.exists()) {
-                log.warn("User document {} does not exist, nothing to delete", userId);
-                return;
-            }
+			// Check if document exists (regardless of isActive status)
+			DocumentSnapshot userDoc = userDocRef.get().get();
+			if (!userDoc.exists()) {
+				log.warn("User document {} does not exist, nothing to delete", userId);
+				return;
+			}
 
-            log.info("Found user document to hard delete: userId={}, isActive={}", userId, userDoc.get("isActive"));
+			log.info("Found user document to hard delete: userId={}, isActive={}", userId, userDoc.get("isActive"));
 
-            // Delete all documents in each subcollection
-            for (String subcollectionName : subcollections) {
-                deleteSubcollection(userDocRef, subcollectionName);
-            }
+			// Delete all documents in each subcollection
+			for (String subcollectionName : subcollections) {
+				deleteSubcollection(userDocRef, subcollectionName);
+			}
 
-            // Delete the main user document
-            userDocRef.delete().get();
-            log.warn("=== HARD DELETE USER COMPLETE: userId={} permanently deleted by {} ===", userId, deletedBy);
+			// Delete the main user document
+			userDocRef.delete().get();
+			log.warn("=== HARD DELETE USER COMPLETE: userId={} permanently deleted by {} ===", userId, deletedBy);
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", userId);
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "UserEntity", userId);
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"UserEntity", userId);
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_DELETE_FAILED, e, "UserEntity", userId);
+		}
+	}
 
-    /**
-     * Helper method to delete all documents in a subcollection
-     */
-    private void deleteSubcollection(DocumentReference parentDoc, String subcollectionName) {
-        try {
-            CollectionReference subcollection = parentDoc.collection(subcollectionName);
-            List<QueryDocumentSnapshot> documents = subcollection.get().get().getDocuments();
+	/**
+	 * Helper method to delete all documents in a subcollection
+	 */
+	private void deleteSubcollection(DocumentReference parentDoc, String subcollectionName) {
+		try {
+			CollectionReference subcollection = parentDoc.collection(subcollectionName);
+			List<QueryDocumentSnapshot> documents = subcollection.get().get().getDocuments();
 
-            if (documents.isEmpty()) {
-                log.debug("Subcollection {} is empty, skipping", subcollectionName);
-                return;
-            }
+			if (documents.isEmpty()) {
+				log.debug("Subcollection {} is empty, skipping", subcollectionName);
+				return;
+			}
 
-            // Use batched writes for efficiency (max 500 per batch)
-            WriteBatch batch = firestore.batch();
-            int batchCount = 0;
+			// Use batched writes for efficiency (max 500 per batch)
+			WriteBatch batch = firestore.batch();
+			int batchCount = 0;
 
-            for (QueryDocumentSnapshot doc : documents) {
-                batch.delete(doc.getReference());
-                batchCount++;
+			for (QueryDocumentSnapshot doc : documents) {
+				batch.delete(doc.getReference());
+				batchCount++;
 
-                // Firestore batch limit is 500
-                if (batchCount >= 500) {
-                    batch.commit().get();
-                    batch = firestore.batch();
-                    batchCount = 0;
-                }
-            }
+				// Firestore batch limit is 500
+				if (batchCount >= 500) {
+					batch.commit().get();
+					batch = firestore.batch();
+					batchCount = 0;
+				}
+			}
 
-            // Commit remaining deletes
-            if (batchCount > 0) {
-                batch.commit().get();
-            }
+			// Commit remaining deletes
+			if (batchCount > 0) {
+				batch.commit().get();
+			}
 
-            log.info("Deleted {} documents from subcollection {}", documents.size(), subcollectionName);
+			log.info("Deleted {} documents from subcollection {}", documents.size(), subcollectionName);
 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while deleting subcollection {}: {}", subcollectionName, e.getMessage());
-        } catch (ExecutionException e) {
-            log.error("Failed to delete subcollection {}: {}", subcollectionName, e.getMessage());
-        }
-    }
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			log.error("Interrupted while deleting subcollection {}: {}", subcollectionName, e.getMessage());
+		}
+		catch (ExecutionException e) {
+			log.error("Failed to delete subcollection {}: {}", subcollectionName, e.getMessage());
+		}
+	}
 
-    @Override
-    public Optional<UserEntity> findByEmail(String email) {
-        try {
-            Query query = getCollection()
-                .whereEqualTo("profile.email", email)
-                .whereEqualTo("isActive", true)
-                .limit(1);
-            
-            var documents = query.get().get().getDocuments();
-            if (documents.isEmpty()) {
-                return Optional.empty();
-            }
-            
-            return Optional.of(documents.get(0).toObject(UserEntity.class));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", email);
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity", email);
-        }
-    }
+	@Override
+	public Optional<UserEntity> findByEmail(String email) {
+		try {
+			Query query = getCollection().whereEqualTo("profile.email", email).whereEqualTo("isActive", true).limit(1);
 
-    @Override
-    public boolean existsById(String userId) {
-        return findById(userId).isPresent();
-    }
+			var documents = query.get().get().getDocuments();
+			if (documents.isEmpty()) {
+				return Optional.empty();
+			}
 
-    @Override
-    public List<UserEntity> findAll() {
-        try {
-            Query query = getCollection()
-                .whereEqualTo("isActive", true);
+			return Optional.of(documents.get(0).toObject(UserEntity.class));
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"UserEntity", email);
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity",
+					email);
+		}
+	}
 
-            return query.get().get().getDocuments().stream()
-                .map(doc -> doc.toObject(UserEntity.class))
-                .collect(Collectors.toList());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
-        }
-    }
+	@Override
+	public boolean existsById(String userId) {
+		return findById(userId).isPresent();
+	}
 
-    @Override
-    public List<UserEntity> findAllIncludingInactive() {
-        try {
-            // Get ALL users, regardless of isActive status
-            return getCollection().get().get().getDocuments().stream()
-                .map(doc -> {
-                    UserEntity user = doc.toObject(UserEntity.class);
-                    if (user != null) {
-                        user.setId(doc.getId());
-                    }
-                    return user;
-                })
-                .filter(user -> user != null)
-                .collect(Collectors.toList());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
-        }
-    }
+	@Override
+	public List<UserEntity> findAll() {
+		try {
+			Query query = getCollection().whereEqualTo("isActive", true);
 
-    @Override
-    public UserEntity save(UserEntity user) {
-        // Use email as audit user for user entities
-        String auditUser = (user.getProfile() != null && user.getProfile().getEmail() != null)
-            ? user.getProfile().getEmail()
-            : user.getUserId();
-        return super.save(user, auditUser);
-    }
+			return query.get()
+				.get()
+				.getDocuments()
+				.stream()
+				.map(doc -> doc.toObject(UserEntity.class))
+				.collect(Collectors.toList());
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"UserEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
+		}
+	}
 
-    @Override
-    public UserEntity createUserIfEmailNotExists(UserEntity user, String createdBy) {
-        log.info("=== USER REPOSITORY: createUserIfEmailNotExists START ===");
-        String email = user.getProfile() != null ? user.getProfile().getEmail() : null;
+	@Override
+	public List<UserEntity> findAllIncludingInactive() {
+		try {
+			// Get ALL users, regardless of isActive status
+			return getCollection().get().get().getDocuments().stream().map(doc -> {
+				UserEntity user = doc.toObject(UserEntity.class);
+				if (user != null) {
+					user.setId(doc.getId());
+				}
+				return user;
+			}).filter(user -> user != null).collect(Collectors.toList());
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"UserEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "UserEntity");
+		}
+	}
 
-        if (email == null || email.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT,
-                "UserEntity", "User email cannot be null or empty");
-        }
+	@Override
+	public UserEntity save(UserEntity user) {
+		// Use email as audit user for user entities
+		String auditUser = (user.getProfile() != null && user.getProfile().getEmail() != null)
+				? user.getProfile().getEmail() : user.getUserId();
+		return super.save(user, auditUser);
+	}
 
-        log.info("Attempting atomic user creation for email: {}", email);
+	@Override
+	public UserEntity createUserIfEmailNotExists(UserEntity user, String createdBy) {
+		log.info("=== USER REPOSITORY: createUserIfEmailNotExists START ===");
+		String email = user.getProfile() != null ? user.getProfile().getEmail() : null;
 
-        try {
-            // Use Firestore transaction for atomic check-and-create
-            UserEntity createdUser = firestore.runTransaction(transaction -> {
-                // Step 1: Check if user with this email already exists
-                Query emailQuery = getCollection()
-                    .whereEqualTo("profile.email", email)
-                    .whereEqualTo("isActive", true)
-                    .limit(1);
+		if (email == null || email.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.INVALID_ARGUMENT, "UserEntity",
+					"User email cannot be null or empty");
+		}
 
-                // Note: We can't use transaction.get() with a Query directly,
-                // so we execute the query and check results
-                var existingDocs = emailQuery.get().get().getDocuments();
+		log.info("Attempting atomic user creation for email: {}", email);
 
-                if (!existingDocs.isEmpty()) {
-                    log.warn("User with email {} already exists, aborting creation", email);
-                    throw new DataRepositoryException(DataRepositoryErrorDetails.DUPLICATE_ENTITY, "UserEntity", email);
-                }
+		try {
+			// Use Firestore transaction for atomic check-and-create
+			UserEntity createdUser = firestore.runTransaction(transaction -> {
+				// Step 1: Check if user with this email already exists
+				Query emailQuery = getCollection().whereEqualTo("profile.email", email)
+					.whereEqualTo("isActive", true)
+					.limit(1);
 
-                // Step 2: Generate ID if not set
-                if (user.getUserId() == null || user.getUserId().isEmpty()) {
-                    String newUserId = UUID.randomUUID().toString();
-                    user.setUserId(newUserId);
-                }
+				// Note: We can't use transaction.get() with a Query directly,
+				// so we execute the query and check results
+				var existingDocs = emailQuery.get().get().getDocuments();
 
-                // Step 3: Initialize audit fields
-                if (!user._hasAudit()) {
-                    user._initAudit(createdBy);
-                }
-                user._validate();
+				if (!existingDocs.isEmpty()) {
+					log.warn("User with email {} already exists, aborting creation", email);
+					throw new DataRepositoryException(DataRepositoryErrorDetails.DUPLICATE_ENTITY, "UserEntity", email);
+				}
 
-                // Step 4: Create the user document within the transaction
-                DocumentReference userDocRef = getCollection().document(user.getUserId());
-                transaction.set(userDocRef, user);
+				// Step 2: Generate ID if not set
+				if (user.getUserId() == null || user.getUserId().isEmpty()) {
+					String newUserId = UUID.randomUUID().toString();
+					user.setUserId(newUserId);
+				}
 
-                log.info("User document created in transaction with ID: {}", user.getUserId());
-                return user;
-            }).get();
+				// Step 3: Initialize audit fields
+				if (!user._hasAudit()) {
+					user._initAudit(createdBy);
+				}
+				user._validate();
 
-            log.info("=== USER REPOSITORY: createUserIfEmailNotExists SUCCESS - userId: {} ===", createdUser.getUserId());
-            return createdUser;
+				// Step 4: Create the user document within the transaction
+				DocumentReference userDocRef = getCollection().document(user.getUserId());
+				transaction.set(userDocRef, user);
 
-        } catch (ExecutionException e) {
-            // Check if this is our custom "duplicate entity" error
-            Throwable cause = e.getCause();
-            if (cause instanceof DataRepositoryException) {
-                throw (DataRepositoryException) cause;
-            }
-            log.error("Failed to create user atomically: {}", e.getMessage(), e);
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "UserEntity", email);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "UserEntity", email);
-        }
-    }
+				log.info("User document created in transaction with ID: {}", user.getUserId());
+				return user;
+			}).get();
 
-    // ===============================
-    // Aggregation Operations
-    // ===============================
+			log.info("=== USER REPOSITORY: createUserIfEmailNotExists SUCCESS - userId: {} ===",
+					createdUser.getUserId());
+			return createdUser;
 
-    @Override
-    public UserAggregateData getUserWithAllData(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+		}
+		catch (ExecutionException e) {
+			// Check if this is our custom "duplicate entity" error
+			Throwable cause = e.getCause();
+			if (cause instanceof DataRepositoryException) {
+				throw (DataRepositoryException) cause;
+			}
+			log.error("Failed to create user atomically: {}", e.getMessage(), e);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "UserEntity", email);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"UserEntity", email);
+		}
+	}
 
-        UserAggregateData aggregate = new UserAggregateData();
-        aggregate.setUser(userOpt.get());
-        // TODO: Implement subcollection fetching
-        return aggregate;
-    }
+	// ===============================
+	// Aggregation Operations
+	// ===============================
 
-    @Override
-    public UserWithAuthMethods getUserWithAuthMethods(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+	@Override
+	public UserAggregateData getUserWithAllData(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-        UserWithAuthMethods result = new UserWithAuthMethods();
-        result.setUser(userOpt.get());
-        // TODO: Fetch auth methods from subcollection
-        return result;
-    }
+		UserAggregateData aggregate = new UserAggregateData();
+		aggregate.setUser(userOpt.get());
+		// TODO: Implement subcollection fetching
+		return aggregate;
+	}
 
-    @Override
-    public UserWithWatchlist getUserWithWatchlist(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+	@Override
+	public UserWithAuthMethods getUserWithAuthMethods(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-        UserWithWatchlist result = new UserWithWatchlist();
-        result.setUser(userOpt.get());
-        // TODO: Fetch watchlist from subcollection
-        return result;
-    }
+		UserWithAuthMethods result = new UserWithAuthMethods();
+		result.setUser(userOpt.get());
+		// TODO: Fetch auth methods from subcollection
+		return result;
+	}
 
-    @Override
-    public UserWithProviders getUserWithProviders(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+	@Override
+	public UserWithWatchlist getUserWithWatchlist(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-        UserWithProviders result = new UserWithProviders();
-        result.setUser(userOpt.get());
-        // TODO: Fetch providers from subcollection
-        return result;
-    }
+		UserWithWatchlist result = new UserWithWatchlist();
+		result.setUser(userOpt.get());
+		// TODO: Fetch watchlist from subcollection
+		return result;
+	}
 
-    @Override
-    public UserWithDevices getUserWithDevices(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+	@Override
+	public UserWithProviders getUserWithProviders(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-        UserWithDevices result = new UserWithDevices();
-        result.setUser(userOpt.get());
-        // TODO: Fetch devices from subcollection
-        return result;
-    }
+		UserWithProviders result = new UserWithProviders();
+		result.setUser(userOpt.get());
+		// TODO: Fetch providers from subcollection
+		return result;
+	}
 
-    @Override
-    public UserWithPreferences getUserWithPreferences(String userId) {
-        Optional<UserEntity> userOpt = findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
-        }
+	@Override
+	public UserWithDevices getUserWithDevices(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-        UserWithPreferences result = new UserWithPreferences();
-        result.setUser(userOpt.get());
-        // TODO: Fetch preferences from subcollection
-        return result;
-    }
+		UserWithDevices result = new UserWithDevices();
+		result.setUser(userOpt.get());
+		// TODO: Fetch devices from subcollection
+		return result;
+	}
 
-    // ===============================
-    // Watchlist Convenience Methods
-    // ===============================
+	@Override
+	public UserWithPreferences getUserWithPreferences(String userId) {
+		Optional<UserEntity> userOpt = findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_NOT_FOUND, "UserEntity", userId);
+		}
 
-    @Override
-    public Object readUserWatchlist(String userId) {
-        // TODO: Delegate to watchlist repository
-        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
-            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
-    }
+		UserWithPreferences result = new UserWithPreferences();
+		result.setUser(userOpt.get());
+		// TODO: Fetch preferences from subcollection
+		return result;
+	}
 
-    @Override
-    public boolean isAssetInWatchlist(String userId, String symbol) {
-        // TODO: Delegate to watchlist repository
-        return false;
-    }
+	// ===============================
+	// Watchlist Convenience Methods
+	// ===============================
 
-    @Override
-    public Object createWatchlistItem(String userId, Object request) {
-        // TODO: Delegate to watchlist repository
-        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
-            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
-    }
+	@Override
+	public Object readUserWatchlist(String userId) {
+		// TODO: Delegate to watchlist repository
+		throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED, "UserEntity",
+				"Watchlist operations should be delegated to data-watchlist module");
+	}
 
-    @Override
-    public Object deleteWatchlistItem(String userId, Object request) {
-        // TODO: Delegate to watchlist repository
-        throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED,
-            "UserEntity", "Watchlist operations should be delegated to data-watchlist module");
-    }
+	@Override
+	public boolean isAssetInWatchlist(String userId, String symbol) {
+		// TODO: Delegate to watchlist repository
+		return false;
+	}
+
+	@Override
+	public Object createWatchlistItem(String userId, Object request) {
+		// TODO: Delegate to watchlist repository
+		throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED, "UserEntity",
+				"Watchlist operations should be delegated to data-watchlist module");
+	}
+
+	@Override
+	public Object deleteWatchlistItem(String userId, Object request) {
+		// TODO: Delegate to watchlist repository
+		throw new DataRepositoryException(DataRepositoryErrorDetails.OPERATION_NOT_SUPPORTED, "UserEntity",
+				"Watchlist operations should be delegated to data-watchlist module");
+	}
+
 }

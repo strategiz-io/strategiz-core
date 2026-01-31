@@ -79,10 +79,9 @@ public class GrokDirectClient implements LLMProvider {
 				.uri("/v1/chat/completions")
 				.bodyValue(requestBody)
 				.retrieve()
-				.onStatus(status -> status.isError(),
-						response -> response.bodyToMono(String.class)
-							.flatMap(errorBody -> Mono
-								.error(new RuntimeException("Grok API error: " + response.statusCode() + " - " + errorBody))))
+				.onStatus(status -> status.isError(), response -> response.bodyToMono(String.class)
+					.flatMap(errorBody -> Mono
+						.error(new RuntimeException("Grok API error: " + response.statusCode() + " - " + errorBody))))
 				.bodyToMono(String.class)
 				.timeout(Duration.ofSeconds(config.getTimeoutSeconds()))
 				.map(responseBody -> parseResponse(responseBody, model))

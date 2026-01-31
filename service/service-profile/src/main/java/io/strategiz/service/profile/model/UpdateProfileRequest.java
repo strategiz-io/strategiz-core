@@ -8,117 +8,117 @@ import jakarta.validation.constraints.Size;
  * User profile request DTO for creating/updating user profiles
  */
 public class UpdateProfileRequest {
-    
-    @NotBlank(message = "Name is required")
-    @Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters")
-    private String name;
-    
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be valid")
-    private String email;
-    
-    private String photoURL;
 
-    private String subscriptionTier;
+	@NotBlank(message = "Name is required")
+	@Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters")
+	private String name;
 
-    private Boolean demoMode;
+	@NotBlank(message = "Email is required")
+	@Email(message = "Email must be valid")
+	private String email;
 
-    @Size(max = 500, message = "Bio must be less than 500 characters")
-    private String bio;
+	private String photoURL;
 
-    @Size(max = 100, message = "Location must be less than 100 characters")
-    private String location;
+	private String subscriptionTier;
 
-    @Size(max = 100, message = "Occupation must be less than 100 characters")
-    private String occupation;
+	private Boolean demoMode;
 
-    @Size(max = 100, message = "Education must be less than 100 characters")
-    private String education;
+	@Size(max = 500, message = "Bio must be less than 500 characters")
+	private String bio;
 
-    // Default constructor
-    public UpdateProfileRequest() {
-    }
+	@Size(max = 100, message = "Location must be less than 100 characters")
+	private String location;
 
-    // Constructor with all fields
-    public UpdateProfileRequest(String name, String email, String photoURL,
-                          String subscriptionTier, Boolean demoMode) {
-        this.name = name;
-        this.email = email;
-        this.photoURL = photoURL;
-        this.subscriptionTier = subscriptionTier;
-        this.demoMode = demoMode;
-    }
+	@Size(max = 100, message = "Occupation must be less than 100 characters")
+	private String occupation;
 
-    // Getters and setters
-    public String getName() {
-        return name;
-    }
+	@Size(max = 100, message = "Education must be less than 100 characters")
+	private String education;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	// Default constructor
+	public UpdateProfileRequest() {
+	}
 
-    public String getEmail() {
-        return email;
-    }
+	// Constructor with all fields
+	public UpdateProfileRequest(String name, String email, String photoURL, String subscriptionTier, Boolean demoMode) {
+		this.name = name;
+		this.email = email;
+		this.photoURL = photoURL;
+		this.subscriptionTier = subscriptionTier;
+		this.demoMode = demoMode;
+	}
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	// Getters and setters
+	public String getName() {
+		return name;
+	}
 
-    public String getPhotoURL() {
-        return photoURL;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public void setPhotoURL(String photoURL) {
-        this.photoURL = photoURL;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public String getSubscriptionTier() {
-        return subscriptionTier;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public void setSubscriptionTier(String subscriptionTier) {
-        this.subscriptionTier = subscriptionTier;
-    }
+	public String getPhotoURL() {
+		return photoURL;
+	}
 
-    public Boolean getDemoMode() {
-        return demoMode;
-    }
+	public void setPhotoURL(String photoURL) {
+		this.photoURL = photoURL;
+	}
 
-    public void setDemoMode(Boolean demoMode) {
-        this.demoMode = demoMode;
-    }
+	public String getSubscriptionTier() {
+		return subscriptionTier;
+	}
 
-    public String getBio() {
-        return bio;
-    }
+	public void setSubscriptionTier(String subscriptionTier) {
+		this.subscriptionTier = subscriptionTier;
+	}
 
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
+	public Boolean getDemoMode() {
+		return demoMode;
+	}
 
-    public String getLocation() {
-        return location;
-    }
+	public void setDemoMode(Boolean demoMode) {
+		this.demoMode = demoMode;
+	}
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
+	public String getBio() {
+		return bio;
+	}
 
-    public String getOccupation() {
-        return occupation;
-    }
+	public void setBio(String bio) {
+		this.bio = bio;
+	}
 
-    public void setOccupation(String occupation) {
-        this.occupation = occupation;
-    }
+	public String getLocation() {
+		return location;
+	}
 
-    public String getEducation() {
-        return education;
-    }
+	public void setLocation(String location) {
+		this.location = location;
+	}
 
-    public void setEducation(String education) {
-        this.education = education;
-    }
+	public String getOccupation() {
+		return occupation;
+	}
+
+	public void setOccupation(String occupation) {
+		this.occupation = occupation;
+	}
+
+	public String getEducation() {
+		return education;
+	}
+
+	public void setEducation(String education) {
+		this.education = education;
+	}
+
 }

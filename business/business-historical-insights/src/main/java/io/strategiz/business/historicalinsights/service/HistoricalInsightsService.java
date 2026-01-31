@@ -21,11 +21,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Service for analyzing historical market data to generate insights for Historical Market Insights (Autonomous AI mode).
- * Computes volatility profiles, ranks indicators by effectiveness, finds optimal parameters,
- * and detects market characteristics using 7 years of historical OHLCV data.
+ * Service for analyzing historical market data to generate insights for Historical Market
+ * Insights (Autonomous AI mode). Computes volatility profiles, ranks indicators by
+ * effectiveness, finds optimal parameters, and detects market characteristics using 7
+ * years of historical OHLCV data.
  *
- * Requires ClickHouse to be enabled - this service will not be available when ClickHouse is disabled.
+ * Requires ClickHouse to be enabled - this service will not be available when ClickHouse
+ * is disabled.
  */
 @Service
 @ConditionalOnProperty(name = "strategiz.clickhouse.enabled", havingValue = "true")
@@ -37,7 +39,8 @@ public class HistoricalInsightsService {
 
 	private static final int MAX_BARS = 2600; // ~7 years of daily data
 
-	private static final int FAST_MODE_BARS = 750; // ~3 years - faster analysis with good accuracy
+	private static final int FAST_MODE_BARS = 750; // ~3 years - faster analysis with good
+													// accuracy
 
 	// Thread pool for parallel indicator backtesting
 	private static final ExecutorService BACKTEST_EXECUTOR = Executors.newFixedThreadPool(4);
@@ -89,12 +92,12 @@ public class HistoricalInsightsService {
 	 * Main entry point: Analyze a symbol and return comprehensive historical insights.
 	 * Fast mode focuses on turning points detection (peaks/troughs) - the AI deduces
 	 * optimal buy/sell points directly from the price history without indicator analysis.
-	 *
 	 * @param symbol Symbol to analyze
 	 * @param timeframe Timeframe (e.g., "1D", "1h")
 	 * @param lookbackDays Number of days to look back (default 2600 for ~7 years)
 	 * @param includeFundamentals Whether to include fundamental analysis
-	 * @param fastMode If true, skips indicator backtests and focuses on turning points only
+	 * @param fastMode If true, skips indicator backtests and focuses on turning points
+	 * only
 	 * @return SymbolInsights object with all computed insights
 	 */
 	public SymbolInsights analyzeSymbolForStrategyGeneration(String symbol, String timeframe, int lookbackDays,
@@ -104,7 +107,8 @@ public class HistoricalInsightsService {
 		int effectiveLookback = fastMode ? Math.min(lookbackDays, FAST_MODE_BARS) : lookbackDays;
 		int maxBars = fastMode ? FAST_MODE_BARS : MAX_BARS;
 
-		log.info("Starting Historical Market Insights analysis for symbol={}, timeframe={}, lookback={} days, fastMode={}",
+		log.info(
+				"Starting Historical Market Insights analysis for symbol={}, timeframe={}, lookback={} days, fastMode={}",
 				symbol, timeframe, effectiveLookback, fastMode);
 
 		// 1. Query historical data
@@ -158,7 +162,8 @@ public class HistoricalInsightsService {
 		// 5b. ENHANCED: Run advanced analysis on turning points and price data
 		performAdvancedAnalysis(insights, turningPoints, data);
 
-		// 6. Skip indicator backtests in fast mode - AI deduces from turning points directly
+		// 6. Skip indicator backtests in fast mode - AI deduces from turning points
+		// directly
 		if (fastMode) {
 			// Provide minimal indicator info (no backtesting)
 			insights.setTopIndicators(new ArrayList<>());
@@ -185,8 +190,8 @@ public class HistoricalInsightsService {
 			insights.setFundamentals(fundInsights);
 		}
 
-		log.info("Historical Market Insights completed for {} in {} mode. {} turning points, {} volatility",
-				symbol, fastMode ? "FAST" : "FULL", turningPoints.size(), volatilityProfile.getRegime());
+		log.info("Historical Market Insights completed for {} in {} mode. {} turning points, {} volatility", symbol,
+				fastMode ? "FAST" : "FULL", turningPoints.size(), volatilityProfile.getRegime());
 
 		return insights;
 	}
@@ -298,18 +303,23 @@ public class HistoricalInsightsService {
 	// ========== INDICATOR RANKING (REAL BACKTESTING) ==========
 
 	/**
-	 * Rank indicators by historical effectiveness using REAL backtesting on 7 years of data.
-	 * Tests multiple indicators with various parameter combinations and ranks by profitability.
-	 * Optimized: Runs all 4 indicator backtests in parallel for ~4x speedup.
+	 * Rank indicators by historical effectiveness using REAL backtesting on 7 years of
+	 * data. Tests multiple indicators with various parameter combinations and ranks by
+	 * profitability. Optimized: Runs all 4 indicator backtests in parallel for ~4x
+	 * speedup.
 	 */
 	private List<IndicatorRanking> analyzeIndicatorEffectiveness(List<MarketDataEntity> data) {
 		log.info("Running parallel backtest analysis on {} bars to find best indicators...", data.size());
 
 		// Run all 4 indicator backtests in parallel
-		CompletableFuture<Double> rsiFuture = CompletableFuture.supplyAsync(() -> testRSIStrategy(data), BACKTEST_EXECUTOR);
-		CompletableFuture<Double> macdFuture = CompletableFuture.supplyAsync(() -> testMACDStrategy(data), BACKTEST_EXECUTOR);
-		CompletableFuture<Double> bbFuture = CompletableFuture.supplyAsync(() -> testBollingerBandsStrategy(data), BACKTEST_EXECUTOR);
-		CompletableFuture<Double> maFuture = CompletableFuture.supplyAsync(() -> testMACrossoverStrategy(data), BACKTEST_EXECUTOR);
+		CompletableFuture<Double> rsiFuture = CompletableFuture.supplyAsync(() -> testRSIStrategy(data),
+				BACKTEST_EXECUTOR);
+		CompletableFuture<Double> macdFuture = CompletableFuture.supplyAsync(() -> testMACDStrategy(data),
+				BACKTEST_EXECUTOR);
+		CompletableFuture<Double> bbFuture = CompletableFuture.supplyAsync(() -> testBollingerBandsStrategy(data),
+				BACKTEST_EXECUTOR);
+		CompletableFuture<Double> maFuture = CompletableFuture.supplyAsync(() -> testMACrossoverStrategy(data),
+				BACKTEST_EXECUTOR);
 
 		// Wait for all to complete
 		CompletableFuture.allOf(rsiFuture, macdFuture, bbFuture, maFuture).join();
@@ -318,29 +328,27 @@ public class HistoricalInsightsService {
 		List<IndicatorRanking> rankings = new ArrayList<>();
 		try {
 			double bestRSIScore = rsiFuture.get();
-			rankings.add(new IndicatorRanking("RSI", bestRSIScore,
-					Map.of("period", 14, "oversold", 30, "overbought", 70),
-					String.format("Mean-reversion: %.1f%% win rate from backtesting", bestRSIScore * 100)));
+			rankings
+				.add(new IndicatorRanking("RSI", bestRSIScore, Map.of("period", 14, "oversold", 30, "overbought", 70),
+						String.format("Mean-reversion: %.1f%% win rate from backtesting", bestRSIScore * 100)));
 
 			double bestMACDScore = macdFuture.get();
-			rankings.add(new IndicatorRanking("MACD", bestMACDScore,
-					Map.of("fast", 12, "slow", 26, "signal", 9),
+			rankings.add(new IndicatorRanking("MACD", bestMACDScore, Map.of("fast", 12, "slow", 26, "signal", 9),
 					String.format("Trend-following: %.1f%% win rate from backtesting", bestMACDScore * 100)));
 
 			double bestBBScore = bbFuture.get();
-			rankings.add(new IndicatorRanking("Bollinger Bands", bestBBScore,
-					Map.of("period", 20, "stddev", 2),
+			rankings.add(new IndicatorRanking("Bollinger Bands", bestBBScore, Map.of("period", 20, "stddev", 2),
 					String.format("Volatility breakout: %.1f%% win rate from backtesting", bestBBScore * 100)));
 
 			double bestMAScore = maFuture.get();
-			rankings.add(new IndicatorRanking("MA Crossover", bestMAScore,
-					Map.of("fast", 20, "slow", 50),
+			rankings.add(new IndicatorRanking("MA Crossover", bestMAScore, Map.of("fast", 20, "slow", 50),
 					String.format("Trend confirmation: %.1f%% win rate from backtesting", bestMAScore * 100)));
 		}
 		catch (Exception e) {
 			log.error("Error during parallel backtest execution", e);
 			// Fallback to default rankings
-			rankings.add(new IndicatorRanking("RSI", 0.5, Map.of("period", 14, "oversold", 30, "overbought", 70), "Default"));
+			rankings.add(new IndicatorRanking("RSI", 0.5, Map.of("period", 14, "oversold", 30, "overbought", 70),
+					"Default"));
 			rankings.add(new IndicatorRanking("MACD", 0.5, Map.of("fast", 12, "slow", 26, "signal", 9), "Default"));
 			rankings.add(new IndicatorRanking("Bollinger Bands", 0.5, Map.of("period", 20, "stddev", 2), "Default"));
 			rankings.add(new IndicatorRanking("MA Crossover", 0.5, Map.of("fast", 20, "slow", 50), "Default"));
@@ -356,11 +364,12 @@ public class HistoricalInsightsService {
 	}
 
 	/**
-	 * Backtest RSI strategy: Buy when RSI < oversold, sell when RSI > overbought.
-	 * Returns win rate as effectiveness score.
+	 * Backtest RSI strategy: Buy when RSI < oversold, sell when RSI > overbought. Returns
+	 * win rate as effectiveness score.
 	 */
 	private double testRSIStrategy(List<MarketDataEntity> data) {
-		if (data.size() < 50) return 0.3; // Not enough data
+		if (data.size() < 50)
+			return 0.3; // Not enough data
 
 		int wins = 0;
 		int losses = 0;
@@ -383,27 +392,33 @@ public class HistoricalInsightsService {
 				// Buy signal
 				inPosition = true;
 				entryPrice = price;
-			} else if (inPosition && currentRSI > overbought) {
+			}
+			else if (inPosition && currentRSI > overbought) {
 				// Sell signal
 				double profit = price - entryPrice;
-				if (profit > 0) wins++;
-				else losses++;
+				if (profit > 0)
+					wins++;
+				else
+					losses++;
 				inPosition = false;
 			}
 		}
 
 		// Calculate win rate
 		int totalTrades = wins + losses;
-		if (totalTrades == 0) return 0.3; // No trades = neutral score
+		if (totalTrades == 0)
+			return 0.3; // No trades = neutral score
 
 		return (double) wins / totalTrades;
 	}
 
 	/**
-	 * Backtest MACD strategy: Buy when MACD crosses above signal, sell when crosses below.
+	 * Backtest MACD strategy: Buy when MACD crosses above signal, sell when crosses
+	 * below.
 	 */
 	private double testMACDStrategy(List<MarketDataEntity> data) {
-		if (data.size() < 50) return 0.3;
+		if (data.size() < 50)
+			return 0.3;
 
 		int wins = 0;
 		int losses = 0;
@@ -430,8 +445,10 @@ public class HistoricalInsightsService {
 			// Cross below
 			else if (inPosition && prevMacd >= prevSignal && currentMacd < currentSignal) {
 				double profit = price - entryPrice;
-				if (profit > 0) wins++;
-				else losses++;
+				if (profit > 0)
+					wins++;
+				else
+					losses++;
 				inPosition = false;
 			}
 		}
@@ -445,7 +462,8 @@ public class HistoricalInsightsService {
 	 * Optimized: Uses rolling window calculation O(n) instead of O(n²).
 	 */
 	private double testBollingerBandsStrategy(List<MarketDataEntity> data) {
-		if (data.size() < 50) return 0.3;
+		if (data.size() < 50)
+			return 0.3;
 
 		int wins = 0;
 		int losses = 0;
@@ -487,8 +505,10 @@ public class HistoricalInsightsService {
 			// Sell at upper band
 			else if (inPosition && price >= upperBand) {
 				double profit = price - entryPrice;
-				if (profit > 0) wins++;
-				else losses++;
+				if (profit > 0)
+					wins++;
+				else
+					losses++;
 				inPosition = false;
 			}
 
@@ -509,7 +529,8 @@ public class HistoricalInsightsService {
 	 * Backtest MA Crossover: Buy when fast MA crosses above slow MA, sell on cross below.
 	 */
 	private double testMACrossoverStrategy(List<MarketDataEntity> data) {
-		if (data.size() < 100) return 0.3;
+		if (data.size() < 100)
+			return 0.3;
 
 		int wins = 0;
 		int losses = 0;
@@ -531,8 +552,10 @@ public class HistoricalInsightsService {
 			// Cross below
 			else if (inPosition && fastMA[i - 1] >= slowMA[i - 1] && fastMA[i] < slowMA[i]) {
 				double profit = price - entryPrice;
-				if (profit > 0) wins++;
-				else losses++;
+				if (profit > 0)
+					wins++;
+				else
+					losses++;
 				inPosition = false;
 			}
 		}
@@ -551,8 +574,10 @@ public class HistoricalInsightsService {
 		// Initial average
 		for (int i = 1; i <= period; i++) {
 			double change = data.get(i).getClose().doubleValue() - data.get(i - 1).getClose().doubleValue();
-			if (change > 0) avgGain += change;
-			else avgLoss += Math.abs(change);
+			if (change > 0)
+				avgGain += change;
+			else
+				avgLoss += Math.abs(change);
 		}
 		avgGain /= period;
 		avgLoss /= period;
@@ -627,8 +652,7 @@ public class HistoricalInsightsService {
 	 * Find optimal parameters for top indicators. Simplified: Returns defaults. Full
 	 * implementation would use grid search.
 	 */
-	private Map<String, Object> findOptimalParameters(List<MarketDataEntity> data,
-			List<IndicatorRanking> rankings) {
+	private Map<String, Object> findOptimalParameters(List<MarketDataEntity> data, List<IndicatorRanking> rankings) {
 		Map<String, Object> params = new HashMap<>();
 
 		// Extract from top ranking
@@ -647,8 +671,8 @@ public class HistoricalInsightsService {
 	// ========== MARKET CHARACTERISTICS ==========
 
 	/**
-	 * Detect market characteristics: trend direction, strength, mean-reversion. Simplified:
-	 * Uses basic linear regression.
+	 * Detect market characteristics: trend direction, strength, mean-reversion.
+	 * Simplified: Uses basic linear regression.
 	 */
 	private MarketCharacteristics detectMarketCharacteristics(List<MarketDataEntity> data) {
 		if (data.size() < 30) {
@@ -688,7 +712,8 @@ public class HistoricalInsightsService {
 
 		// Mean-reversion (simplified: Hurst exponent approximation)
 		// Placeholder: real Hurst calculation is complex
-		boolean isMeanReverting = trendStrength < 0.3; // Weak trend = likely mean-reverting
+		boolean isMeanReverting = trendStrength < 0.3; // Weak trend = likely
+														// mean-reverting
 
 		log.debug("Market characteristics: trend={}, strength={}, meanReverting={}", trendDirection, trendStrength,
 				isMeanReverting);
@@ -747,9 +772,9 @@ public class HistoricalInsightsService {
 	// ========== TURNING POINTS DETECTION (Autonomous AI Hindsight) ==========
 
 	/**
-	 * Detect major price turning points (peaks and troughs) from historical data.
-	 * These are the optimal buy/sell points that the AI should try to capture.
-	 * Uses a zigzag algorithm with minimum threshold to filter noise.
+	 * Detect major price turning points (peaks and troughs) from historical data. These
+	 * are the optimal buy/sell points that the AI should try to capture. Uses a zigzag
+	 * algorithm with minimum threshold to filter noise.
 	 */
 	private List<PriceTurningPoint> detectMajorTurningPoints(List<MarketDataEntity> data) {
 		List<PriceTurningPoint> turningPoints = new ArrayList<>();
@@ -792,11 +817,8 @@ public class HistoricalInsightsService {
 				double rallyPercent = ((high - potentialLow) / potentialLow) * 100;
 				if (rallyPercent >= minChangePercent) {
 					// Confirmed trough - this was an optimal BUY point
-					PriceTurningPoint trough = new PriceTurningPoint(
-							PriceTurningPoint.PointType.TROUGH,
-							potentialLowTime,
-							potentialLow
-					);
+					PriceTurningPoint trough = new PriceTurningPoint(PriceTurningPoint.PointType.TROUGH,
+							potentialLowTime, potentialLow);
 
 					if (lastType != null) {
 						double changeFromPrev = ((potentialLow - lastTurningPrice) / lastTurningPrice) * 100;
@@ -821,11 +843,8 @@ public class HistoricalInsightsService {
 				double dropPercent = ((potentialHigh - low) / potentialHigh) * 100;
 				if (dropPercent >= minChangePercent) {
 					// Confirmed peak - this was an optimal SELL point
-					PriceTurningPoint peak = new PriceTurningPoint(
-							PriceTurningPoint.PointType.PEAK,
-							potentialHighTime,
-							potentialHigh
-					);
+					PriceTurningPoint peak = new PriceTurningPoint(PriceTurningPoint.PointType.PEAK, potentialHighTime,
+							potentialHigh);
 
 					if (lastType != null) {
 						double changeFromPrev = ((potentialHigh - lastTurningPrice) / lastTurningPrice) * 100;
@@ -852,10 +871,8 @@ public class HistoricalInsightsService {
 		// Limit to most significant turning points (max 20 for token limits)
 		if (turningPoints.size() > 20) {
 			// Keep the ones with largest price changes
-			turningPoints.sort((a, b) -> Double.compare(
-					Math.abs(b.getPriceChangeFromPrevious()),
-					Math.abs(a.getPriceChangeFromPrevious())
-			));
+			turningPoints.sort((a, b) -> Double.compare(Math.abs(b.getPriceChangeFromPrevious()),
+					Math.abs(a.getPriceChangeFromPrevious())));
 			turningPoints = new ArrayList<>(turningPoints.subList(0, 20));
 			turningPoints.sort(Comparator.comparing(PriceTurningPoint::getTimestamp));
 		}
@@ -885,8 +902,10 @@ public class HistoricalInsightsService {
 
 		// Build summary
 		StringBuilder summary = new StringBuilder();
-		summary.append(String.format("P/E: %.1f, ", fund.getPriceToEarnings() != null ? fund.getPriceToEarnings() : BigDecimal.ZERO));
-		summary.append(String.format("ROE: %.1f%%, ", fund.getReturnOnEquity() != null ? fund.getReturnOnEquity() : BigDecimal.ZERO));
+		summary.append(String.format("P/E: %.1f, ",
+				fund.getPriceToEarnings() != null ? fund.getPriceToEarnings() : BigDecimal.ZERO));
+		summary.append(String.format("ROE: %.1f%%, ",
+				fund.getReturnOnEquity() != null ? fund.getReturnOnEquity() : BigDecimal.ZERO));
 		summary.append(String.format("Margin: %.1f%%",
 				fund.getProfitMargin() != null ? fund.getProfitMargin() : BigDecimal.ZERO));
 		insights.setSummary(summary.toString());
@@ -920,11 +939,10 @@ public class HistoricalInsightsService {
 	// ========== ENHANCED ANALYSIS METHODS (Phase 1) ==========
 
 	/**
-	 * Enrich turning points with indicator values at each point.
-	 * This allows us to analyze what indicators signaled each peak/trough.
+	 * Enrich turning points with indicator values at each point. This allows us to
+	 * analyze what indicators signaled each peak/trough.
 	 */
-	private void enrichTurningPointsWithIndicators(List<PriceTurningPoint> turningPoints,
-			List<MarketDataEntity> data) {
+	private void enrichTurningPointsWithIndicators(List<PriceTurningPoint> turningPoints, List<MarketDataEntity> data) {
 		if (turningPoints == null || turningPoints.isEmpty() || data == null || data.size() < 30) {
 			return;
 		}
@@ -1084,8 +1102,8 @@ public class HistoricalInsightsService {
 
 			// Run multi-timeframe analysis
 			String timeframe = insights.getTimeframe() != null ? insights.getTimeframe() : "1D";
-			MultiTimeframeAnalyzer.MultiTimeframeResult mtfResult = mtfAnalyzer.analyze(
-					timeframe, prices, highs, lows, volumes);
+			MultiTimeframeAnalyzer.MultiTimeframeResult mtfResult = mtfAnalyzer.analyze(timeframe, prices, highs, lows,
+					volumes);
 
 			// Set results on insights
 			insights.setMtfOverallTrend(mtfResult.getOverallTrend());
@@ -1095,8 +1113,8 @@ public class HistoricalInsightsService {
 			insights.setMtfEntryTimeframe(mtfResult.getOptimalEntryTimeframe());
 			insights.setMtfRecommendations(mtfResult.getTradingRecommendations());
 
-			log.debug("Multi-timeframe analysis: {} ({:.0f}% aligned)",
-					mtfResult.getAlignment(), mtfResult.getAlignmentScore());
+			log.debug("Multi-timeframe analysis: {} ({:.0f}% aligned)", mtfResult.getAlignment(),
+					mtfResult.getAlignmentScore());
 		}
 		catch (Exception e) {
 			log.warn("Multi-timeframe analysis failed: {}", e.getMessage());

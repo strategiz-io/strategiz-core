@@ -6,48 +6,48 @@ import java.io.Serializable;
  * Model for Facebook user information
  */
 public class FacebookUserInfo implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
-    private final String facebookId;
-    private final String email;
-    private final String name;
-    private final String pictureUrl;
 
-    public FacebookUserInfo(String facebookId, String email, String name) {
-        this(facebookId, email, name, null);
-    }
+	private static final long serialVersionUID = 1L;
 
-    public FacebookUserInfo(String facebookId, String email, String name, String pictureUrl) {
-        this.facebookId = facebookId;
-        this.email = email;
-        this.name = name;
-        this.pictureUrl = pictureUrl;
-    }
+	private final String facebookId;
 
-    public String getFacebookId() {
-        return facebookId;
-    }
+	private final String email;
 
-    public String getEmail() {
-        return email;
-    }
+	private final String name;
 
-    public String getName() {
-        return name;
-    }
+	private final String pictureUrl;
 
-    public String getPictureUrl() {
-        return pictureUrl;
-    }
+	public FacebookUserInfo(String facebookId, String email, String name) {
+		this(facebookId, email, name, null);
+	}
 
-    @Override
-    public String toString() {
-        return "FacebookUserInfo{" +
-               "facebookId='" + facebookId + '\'' +
-               ", email='" + email + '\'' +
-               ", name='" + name + '\'' +
-               ", pictureUrl='" + pictureUrl + '\'' +
-               '}';
-    }
-} 
+	public FacebookUserInfo(String facebookId, String email, String name, String pictureUrl) {
+		this.facebookId = facebookId;
+		this.email = email;
+		this.name = name;
+		this.pictureUrl = pictureUrl;
+	}
+
+	public String getFacebookId() {
+		return facebookId;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public String getPictureUrl() {
+		return pictureUrl;
+	}
+
+	@Override
+	public String toString() {
+		return "FacebookUserInfo{" + "facebookId='" + facebookId + '\'' + ", email='" + email + '\'' + ", name='" + name
+				+ '\'' + ", pictureUrl='" + pictureUrl + '\'' + '}';
+	}
+
+}

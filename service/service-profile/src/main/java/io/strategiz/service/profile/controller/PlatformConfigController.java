@@ -14,8 +14,8 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 /**
- * Controller for public platform configuration.
- * Exposes non-sensitive platform settings to the frontend.
+ * Controller for public platform configuration. Exposes non-sensitive platform settings
+ * to the frontend.
  */
 @RestController
 @RequestMapping("/v1/config")
@@ -35,8 +35,7 @@ public class PlatformConfigController extends BaseController {
 	}
 
 	/**
-	 * Get public platform configuration.
-	 * This endpoint does NOT require authentication.
+	 * Get public platform configuration. This endpoint does NOT require authentication.
 	 * @return Platform config (public fields only)
 	 */
 	@GetMapping("/platform")
@@ -46,13 +45,10 @@ public class PlatformConfigController extends BaseController {
 		PlatformConfig config = platformConfigRepository.getCurrent();
 
 		// Return only public-facing config values
-		return ResponseEntity.ok(Map.of(
-				"platformFeePercent", config.getPlatformFeePercent(),
-				"stratTokensPerUsd", config.getStratTokensPerUsd(),
-				"minimumPurchaseCents", config.getMinimumPurchaseCents(),
-				"minimumTipStrat", config.getMinimumTipStrat(),
-				"minimumWithdrawStrat", config.getMinimumWithdrawStrat(),
-				"defaultOwnerPrice", config.getDefaultOwnerPrice()));
+		return ResponseEntity.ok(Map.of("platformFeePercent", config.getPlatformFeePercent(), "stratTokensPerUsd",
+				config.getStratTokensPerUsd(), "minimumPurchaseCents", config.getMinimumPurchaseCents(),
+				"minimumTipStrat", config.getMinimumTipStrat(), "minimumWithdrawStrat",
+				config.getMinimumWithdrawStrat(), "defaultOwnerPrice", config.getDefaultOwnerPrice()));
 	}
 
 	/**

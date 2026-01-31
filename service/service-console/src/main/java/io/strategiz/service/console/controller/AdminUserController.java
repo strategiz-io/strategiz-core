@@ -122,8 +122,8 @@ public class AdminUserController extends BaseController {
 		log.warn("User {} permanently deleted by admin {}. {} passkey credentials removed.", userId, adminUserId,
 				deletedCredentialIds.size());
 
-		return ResponseEntity.ok(Map.of("message", "User permanently deleted", "deletedPasskeyCredentialIds",
-				deletedCredentialIds));
+		return ResponseEntity
+			.ok(Map.of("message", "User permanently deleted", "deletedPasskeyCredentialIds", deletedCredentialIds));
 	}
 
 	@PostMapping("/{userId}/role")
@@ -153,4 +153,3 @@ public class AdminUserController extends BaseController {
 	}
 
 }
-

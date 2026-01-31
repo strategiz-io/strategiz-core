@@ -18,8 +18,8 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive unit tests for DeploymentInsightsCalculator.
- * Tests Kelly criterion calculations, risk analysis, and deployment mode recommendations.
+ * Comprehensive unit tests for DeploymentInsightsCalculator. Tests Kelly criterion
+ * calculations, risk analysis, and deployment mode recommendations.
  */
 @DisplayName("Deployment Insights Calculator Tests")
 class DeploymentInsightsCalculatorTest {
@@ -79,11 +79,10 @@ class DeploymentInsightsCalculatorTest {
 		}
 
 		@ParameterizedTest
-		@CsvSource({
-				"0.50, 2.0, 25.0",  // 50% win rate, 2:1 reward
-				"0.60, 1.5, 18.0",  // 60% win rate, 1.5:1 reward
-				"0.70, 1.2, 12.0",  // 70% win rate, 1.2:1 reward
-				"0.40, 3.0, 30.0",  // 40% win rate, 3:1 reward
+		@CsvSource({ "0.50, 2.0, 25.0", // 50% win rate, 2:1 reward
+				"0.60, 1.5, 18.0", // 60% win rate, 1.5:1 reward
+				"0.70, 1.2, 12.0", // 70% win rate, 1.2:1 reward
+				"0.40, 3.0, 30.0", // 40% win rate, 3:1 reward
 		})
 		@DisplayName("Should calculate Kelly for various win rate / reward ratios")
 		void shouldCalculateKellyForVariousRatios(double winRate, double profitFactor, double expectedKellyMin) {
@@ -95,6 +94,7 @@ class DeploymentInsightsCalculatorTest {
 			assertTrue(insights.getKellyPercentage() > 0,
 					String.format("Kelly should be positive for WinRate=%.0f%%, PF=%.1f", winRate * 100, profitFactor));
 		}
+
 	}
 
 	@Nested
@@ -111,8 +111,9 @@ class DeploymentInsightsCalculatorTest {
 			assertNotNull(insights);
 			assertTrue(insights.getRecommendedPortfolioAllocation() <= 10.0,
 					"Should recommend <=10% allocation for 35% drawdown");
-			assertTrue(insights.getAllocationRationale().contains("drawdown") ||
-							insights.getAllocationRationale().toLowerCase().contains("risk"),
+			assertTrue(
+					insights.getAllocationRationale().contains("drawdown")
+							|| insights.getAllocationRationale().toLowerCase().contains("risk"),
 					"Rationale should mention drawdown or risk");
 
 			System.out.printf("High Drawdown Strategy: Recommended Allocation=%.1f%%, Drawdown=%.1f%%%n",
@@ -143,8 +144,7 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
 			assertNotNull(insights);
-			assertTrue(insights.getRecommendedPortfolioAllocation() <= 25.0,
-					"Allocation should never exceed 25%");
+			assertTrue(insights.getRecommendedPortfolioAllocation() <= 25.0, "Allocation should never exceed 25%");
 		}
 
 		@Test
@@ -156,8 +156,7 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
 			assertNotNull(insights);
-			assertTrue(insights.getRecommendedPortfolioAllocation() >= 2.0,
-					"Allocation should never be below 2%");
+			assertTrue(insights.getRecommendedPortfolioAllocation() >= 2.0, "Allocation should never be below 2%");
 		}
 
 		@Test
@@ -170,10 +169,10 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights highSharpeInsights = calculator.calculate(highSharpe, 1095);
 			DeploymentInsights lowSharpeInsights = calculator.calculate(lowSharpe, 1095);
 
-			assertTrue(lowSharpeInsights.getRecommendedPortfolioAllocation() <
-							highSharpeInsights.getRecommendedPortfolioAllocation(),
-					"Low Sharpe should result in lower allocation");
+			assertTrue(lowSharpeInsights.getRecommendedPortfolioAllocation() < highSharpeInsights
+				.getRecommendedPortfolioAllocation(), "Low Sharpe should result in lower allocation");
 		}
+
 	}
 
 	@Nested
@@ -181,16 +180,8 @@ class DeploymentInsightsCalculatorTest {
 	class DrawdownRiskTests {
 
 		@ParameterizedTest
-		@CsvSource({
-				"5.0, LOW",
-				"8.0, LOW",
-				"12.0, MEDIUM",
-				"18.0, MEDIUM",
-				"25.0, HIGH",
-				"32.0, HIGH",
-				"40.0, EXTREME",
-				"55.0, EXTREME"
-		})
+		@CsvSource({ "5.0, LOW", "8.0, LOW", "12.0, MEDIUM", "18.0, MEDIUM", "25.0, HIGH", "32.0, HIGH",
+				"40.0, EXTREME", "55.0, EXTREME" })
 		@DisplayName("Should classify drawdown risk levels correctly")
 		void shouldClassifyDrawdownRiskLevels(double drawdown, DrawdownRiskLevel expectedLevel) {
 			StrategyTestResult result = createTestResult(0.55, 1.8, drawdown, 1.5, 100);
@@ -210,8 +201,7 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
 			// 20% drawdown requires 25% recovery: 1/(1-0.20) - 1 = 0.25
-			assertEquals(25.0, insights.getRecoveryRequired(), 0.5,
-					"20% drawdown should require ~25% recovery");
+			assertEquals(25.0, insights.getRecoveryRequired(), 0.5, "20% drawdown should require ~25% recovery");
 		}
 
 		@Test
@@ -222,8 +212,7 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
 			// 50% drawdown requires 100% recovery: 1/(1-0.50) - 1 = 1.0
-			assertEquals(100.0, insights.getRecoveryRequired(), 1.0,
-					"50% drawdown should require ~100% recovery");
+			assertEquals(100.0, insights.getRecoveryRequired(), 1.0, "50% drawdown should require ~100% recovery");
 		}
 
 		@Test
@@ -235,9 +224,10 @@ class DeploymentInsightsCalculatorTest {
 
 			assertNotNull(insights.getDrawdownExplanation());
 			assertFalse(insights.getDrawdownExplanation().isEmpty());
-			assertTrue(insights.getDrawdownExplanation().contains("25") ||
-					insights.getDrawdownExplanation().contains("drawdown"));
+			assertTrue(insights.getDrawdownExplanation().contains("25")
+					|| insights.getDrawdownExplanation().contains("drawdown"));
 		}
+
 	}
 
 	@Nested
@@ -252,10 +242,8 @@ class DeploymentInsightsCalculatorTest {
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
 			assertNotNull(insights);
-			assertTrue(insights.getMaxConsecutiveLosses() > 0,
-					"Should estimate some consecutive losses");
-			assertTrue(insights.getMaxConsecutiveLosses() <= 100,
-					"Consecutive losses should be reasonable");
+			assertTrue(insights.getMaxConsecutiveLosses() > 0, "Should estimate some consecutive losses");
+			assertTrue(insights.getMaxConsecutiveLosses() <= 100, "Consecutive losses should be reasonable");
 
 			System.out.printf("Win Rate 50%%: Estimated Max Consecutive Losses = %d%n",
 					insights.getMaxConsecutiveLosses());
@@ -300,6 +288,7 @@ class DeploymentInsightsCalculatorTest {
 			assertNotNull(insights.getConsecutiveLossExplanation());
 			assertFalse(insights.getConsecutiveLossExplanation().isEmpty());
 		}
+
 	}
 
 	@Nested
@@ -373,9 +362,10 @@ class DeploymentInsightsCalculatorTest {
 
 			assertNotNull(insights.getDeploymentModeRationale());
 			assertFalse(insights.getDeploymentModeRationale().isEmpty());
-			assertTrue(insights.getDeploymentModeRationale().contains("trades") ||
-					insights.getDeploymentModeRationale().contains("year"));
+			assertTrue(insights.getDeploymentModeRationale().contains("trades")
+					|| insights.getDeploymentModeRationale().contains("year"));
 		}
+
 	}
 
 	@Nested
@@ -383,13 +373,7 @@ class DeploymentInsightsCalculatorTest {
 	class RiskMetricInterpretationTests {
 
 		@ParameterizedTest
-		@CsvSource({
-				"3.5, Excellent",
-				"2.5, Very Good",
-				"1.5, Good",
-				"0.7, Moderate",
-				"0.3, Poor"
-		})
+		@CsvSource({ "3.5, Excellent", "2.5, Very Good", "1.5, Good", "0.7, Moderate", "0.3, Poor" })
 		@DisplayName("Should interpret Sharpe ratio correctly")
 		void shouldInterpretSharpeRatio(double sharpe, String expectedKeyword) {
 			StrategyTestResult result = createTestResult(0.55, 1.8, 15.0, sharpe, 100);
@@ -402,13 +386,7 @@ class DeploymentInsightsCalculatorTest {
 		}
 
 		@ParameterizedTest
-		@CsvSource({
-				"3.5, Excellent",
-				"2.5, Very Good",
-				"1.7, Good",
-				"1.1, Break-even",
-				"0.8, Losing"
-		})
+		@CsvSource({ "3.5, Excellent", "2.5, Very Good", "1.7, Good", "1.1, Break-even", "0.8, Losing" })
 		@DisplayName("Should interpret profit factor correctly")
 		void shouldInterpretProfitFactor(double pf, String expectedKeyword) {
 			StrategyTestResult result = createTestResult(0.55, pf, 15.0, 1.5, 100);
@@ -421,13 +399,7 @@ class DeploymentInsightsCalculatorTest {
 		}
 
 		@ParameterizedTest
-		@CsvSource({
-				"0.75, High",
-				"0.60, Good",
-				"0.48, Moderate",
-				"0.38, Low",
-				"0.25, Very Low"
-		})
+		@CsvSource({ "0.75, High", "0.60, Good", "0.48, Moderate", "0.38, Low", "0.25, Very Low" })
 		@DisplayName("Should interpret win rate correctly")
 		void shouldInterpretWinRate(double winRate, String expectedKeyword) {
 			StrategyTestResult result = createTestResult(winRate, 1.8, 15.0, 1.5, 100);
@@ -438,6 +410,7 @@ class DeploymentInsightsCalculatorTest {
 			assertTrue(insights.getWinRateInterpretation().contains(expectedKeyword),
 					String.format("Win rate %.0f%% should be interpreted as %s", winRate * 100, expectedKeyword));
 		}
+
 	}
 
 	@Nested
@@ -491,6 +464,7 @@ class DeploymentInsightsCalculatorTest {
 			assertFalse(insights.getBotLimitations().isEmpty());
 			assertTrue(insights.getBotLimitations().size() >= 3);
 		}
+
 	}
 
 	@Nested
@@ -510,8 +484,8 @@ class DeploymentInsightsCalculatorTest {
 		@Test
 		@DisplayName("Should handle failed strategy result")
 		void shouldHandleFailedResult() {
-			StrategyTestResult result = StrategyTestResult.failed(
-					StrategyType.RSI_MEAN_REVERSION, Map.of(), "Execution error");
+			StrategyTestResult result = StrategyTestResult.failed(StrategyType.RSI_MEAN_REVERSION, Map.of(),
+					"Execution error");
 
 			DeploymentInsights insights = calculator.calculate(result, 1095);
 
@@ -565,6 +539,7 @@ class DeploymentInsightsCalculatorTest {
 			// 10 trades in 30 days = ~122 trades/year
 			assertTrue(insights.getEstimatedTradesPerYear() > 100);
 		}
+
 	}
 
 	@Nested
@@ -606,8 +581,7 @@ class DeploymentInsightsCalculatorTest {
 			System.out.println("Aggressive Day Trader:");
 			System.out.printf("  Allocation: %.1f%%%n", insights.getRecommendedPortfolioAllocation());
 			System.out.printf("  Mode: %s%n", insights.getRecommendedDeploymentMode());
-			System.out.printf("  Frequency: %s (~%d trades/year)%n",
-					insights.getTradingFrequencyClassification(),
+			System.out.printf("  Frequency: %s (~%d trades/year)%n", insights.getTradingFrequencyClassification(),
 					insights.getEstimatedTradesPerYear());
 		}
 
@@ -640,8 +614,8 @@ class DeploymentInsightsCalculatorTest {
 
 			// Should recommend bot mode and flag high risk
 			assertEquals(DeploymentMode.BOT, insights.getRecommendedDeploymentMode());
-			assertTrue(insights.getDrawdownRiskLevel() == DrawdownRiskLevel.HIGH ||
-					insights.getDrawdownRiskLevel() == DrawdownRiskLevel.EXTREME);
+			assertTrue(insights.getDrawdownRiskLevel() == DrawdownRiskLevel.HIGH
+					|| insights.getDrawdownRiskLevel() == DrawdownRiskLevel.EXTREME);
 			assertTrue(insights.getRecommendedPortfolioAllocation() <= 10.0,
 					"Should recommend conservative allocation for high-risk scalper");
 
@@ -650,12 +624,13 @@ class DeploymentInsightsCalculatorTest {
 			System.out.printf("  Risk Level: %s%n", insights.getDrawdownRiskLevel());
 			System.out.printf("  P(5 losses): %.1f%%%n", insights.getProbabilityOf5ConsecutiveLosses());
 		}
+
 	}
 
 	// ========== Helper Methods ==========
 
-	private StrategyTestResult createTestResult(double winRate, double profitFactor,
-												double maxDrawdown, double sharpeRatio, int totalTrades) {
+	private StrategyTestResult createTestResult(double winRate, double profitFactor, double maxDrawdown,
+			double sharpeRatio, int totalTrades) {
 		StrategyTestResult result = new StrategyTestResult(StrategyType.RSI_MEAN_REVERSION, Map.of());
 		result.setWinRate(winRate);
 		result.setProfitFactor(profitFactor);
@@ -666,4 +641,5 @@ class DeploymentInsightsCalculatorTest {
 		result.setSuccess(true);
 		return result;
 	}
+
 }

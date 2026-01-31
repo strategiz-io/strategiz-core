@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Client for Mistral AI via Google Vertex AI.
- * Implements LLMProvider interface for unified LLM access.
+ * Client for Mistral AI via Google Vertex AI. Implements LLMProvider interface for
+ * unified LLM access.
  */
 @Component
 @ConditionalOnProperty(name = "mistral.vertex.enabled", havingValue = "true", matchIfMissing = true)
@@ -50,7 +50,8 @@ public class MistralVertexClient implements LLMProvider {
 	public MistralVertexClient(MistralVertexConfig config) {
 		this.config = config;
 		this.objectMapper = new ObjectMapper();
-		this.webClient = WebClient.builder().defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+		this.webClient = WebClient.builder()
+			.defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.build();
 
 		// Initialize Google credentials once during construction
@@ -58,7 +59,8 @@ public class MistralVertexClient implements LLMProvider {
 			this.credentials = GoogleCredentials.getApplicationDefault()
 				.createScoped("https://www.googleapis.com/auth/cloud-platform");
 			logger.info("Initialized Google Cloud credentials for Vertex AI (Mistral)");
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			logger.error("Failed to initialize Google Cloud credentials. Mistral Vertex AI calls will fail.", e);
 			this.credentials = null;
 		}
@@ -88,10 +90,9 @@ public class MistralVertexClient implements LLMProvider {
 				.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
 				.bodyValue(requestBody)
 				.retrieve()
-				.onStatus(status -> status.isError(),
-						response -> response.bodyToMono(String.class)
-							.flatMap(errorBody -> Mono.error(new RuntimeException(
-									"Mistral API error: " + response.statusCode() + " - " + errorBody))))
+				.onStatus(status -> status.isError(), response -> response.bodyToMono(String.class)
+					.flatMap(errorBody -> Mono.error(
+							new RuntimeException("Mistral API error: " + response.statusCode() + " - " + errorBody))))
 				.bodyToMono(String.class)
 				.map(responseBody -> parseResponse(responseBody, model))
 				.doOnSuccess(response -> logger.debug("Received response from Mistral AI"))
@@ -200,8 +201,7 @@ public class MistralVertexClient implements LLMProvider {
 	/**
 	 * Build streaming request body (same as non-streaming for Mistral)
 	 */
-	private String buildStreamingRequestBody(String prompt, List<LLMMessage> history)
-			throws JsonProcessingException {
+	private String buildStreamingRequestBody(String prompt, List<LLMMessage> history) throws JsonProcessingException {
 		ObjectNode request = (ObjectNode) objectMapper.readTree(buildRequestBody(prompt, history));
 		request.put("stream", true);
 		return objectMapper.writeValueAsString(request);
@@ -288,8 +288,8 @@ public class MistralVertexClient implements LLMProvider {
 	}
 
 	/**
-	 * Get access token for Vertex AI API calls.
-	 * GoogleCredentials handles automatic token refresh and caching.
+	 * Get access token for Vertex AI API calls. GoogleCredentials handles automatic token
+	 * refresh and caching.
 	 */
 	private String getAccessToken() throws IOException {
 		if (credentials == null) {

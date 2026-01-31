@@ -44,12 +44,10 @@ import java.util.stream.Collectors;
 /**
  * Processes deployment batches received from Pub/Sub.
  *
- * This job:
- * 1. Receives a batch of symbol sets with alert/bot IDs
- * 2. Fetches market data for all unique symbols
- * 3. Loads strategy code for each deployment
- * 4. Calls gRPC ExecuteList to evaluate all strategies
- * 5. Routes signals to appropriate adapters (Alert or Bot)
+ * This job: 1. Receives a batch of symbol sets with alert/bot IDs 2. Fetches market data
+ * for all unique symbols 3. Loads strategy code for each deployment 4. Calls gRPC
+ * ExecuteList to evaluate all strategies 5. Routes signals to appropriate adapters (Alert
+ * or Bot)
  *
  * Requires ClickHouse to be enabled for market data access.
  */
@@ -90,8 +88,8 @@ public class SymbolSetProcessorJob {
 		this.signalAdapters = signalAdapters != null ? signalAdapters : new ArrayList<>();
 		this.executionServiceClient = executionServiceClient;
 		this.marketDataRepository = marketDataRepository;
-		log.info("SymbolSetProcessorJob initialized with {} signal adapters, gRPC client={}", this.signalAdapters.size(),
-				executionServiceClient != null);
+		log.info("SymbolSetProcessorJob initialized with {} signal adapters, gRPC client={}",
+				this.signalAdapters.size(), executionServiceClient != null);
 	}
 
 	/**
@@ -190,8 +188,8 @@ public class SymbolSetProcessorJob {
 	}
 
 	/**
-	 * Fetch market data for all symbols from ClickHouse.
-	 * Returns OHLCV bars for each symbol, converted to gRPC MarketDataBar format.
+	 * Fetch market data for all symbols from ClickHouse. Returns OHLCV bars for each
+	 * symbol, converted to gRPC MarketDataBar format.
 	 */
 	private Map<String, List<MarketDataBar>> fetchMarketData(Set<String> symbols) {
 		Map<String, List<MarketDataBar>> marketData = new HashMap<>();
@@ -201,19 +199,19 @@ public class SymbolSetProcessorJob {
 		for (String symbol : symbols) {
 			try {
 				// Use 1D timeframe for live strategy execution
-				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol,
-						startTime, endTime, "1D");
+				List<MarketDataEntity> bars = marketDataRepository.findBySymbolAndTimeRange(symbol, startTime, endTime,
+						"1D");
 
 				List<MarketDataBar> grpcBars = new ArrayList<>();
 				for (MarketDataEntity bar : bars) {
 					grpcBars.add(MarketDataBar.newBuilder()
-							.setTimestamp(bar.getTimestamp().toString())
-							.setOpen(bar.getOpen().doubleValue())
-							.setHigh(bar.getHigh().doubleValue())
-							.setLow(bar.getLow().doubleValue())
-							.setClose(bar.getClose().doubleValue())
-							.setVolume(bar.getVolume().longValue())
-							.build());
+						.setTimestamp(bar.getTimestamp().toString())
+						.setOpen(bar.getOpen().doubleValue())
+						.setHigh(bar.getHigh().doubleValue())
+						.setLow(bar.getLow().doubleValue())
+						.setClose(bar.getClose().doubleValue())
+						.setVolume(bar.getVolume().longValue())
+						.build());
 				}
 
 				marketData.put(symbol, grpcBars);
@@ -268,8 +266,7 @@ public class SymbolSetProcessorJob {
 	/**
 	 * Load strategies for all deployments.
 	 */
-	private Map<String, Strategy> loadStrategies(Map<String, AlertDeployment> alerts,
-			Map<String, BotDeployment> bots) {
+	private Map<String, Strategy> loadStrategies(Map<String, AlertDeployment> alerts, Map<String, BotDeployment> bots) {
 		Map<String, Strategy> strategies = new HashMap<>();
 		Set<String> strategyIds = new HashSet<>();
 
@@ -294,11 +291,11 @@ public class SymbolSetProcessorJob {
 	}
 
 	/**
-	 * Execute strategies via gRPC ExecutionServiceClient.
-	 * Builds batch request for all deployments and maps results back to signals.
+	 * Execute strategies via gRPC ExecutionServiceClient. Builds batch request for all
+	 * deployments and maps results back to signals.
 	 */
-	private List<SignalResult> executeStrategies(List<SymbolSetGroup> symbolSets,
-			Map<String, AlertDeployment> alerts, Map<String, BotDeployment> bots, Map<String, Strategy> strategies,
+	private List<SignalResult> executeStrategies(List<SymbolSetGroup> symbolSets, Map<String, AlertDeployment> alerts,
+			Map<String, BotDeployment> bots, Map<String, Strategy> strategies,
 			Map<String, List<MarketDataBar>> marketData, String tier) {
 		List<SignalResult> results = new ArrayList<>();
 
@@ -393,8 +390,11 @@ public class SymbolSetProcessorJob {
 	 */
 	private Signal convertLiveSignalToSignal(LiveSignal liveSignal, String deploymentId, String deploymentType) {
 		if (liveSignal == null) {
-			return Signal.builder().deploymentId(deploymentId).deploymentType(deploymentType).type(Signal.Type.HOLD)
-					.build();
+			return Signal.builder()
+				.deploymentId(deploymentId)
+				.deploymentType(deploymentType)
+				.type(Signal.Type.HOLD)
+				.build();
 		}
 
 		Signal.Type signalType;
@@ -418,12 +418,12 @@ public class SymbolSetProcessorJob {
 		String symbol = liveSignal.getSymbol() != null ? liveSignal.getSymbol() : "UNKNOWN";
 
 		return Signal.builder()
-				.deploymentId(deploymentId)
-				.deploymentType(deploymentType)
-				.type(signalType)
-				.symbol(symbol)
-				.price(liveSignal.getPrice())
-				.build();
+			.deploymentId(deploymentId)
+			.deploymentType(deploymentType)
+			.type(signalType)
+			.symbol(symbol)
+			.price(liveSignal.getPrice())
+			.build();
 	}
 
 	/**
@@ -440,12 +440,12 @@ public class SymbolSetProcessorJob {
 				AlertDeployment alert = alerts.get(alertId);
 				if (alert != null) {
 					Signal holdSignal = Signal.builder()
-							.deploymentId(alertId)
-							.deploymentType("ALERT")
-							.type(Signal.Type.HOLD)
-							.symbol(symbol)
-							.strategyId(alert.getStrategyId())
-							.build();
+						.deploymentId(alertId)
+						.deploymentType("ALERT")
+						.type(Signal.Type.HOLD)
+						.symbol(symbol)
+						.strategyId(alert.getStrategyId())
+						.build();
 					results.add(new SignalResult(alertId, "ALERT", holdSignal, alert));
 				}
 			}
@@ -453,12 +453,12 @@ public class SymbolSetProcessorJob {
 				BotDeployment bot = bots.get(botId);
 				if (bot != null) {
 					Signal holdSignal = Signal.builder()
-							.deploymentId(botId)
-							.deploymentType("BOT")
-							.type(Signal.Type.HOLD)
-							.symbol(symbol)
-							.strategyId(bot.getStrategyId())
-							.build();
+						.deploymentId(botId)
+						.deploymentType("BOT")
+						.type(Signal.Type.HOLD)
+						.symbol(symbol)
+						.strategyId(bot.getStrategyId())
+						.build();
 					results.add(new SignalResult(botId, "BOT", holdSignal, bot));
 				}
 			}
@@ -488,8 +488,8 @@ public class SymbolSetProcessorJob {
 			}
 		}
 
-		log.warn("No adapter found for signal: deploymentType={}, deploymentId={}",
-				result.deploymentType(), result.deploymentId());
+		log.warn("No adapter found for signal: deploymentType={}, deploymentId={}", result.deploymentType(),
+				result.deploymentId());
 	}
 
 	/**

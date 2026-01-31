@@ -24,10 +24,11 @@ import io.strategiz.service.base.BaseService;
 @Service
 public class LearnChatService extends BaseService {
 
-    @Override
-    protected String getModuleName() {
-        return "service-learn";
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-learn";
+	}
+
 	private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
 	private final AIChatBusiness aiChatBusiness;
@@ -61,7 +62,8 @@ public class LearnChatService extends BaseService {
 			List<ChatMessage> history = convertHistory(request.getConversationHistory());
 
 			// Call business layer with model selection
-			return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel()).map(this::convertToDto);
+			return aiChatBusiness.chat(request.getMessage(), context, history, request.getModel())
+				.map(this::convertToDto);
 		}
 		catch (Exception e) {
 			log.error("Error processing chat request", e);
@@ -76,8 +78,8 @@ public class LearnChatService extends BaseService {
 	 * @return Flux of ChatResponseDto chunks
 	 */
 	public Flux<ChatResponseDto> chatStream(ChatRequestDto request, String userId) {
-		log.info("Processing streaming chat request for user: {}, feature: {}, model: {}", userId,
-				request.getFeature(), request.getModel());
+		log.info("Processing streaming chat request for user: {}, feature: {}, model: {}", userId, request.getFeature(),
+				request.getModel());
 
 		try {
 			ChatContext context = buildContext(request, userId);

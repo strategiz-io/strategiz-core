@@ -23,8 +23,8 @@ import java.util.stream.Collectors;
 /**
  * Aggregates cost data from all LLM billing providers.
  *
- * This service combines data from OpenAI, Anthropic, GCP (Vertex AI), and xAI to provide a
- * unified view of LLM costs for the console dashboard.
+ * This service combines data from OpenAI, Anthropic, GCP (Vertex AI), and xAI to provide
+ * a unified view of LLM costs for the console dashboard.
  */
 @Service
 public class LLMCostAggregator {
@@ -37,14 +37,13 @@ public class LLMCostAggregator {
 
 	public LLMCostAggregator(List<BillingProvider> billingProviders) {
 		this.billingProviders = billingProviders;
-		logger.info("LLMCostAggregator initialized with {} billing providers: {}",
-				billingProviders.size(),
+		logger.info("LLMCostAggregator initialized with {} billing providers: {}", billingProviders.size(),
 				billingProviders.stream().map(BillingProvider::getProviderName).collect(Collectors.joining(", ")));
 	}
 
 	/**
-	 * Get a summary of LLM costs for the specified date range. Includes comparison with the
-	 * previous period of the same length.
+	 * Get a summary of LLM costs for the specified date range. Includes comparison with
+	 * the previous period of the same length.
 	 * @param startDate Start of the date range (inclusive)
 	 * @param endDate End of the date range (inclusive)
 	 * @return Aggregated cost summary with provider and model breakdowns
@@ -124,10 +123,11 @@ public class LLMCostAggregator {
 
 		return Flux.fromIterable(enabledProviders)
 			.flatMap(provider -> provider.fetchCosts(startDate, endDate)
-				.doOnSuccess(
-						report -> logger.debug("Fetched costs from {}: ${}", provider.getProviderName(), report.getTotalCost()))
+				.doOnSuccess(report -> logger.debug("Fetched costs from {}: ${}", provider.getProviderName(),
+						report.getTotalCost()))
 				.doOnError(error -> logger.error("Error fetching costs from {}", provider.getProviderName(), error))
-				.onErrorResume(error -> Mono.just(new ProviderCostReport(provider.getProviderName(), startDate, endDate))))
+				.onErrorResume(
+						error -> Mono.just(new ProviderCostReport(provider.getProviderName(), startDate, endDate))))
 			.collectList();
 	}
 
@@ -155,7 +155,8 @@ public class LLMCostAggregator {
 			totalTokens += report.getTotalTokens();
 			totalRequests += report.getRequestCount();
 
-			costByProvider.put(report.getProvider(), report.getTotalCost() != null ? report.getTotalCost() : BigDecimal.ZERO);
+			costByProvider.put(report.getProvider(),
+					report.getTotalCost() != null ? report.getTotalCost() : BigDecimal.ZERO);
 
 			if (report.getByModel() != null) {
 				allModels.addAll(report.getByModel());
@@ -169,22 +170,25 @@ public class LLMCostAggregator {
 
 		// Calculate averages
 		if (totalRequests > 0) {
-			summary.setAverageCostPerRequest(totalCost.divide(BigDecimal.valueOf(totalRequests), 6, RoundingMode.HALF_UP));
+			summary
+				.setAverageCostPerRequest(totalCost.divide(BigDecimal.valueOf(totalRequests), 6, RoundingMode.HALF_UP));
 		}
 		else {
 			summary.setAverageCostPerRequest(BigDecimal.ZERO);
 		}
 
 		if (totalTokens > 0) {
-			summary.setAverageCostPer1kTokens(
-					totalCost.multiply(BigDecimal.valueOf(1000)).divide(BigDecimal.valueOf(totalTokens), 6, RoundingMode.HALF_UP));
+			summary.setAverageCostPer1kTokens(totalCost.multiply(BigDecimal.valueOf(1000))
+				.divide(BigDecimal.valueOf(totalTokens), 6, RoundingMode.HALF_UP));
 		}
 		else {
 			summary.setAverageCostPer1kTokens(BigDecimal.ZERO);
 		}
 
 		// Find top models
-		allModels.sort(Comparator.comparing((ModelCostBreakdown m) -> m.getCost() != null ? m.getCost() : BigDecimal.ZERO).reversed());
+		allModels
+			.sort(Comparator.comparing((ModelCostBreakdown m) -> m.getCost() != null ? m.getCost() : BigDecimal.ZERO)
+				.reversed());
 		summary.setTopModels(allModels.stream().limit(TOP_MODELS_LIMIT).collect(Collectors.toList()));
 
 		if (!allModels.isEmpty() && allModels.get(0).getCost() != null) {

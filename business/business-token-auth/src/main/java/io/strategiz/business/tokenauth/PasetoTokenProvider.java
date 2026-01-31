@@ -109,7 +109,8 @@ public class PasetoTokenProvider {
 				String identityKeyPath = "tokens." + env + ".identity-key";
 				log.info("Attempting to load identity key from Vault path: {}", identityKeyPath);
 				String identityKeyStr = secretManager.readSecret(identityKeyPath);
-				log.info("Identity key result: {}", identityKeyStr != null ? "loaded (" + identityKeyStr.length() + " chars)" : "NULL");
+				log.info("Identity key result: {}",
+						identityKeyStr != null ? "loaded (" + identityKeyStr.length() + " chars)" : "NULL");
 				if (identityKeyStr != null && !identityKeyStr.isEmpty()) {
 					identityKey = new SecretKey(Base64.getDecoder().decode(identityKeyStr), Version.V4);
 					log.info("Successfully decoded identity token key from Vault for {}", env);
@@ -122,7 +123,8 @@ public class PasetoTokenProvider {
 				String sessionKeyPath = "tokens." + env + ".session-key";
 				log.info("Attempting to load session key from Vault path: {}", sessionKeyPath);
 				String sessionKeyStr = secretManager.readSecret(sessionKeyPath);
-				log.info("Session key result: {}", sessionKeyStr != null ? "loaded (" + sessionKeyStr.length() + " chars)" : "NULL");
+				log.info("Session key result: {}",
+						sessionKeyStr != null ? "loaded (" + sessionKeyStr.length() + " chars)" : "NULL");
 				if (sessionKeyStr != null && !sessionKeyStr.isEmpty()) {
 					sessionKey = new SecretKey(Base64.getDecoder().decode(sessionKeyStr), Version.V4);
 					log.info("Successfully decoded session token key from Vault for {}", env);
@@ -138,11 +140,13 @@ public class PasetoTokenProvider {
 		}
 		else {
 			log.error("CRITICAL: SecretManager is NULL - cannot load keys from Vault");
-			log.error("Check that SecretManager bean is being created and component scanning includes io.strategiz.framework.secrets");
+			log.error(
+					"Check that SecretManager bean is being created and component scanning includes io.strategiz.framework.secrets");
 		}
 
 		// Require keys to be configured in Vault - no temporary keys
-		log.info("Final state - identityKey: {}, sessionKey: {}", identityKey != null ? "SET" : "NULL", sessionKey != null ? "SET" : "NULL");
+		log.info("Final state - identityKey: {}, sessionKey: {}", identityKey != null ? "SET" : "NULL",
+				sessionKey != null ? "SET" : "NULL");
 		if (identityKey == null || sessionKey == null) {
 			log.error("CRITICAL: Token keys not found in Vault. Application cannot start.");
 			log.error("Please configure keys in Vault at:");

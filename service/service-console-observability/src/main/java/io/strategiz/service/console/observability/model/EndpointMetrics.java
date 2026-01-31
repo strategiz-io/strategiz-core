@@ -4,143 +4,159 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Metrics for a single REST endpoint.
- * Tracks availability, latency, and error information.
+ * Metrics for a single REST endpoint. Tracks availability, latency, and error
+ * information.
  */
 public class EndpointMetrics {
-    private String method;
-    private String uri;
-    private String endpoint;
-    private Long totalRequests = 0L;
-    private Long successRequests = 0L;
-    private Long errorRequests = 0L;
-    private Double availability = 0.0;
-    private Double errorRate = 0.0;
-    private Double latencyP50Ms = 0.0;
-    private Double latencyP95Ms = 0.0;
-    private Double latencyP99Ms = 0.0;
-    private Double latencyMaxMs = 0.0;
-    private Double latencyMeanMs = 0.0;
-    private Map<String, Long> errorsByStatus = new HashMap<>();
-    private Map<String, Long> errorsByException = new HashMap<>();
 
-    public String getMethod() {
-        return method;
-    }
+	private String method;
 
-    public void setMethod(String method) {
-        this.method = method;
-    }
+	private String uri;
 
-    public String getUri() {
-        return uri;
-    }
+	private String endpoint;
 
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
+	private Long totalRequests = 0L;
 
-    public String getEndpoint() {
-        return endpoint;
-    }
+	private Long successRequests = 0L;
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
-    }
+	private Long errorRequests = 0L;
 
-    public Long getTotalRequests() {
-        return totalRequests;
-    }
+	private Double availability = 0.0;
 
-    public void setTotalRequests(Long totalRequests) {
-        this.totalRequests = totalRequests;
-    }
+	private Double errorRate = 0.0;
 
-    public Long getSuccessRequests() {
-        return successRequests;
-    }
+	private Double latencyP50Ms = 0.0;
 
-    public void setSuccessRequests(Long successRequests) {
-        this.successRequests = successRequests;
-    }
+	private Double latencyP95Ms = 0.0;
 
-    public Long getErrorRequests() {
-        return errorRequests;
-    }
+	private Double latencyP99Ms = 0.0;
 
-    public void setErrorRequests(Long errorRequests) {
-        this.errorRequests = errorRequests;
-    }
+	private Double latencyMaxMs = 0.0;
 
-    public Double getAvailability() {
-        return availability;
-    }
+	private Double latencyMeanMs = 0.0;
 
-    public void setAvailability(Double availability) {
-        this.availability = availability;
-    }
+	private Map<String, Long> errorsByStatus = new HashMap<>();
 
-    public Double getErrorRate() {
-        return errorRate;
-    }
+	private Map<String, Long> errorsByException = new HashMap<>();
 
-    public void setErrorRate(Double errorRate) {
-        this.errorRate = errorRate;
-    }
+	public String getMethod() {
+		return method;
+	}
 
-    public Double getLatencyP50Ms() {
-        return latencyP50Ms;
-    }
+	public void setMethod(String method) {
+		this.method = method;
+	}
 
-    public void setLatencyP50Ms(Double latencyP50Ms) {
-        this.latencyP50Ms = latencyP50Ms;
-    }
+	public String getUri() {
+		return uri;
+	}
 
-    public Double getLatencyP95Ms() {
-        return latencyP95Ms;
-    }
+	public void setUri(String uri) {
+		this.uri = uri;
+	}
 
-    public void setLatencyP95Ms(Double latencyP95Ms) {
-        this.latencyP95Ms = latencyP95Ms;
-    }
+	public String getEndpoint() {
+		return endpoint;
+	}
 
-    public Double getLatencyP99Ms() {
-        return latencyP99Ms;
-    }
+	public void setEndpoint(String endpoint) {
+		this.endpoint = endpoint;
+	}
 
-    public void setLatencyP99Ms(Double latencyP99Ms) {
-        this.latencyP99Ms = latencyP99Ms;
-    }
+	public Long getTotalRequests() {
+		return totalRequests;
+	}
 
-    public Double getLatencyMaxMs() {
-        return latencyMaxMs;
-    }
+	public void setTotalRequests(Long totalRequests) {
+		this.totalRequests = totalRequests;
+	}
 
-    public void setLatencyMaxMs(Double latencyMaxMs) {
-        this.latencyMaxMs = latencyMaxMs;
-    }
+	public Long getSuccessRequests() {
+		return successRequests;
+	}
 
-    public Double getLatencyMeanMs() {
-        return latencyMeanMs;
-    }
+	public void setSuccessRequests(Long successRequests) {
+		this.successRequests = successRequests;
+	}
 
-    public void setLatencyMeanMs(Double latencyMeanMs) {
-        this.latencyMeanMs = latencyMeanMs;
-    }
+	public Long getErrorRequests() {
+		return errorRequests;
+	}
 
-    public Map<String, Long> getErrorsByStatus() {
-        return errorsByStatus;
-    }
+	public void setErrorRequests(Long errorRequests) {
+		this.errorRequests = errorRequests;
+	}
 
-    public void setErrorsByStatus(Map<String, Long> errorsByStatus) {
-        this.errorsByStatus = errorsByStatus;
-    }
+	public Double getAvailability() {
+		return availability;
+	}
 
-    public Map<String, Long> getErrorsByException() {
-        return errorsByException;
-    }
+	public void setAvailability(Double availability) {
+		this.availability = availability;
+	}
 
-    public void setErrorsByException(Map<String, Long> errorsByException) {
-        this.errorsByException = errorsByException;
-    }
+	public Double getErrorRate() {
+		return errorRate;
+	}
+
+	public void setErrorRate(Double errorRate) {
+		this.errorRate = errorRate;
+	}
+
+	public Double getLatencyP50Ms() {
+		return latencyP50Ms;
+	}
+
+	public void setLatencyP50Ms(Double latencyP50Ms) {
+		this.latencyP50Ms = latencyP50Ms;
+	}
+
+	public Double getLatencyP95Ms() {
+		return latencyP95Ms;
+	}
+
+	public void setLatencyP95Ms(Double latencyP95Ms) {
+		this.latencyP95Ms = latencyP95Ms;
+	}
+
+	public Double getLatencyP99Ms() {
+		return latencyP99Ms;
+	}
+
+	public void setLatencyP99Ms(Double latencyP99Ms) {
+		this.latencyP99Ms = latencyP99Ms;
+	}
+
+	public Double getLatencyMaxMs() {
+		return latencyMaxMs;
+	}
+
+	public void setLatencyMaxMs(Double latencyMaxMs) {
+		this.latencyMaxMs = latencyMaxMs;
+	}
+
+	public Double getLatencyMeanMs() {
+		return latencyMeanMs;
+	}
+
+	public void setLatencyMeanMs(Double latencyMeanMs) {
+		this.latencyMeanMs = latencyMeanMs;
+	}
+
+	public Map<String, Long> getErrorsByStatus() {
+		return errorsByStatus;
+	}
+
+	public void setErrorsByStatus(Map<String, Long> errorsByStatus) {
+		this.errorsByStatus = errorsByStatus;
+	}
+
+	public Map<String, Long> getErrorsByException() {
+		return errorsByException;
+	}
+
+	public void setErrorsByException(Map<String, Long> errorsByException) {
+		this.errorsByException = errorsByException;
+	}
+
 }

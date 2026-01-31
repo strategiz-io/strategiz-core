@@ -8,105 +8,107 @@ import java.util.List;
  */
 public class SessionValidationResult {
 
-    private final String userId;
-    private final String userEmail;
-    private final String sessionId;
-    private final String acr; // Authentication Context Reference (0-3)
-    private final List<String> amr; // Authentication Methods References
-    private final Boolean demoMode; // Demo mode (true for demo, false for live)
-    private final Instant lastAccessedAt;
-    private final Instant expiresAt;
-    private final boolean valid;
+	private final String userId;
 
-    public SessionValidationResult(String userId, String userEmail, String sessionId,
-                                 String acr, List<String> amr, Boolean demoMode,
-                                 Instant lastAccessedAt, Instant expiresAt, boolean valid) {
-        this.userId = userId;
-        this.userEmail = userEmail;
-        this.sessionId = sessionId;
-        this.acr = acr;
-        this.amr = amr;
-        this.demoMode = demoMode != null ? demoMode : true;
-        this.lastAccessedAt = lastAccessedAt;
-        this.expiresAt = expiresAt;
-        this.valid = valid;
-    }
+	private final String userEmail;
 
-    // Getters
-    public String getUserId() {
-        return userId;
-    }
+	private final String sessionId;
 
-    public String getUserEmail() {
-        return userEmail;
-    }
+	private final String acr; // Authentication Context Reference (0-3)
 
-    public String getSessionId() {
-        return sessionId;
-    }
+	private final List<String> amr; // Authentication Methods References
 
-    public String getAcr() {
-        return acr;
-    }
+	private final Boolean demoMode; // Demo mode (true for demo, false for live)
 
-    public List<String> getAmr() {
-        return amr;
-    }
+	private final Instant lastAccessedAt;
 
-    public Boolean getDemoMode() {
-        return demoMode;
-    }
+	private final Instant expiresAt;
 
-    public Instant getLastAccessedAt() {
-        return lastAccessedAt;
-    }
+	private final boolean valid;
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	public SessionValidationResult(String userId, String userEmail, String sessionId, String acr, List<String> amr,
+			Boolean demoMode, Instant lastAccessedAt, Instant expiresAt, boolean valid) {
+		this.userId = userId;
+		this.userEmail = userEmail;
+		this.sessionId = sessionId;
+		this.acr = acr;
+		this.amr = amr;
+		this.demoMode = demoMode != null ? demoMode : true;
+		this.lastAccessedAt = lastAccessedAt;
+		this.expiresAt = expiresAt;
+		this.valid = valid;
+	}
 
-    public boolean isValid() {
-        return valid;
-    }
+	// Getters
+	public String getUserId() {
+		return userId;
+	}
 
-    // Convenience methods for authentication level checks
-    public boolean isFullyAuthenticated() {
-        // ACR 1+ means at least basic authentication
-        return "1".equals(acr) || "2".equals(acr) || "3".equals(acr);
-    }
+	public String getUserEmail() {
+		return userEmail;
+	}
 
-    public boolean isPartiallyAuthenticated() {
-        return "0".equals(acr);
-    }
+	public String getSessionId() {
+		return sessionId;
+	}
 
-    public boolean isHighAssurance() {
-        // ACR 3 indicates hardware-based MFA
-        return "3".equals(acr);
-    }
+	public String getAcr() {
+		return acr;
+	}
 
-    public boolean isMultiFactor() {
-        // ACR 2+ indicates MFA
-        return "2".equals(acr) || "3".equals(acr);
-    }
+	public List<String> getAmr() {
+		return amr;
+	}
 
-    public boolean hasPasskey() {
-        return amr != null && amr.contains("passkeys");
-    }
+	public Boolean getDemoMode() {
+		return demoMode;
+	}
 
-    public boolean hasTotp() {
-        return amr != null && amr.contains("totp");
-    }
+	public Instant getLastAccessedAt() {
+		return lastAccessedAt;
+	}
 
-    @Override
-    public String toString() {
-        return "SessionValidationResult{" +
-                "userId='" + userId + '\'' +
-                ", userEmail='" + userEmail + '\'' +
-                ", sessionId='" + sessionId + '\'' +
-                ", acr='" + acr + '\'' +
-                ", amr=" + amr +
-                ", demoMode=" + demoMode +
-                ", valid=" + valid +
-                '}';
-    }
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
+
+	public boolean isValid() {
+		return valid;
+	}
+
+	// Convenience methods for authentication level checks
+	public boolean isFullyAuthenticated() {
+		// ACR 1+ means at least basic authentication
+		return "1".equals(acr) || "2".equals(acr) || "3".equals(acr);
+	}
+
+	public boolean isPartiallyAuthenticated() {
+		return "0".equals(acr);
+	}
+
+	public boolean isHighAssurance() {
+		// ACR 3 indicates hardware-based MFA
+		return "3".equals(acr);
+	}
+
+	public boolean isMultiFactor() {
+		// ACR 2+ indicates MFA
+		return "2".equals(acr) || "3".equals(acr);
+	}
+
+	public boolean hasPasskey() {
+		return amr != null && amr.contains("passkeys");
+	}
+
+	public boolean hasTotp() {
+		return amr != null && amr.contains("totp");
+	}
+
+	@Override
+	public String toString() {
+		return "SessionValidationResult{" + "userId='" + userId + '\'' + ", userEmail='" + userEmail + '\''
+				+ ", sessionId='" + sessionId + '\'' + ", acr='" + acr + '\'' + ", amr=" + amr + ", demoMode="
+				+ demoMode + ", valid=" + valid + '}';
+	}
+
 }

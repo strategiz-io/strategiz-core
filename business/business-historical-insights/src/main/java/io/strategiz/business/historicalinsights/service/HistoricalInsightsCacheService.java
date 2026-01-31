@@ -13,8 +13,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Caching service for historical insights to avoid recomputing analysis for the same symbol.
- * Uses in-memory cache with 24-hour TTL and scheduled cleanup.
+ * Caching service for historical insights to avoid recomputing analysis for the same
+ * symbol. Uses in-memory cache with 24-hour TTL and scheduled cleanup.
  */
 @Service
 public class HistoricalInsightsCacheService {

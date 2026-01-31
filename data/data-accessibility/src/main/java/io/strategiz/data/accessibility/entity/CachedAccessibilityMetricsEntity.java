@@ -9,8 +9,8 @@ import com.google.cloud.firestore.annotation.DocumentId;
 /**
  * Firestore entity for cached accessibility metrics from CI/CD or on-demand scans.
  *
- * Firestore path: system/accessibility_cache/{scanId}
- * Latest by app: system/accessibility_cache/latest_{appId}
+ * Firestore path: system/accessibility_cache/{scanId} Latest by app:
+ * system/accessibility_cache/latest_{appId}
  */
 public class CachedAccessibilityMetricsEntity {
 

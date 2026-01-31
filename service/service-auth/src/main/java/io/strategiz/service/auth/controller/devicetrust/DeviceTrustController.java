@@ -29,14 +29,18 @@ import java.util.stream.Collectors;
 /**
  * Controller for device trust authentication flow.
  *
- * <p>Enables returning users on trusted devices to sign in with a single click,
- * without needing to re-enter credentials or complete MFA challenges.</p>
+ * <p>
+ * Enables returning users on trusted devices to sign in with a single click, without
+ * needing to re-enter credentials or complete MFA challenges.
+ * </p>
  *
- * <p>Flow:</p>
+ * <p>
+ * Flow:
+ * </p>
  * <ol>
- *   <li>POST /verify — check if current device is trusted, returns welcome-back info</li>
- *   <li>POST /challenge — generate a crypto challenge for the device to sign</li>
- *   <li>POST /authenticate — verify signed challenge and issue session tokens</li>
+ * <li>POST /verify — check if current device is trusted, returns welcome-back info</li>
+ * <li>POST /challenge — generate a crypto challenge for the device to sign</li>
+ * <li>POST /authenticate — verify signed challenge and issue session tokens</li>
  * </ol>
  */
 @RestController
@@ -82,12 +86,13 @@ public class DeviceTrustController extends BaseController {
 		DeviceTrustResult result = deviceTrustBusiness.verifyDeviceTrust(fingerprint, clientIp);
 
 		if (!result.trusted()) {
-			return ResponseEntity.ok(Map.of("welcomeBack", false, "reason", result.reason() != null ? result.reason() : "unknown"));
+			return ResponseEntity
+				.ok(Map.of("welcomeBack", false, "reason", result.reason() != null ? result.reason() : "unknown"));
 		}
 
-		return ResponseEntity.ok(Map.of("welcomeBack", true, "deviceId", result.deviceId(), "userId",
-				result.userId(), "userName", result.userName() != null ? result.userName() : "",
-				"trustLevel", result.trustLevel().name()));
+		return ResponseEntity
+			.ok(Map.of("welcomeBack", true, "deviceId", result.deviceId(), "userId", result.userId(), "userName",
+					result.userName() != null ? result.userName() : "", "trustLevel", result.trustLevel().name()));
 	}
 
 	/**
@@ -140,8 +145,8 @@ public class DeviceTrustController extends BaseController {
 
 		log.info("Device trust authentication attempt: deviceId={} from IP={}", deviceId, clientIp);
 
-		Optional<SessionAuthBusiness.AuthResult> authResult = deviceTrustBusiness
-			.authenticateWithDeviceTrust(deviceId, challengeId, signedChallenge, clientIp, userAgent);
+		Optional<SessionAuthBusiness.AuthResult> authResult = deviceTrustBusiness.authenticateWithDeviceTrust(deviceId,
+				challengeId, signedChallenge, clientIp, userAgent);
 
 		if (authResult.isEmpty()) {
 			log.warn("Device trust authentication failed for device {}", deviceId);
@@ -157,8 +162,8 @@ public class DeviceTrustController extends BaseController {
 
 		log.info("Device trust authentication successful for device {}", deviceId);
 
-		return ResponseEntity.ok(Map.of("success", true, "accessToken", result.accessToken(), "refreshToken",
-				result.refreshToken()));
+		return ResponseEntity
+			.ok(Map.of("success", true, "accessToken", result.accessToken(), "refreshToken", result.refreshToken()));
 	}
 
 	/**

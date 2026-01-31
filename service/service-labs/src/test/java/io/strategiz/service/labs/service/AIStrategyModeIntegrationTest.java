@@ -35,11 +35,10 @@ import static org.mockito.Mockito.*;
 /**
  * Comprehensive integration tests for AI Strategy generation modes.
  *
- * Tests both AUTONOMOUS mode and GENERATIVE_AI mode to ensure:
- * 1. AUTONOMOUS mode properly optimizes strategies to beat buy-and-hold
- * 2. GENERATIVE_AI mode uses enhanced historical insights (RSI thresholds, Hurst, regime)
- * 3. Generated strategies are valid and executable
- * 4. Proper adaptation to market regimes
+ * Tests both AUTONOMOUS mode and GENERATIVE_AI mode to ensure: 1. AUTONOMOUS mode
+ * properly optimizes strategies to beat buy-and-hold 2. GENERATIVE_AI mode uses enhanced
+ * historical insights (RSI thresholds, Hurst, regime) 3. Generated strategies are valid
+ * and executable 4. Proper adaptation to market regimes
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -53,6 +52,7 @@ class AIStrategyModeIntegrationTest {
 	private DeploymentInsightsCalculator deploymentInsightsCalculator;
 
 	private StrategyOptimizationEngine optimizationEngine;
+
 	private Random random;
 
 	@BeforeEach
@@ -73,8 +73,7 @@ class AIStrategyModeIntegrationTest {
 		@DisplayName("Should use optimal RSI thresholds from historical analysis")
 		void shouldUseOptimalRsiThresholds() {
 			// Given: SymbolInsights with specific optimal RSI thresholds
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"AAPL", 28.5, 72.3, 0.42, "RANGING_VOLATILE");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("AAPL", 28.5, 72.3, 0.42, "RANGING_VOLATILE");
 
 			AIStrategyRequest request = createGenerativeAIRequest("AAPL");
 
@@ -100,8 +99,7 @@ class AIStrategyModeIntegrationTest {
 		@DisplayName("Should generate Mean Reversion strategy when Hurst < 0.45")
 		void shouldGenerateMeanReversionForLowHurst() {
 			// Given: Mean-reverting market (Hurst < 0.45)
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"SPY", 32.0, 68.0, 0.38, "RANGING_CALM");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("SPY", 32.0, 68.0, 0.38, "RANGING_CALM");
 
 			AIStrategyRequest request = createGenerativeAIRequest("SPY");
 
@@ -127,8 +125,7 @@ class AIStrategyModeIntegrationTest {
 		@DisplayName("Should generate Trend Following strategy when Hurst > 0.55")
 		void shouldGenerateTrendFollowingForHighHurst() {
 			// Given: Trending market (Hurst > 0.55)
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"NVDA", 35.0, 65.0, 0.62, "STRONG_UPTREND");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("NVDA", 35.0, 65.0, 0.62, "STRONG_UPTREND");
 
 			AIStrategyRequest request = createGenerativeAIRequest("NVDA");
 
@@ -142,8 +139,7 @@ class AIStrategyModeIntegrationTest {
 
 			assertTrue(code.contains("TREND FOLLOWING") || explanation.contains("Trend Following"),
 					"Should identify as trend following strategy for Hurst=0.62");
-			assertTrue(code.contains("macd") || code.contains("MACD"),
-					"Trend following should use MACD");
+			assertTrue(code.contains("macd") || code.contains("MACD"), "Trend following should use MACD");
 
 			System.out.println("✓ GENERATIVE AI generates TREND FOLLOWING strategy for Hurst=0.62");
 		}
@@ -152,8 +148,7 @@ class AIStrategyModeIntegrationTest {
 		@DisplayName("Should generate Hybrid strategy for mixed regime")
 		void shouldGenerateHybridForMixedRegime() {
 			// Given: Mixed market (Hurst around 0.5)
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"MSFT", 30.0, 70.0, 0.51, "RANGING_VOLATILE");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("MSFT", 30.0, 70.0, 0.51, "RANGING_VOLATILE");
 
 			AIStrategyRequest request = createGenerativeAIRequest("MSFT");
 
@@ -174,8 +169,7 @@ class AIStrategyModeIntegrationTest {
 		@Test
 		@DisplayName("Generated strategy should include RSI, MACD, and Bollinger Bands")
 		void shouldIncludeAllIndicators() {
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"GOOGL", 30.0, 70.0, 0.48, "UPTREND");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("GOOGL", 30.0, 70.0, 0.48, "UPTREND");
 
 			AIStrategyRequest request = createGenerativeAIRequest("GOOGL");
 
@@ -191,7 +185,8 @@ class AIStrategyModeIntegrationTest {
 
 			// Verify indicators are used in strategy logic
 			assertTrue(code.contains("current_rsi"), "Should use RSI in strategy");
-			assertTrue(code.contains("bb_position") || code.contains("bb_lower"), "Should use Bollinger Bands in strategy");
+			assertTrue(code.contains("bb_position") || code.contains("bb_lower"),
+					"Should use Bollinger Bands in strategy");
 			assertTrue(code.contains("macd") || code.contains("histogram"), "Should use MACD in strategy");
 
 			System.out.println("✓ GENERATIVE AI includes RSI, MACD, and Bollinger Bands indicators");
@@ -200,8 +195,7 @@ class AIStrategyModeIntegrationTest {
 		@Test
 		@DisplayName("Generated strategy should have proper stop-loss and take-profit")
 		void shouldHaveProperRiskManagement() {
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"TSLA", 25.0, 75.0, 0.55, "RANGING_VOLATILE");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("TSLA", 25.0, 75.0, 0.55, "RANGING_VOLATILE");
 			insights.setAvgSwingMagnitude(15.0); // 15% average swing
 
 			AIStrategyRequest request = createGenerativeAIRequest("TSLA");
@@ -219,22 +213,17 @@ class AIStrategyModeIntegrationTest {
 			// Verify stop loss logic in exit
 			assertTrue(code.contains("gain <= -STOP_LOSS"), "Should exit on stop loss hit");
 
-			System.out.println("✓ GENERATIVE AI includes proper risk management (stop-loss, take-profit, trailing stop)");
+			System.out
+				.println("✓ GENERATIVE AI includes proper risk management (stop-loss, take-profit, trailing stop)");
 		}
 
 		@ParameterizedTest(name = "{0} - Should adapt to {3} regime")
-		@CsvSource({
-				"AAPL, 28.0, 72.0, UPTREND, 0.58",
-				"SPY, 32.0, 68.0, RANGING_CALM, 0.42",
-				"TSLA, 25.0, 75.0, RANGING_VOLATILE, 0.48",
-				"BTC, 20.0, 80.0, STRONG_UPTREND, 0.65",
-				"META, 30.0, 70.0, DOWNTREND, 0.35"
-		})
+		@CsvSource({ "AAPL, 28.0, 72.0, UPTREND, 0.58", "SPY, 32.0, 68.0, RANGING_CALM, 0.42",
+				"TSLA, 25.0, 75.0, RANGING_VOLATILE, 0.48", "BTC, 20.0, 80.0, STRONG_UPTREND, 0.65",
+				"META, 30.0, 70.0, DOWNTREND, 0.35" })
 		@DisplayName("Should adapt strategy to different market regimes")
-		void shouldAdaptToMarketRegime(String symbol, double rsiBuy, double rsiSell,
-				String regime, double hurst) {
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					symbol, rsiBuy, rsiSell, hurst, regime);
+		void shouldAdaptToMarketRegime(String symbol, double rsiBuy, double rsiSell, String regime, double hurst) {
+			SymbolInsights insights = createInsightsWithOptimalThresholds(symbol, rsiBuy, rsiSell, hurst, regime);
 
 			AIStrategyRequest request = createGenerativeAIRequest(symbol);
 
@@ -247,18 +236,15 @@ class AIStrategyModeIntegrationTest {
 
 			// Verify regime is mentioned in code or explanation
 			String code = response.getPythonCode();
-			assertTrue(code.contains(regime) || code.contains("Hurst"),
-					"Strategy should reference market regime");
+			assertTrue(code.contains(regime) || code.contains("Hurst"), "Strategy should reference market regime");
 
-			System.out.printf("✓ %s: Generated strategy adapted for %s regime (Hurst=%.2f)%n",
-					symbol, regime, hurst);
+			System.out.printf("✓ %s: Generated strategy adapted for %s regime (Hurst=%.2f)%n", symbol, regime, hurst);
 		}
 
 		@Test
 		@DisplayName("Generated code should be syntactically valid Python")
 		void shouldGenerateValidPythonCode() {
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					"AMZN", 30.0, 70.0, 0.50, "UPTREND");
+			SymbolInsights insights = createInsightsWithOptimalThresholds("AMZN", 30.0, 70.0, 0.50, "UPTREND");
 
 			AIStrategyRequest request = createGenerativeAIRequest("AMZN");
 
@@ -271,7 +257,8 @@ class AIStrategyModeIntegrationTest {
 			assertTrue(code.contains("import pandas"), "Should import pandas");
 			assertTrue(code.contains("import numpy"), "Should import numpy");
 			assertTrue(code.contains("def strategy(data):"), "Should have strategy function");
-			assertTrue(code.contains("return 'BUY'") || code.contains("return 'HOLD'") || code.contains("return 'SELL'"),
+			assertTrue(
+					code.contains("return 'BUY'") || code.contains("return 'HOLD'") || code.contains("return 'SELL'"),
 					"Strategy should return valid signals");
 
 			// Check for balanced parentheses and quotes
@@ -280,6 +267,7 @@ class AIStrategyModeIntegrationTest {
 
 			System.out.println("✓ Generated Python code is syntactically valid");
 		}
+
 	}
 
 	// ========================================================================
@@ -303,22 +291,13 @@ class AIStrategyModeIntegrationTest {
 			assertTrue(result.getTotalCombinationsTested() >= 10, "Should test at least 10 strategy combinations");
 
 			System.out.printf("✓ AUTONOMOUS tested %d strategies, best: %s with %.2f%% return%n",
-					result.getTotalCombinationsTested(),
-					result.getBestStrategy().getStrategyType().getDisplayName(),
+					result.getTotalCombinationsTested(), result.getBestStrategy().getStrategyType().getDisplayName(),
 					result.getBestStrategy().getTotalReturn());
 		}
 
 		@ParameterizedTest(name = "{0} - Must beat {1}% buy-and-hold")
-		@CsvSource({
-				"AAPL, 50.0",
-				"MSFT, 60.0",
-				"GOOGL, 40.0",
-				"SPY, 30.0",
-				"QQQ, 45.0",
-				"TSLA, 80.0",
-				"NVDA, 150.0",
-				"AMD, 70.0"
-		})
+		@CsvSource({ "AAPL, 50.0", "MSFT, 60.0", "GOOGL, 40.0", "SPY, 30.0", "QQQ, 45.0", "TSLA, 80.0", "NVDA, 150.0",
+				"AMD, 70.0" })
 		@DisplayName("AUTONOMOUS should outperform buy-and-hold")
 		void shouldOutperformBuyAndHold(String symbol, double buyHoldReturn) {
 			setupOptimizedStrategyMock(symbol, buyHoldReturn);
@@ -328,8 +307,8 @@ class AIStrategyModeIntegrationTest {
 			assertNotNull(result);
 			assertNotNull(result.getBestStrategy());
 			assertTrue(result.getOutperformance() > 0,
-					String.format("%s: Must outperform buy-and-hold. Strategy: %.2f%%, B&H: %.2f%%",
-							symbol, result.getBestStrategy().getTotalReturn(), buyHoldReturn));
+					String.format("%s: Must outperform buy-and-hold. Strategy: %.2f%%, B&H: %.2f%%", symbol,
+							result.getBestStrategy().getTotalReturn(), buyHoldReturn));
 
 			System.out.printf("✓ %s AUTONOMOUS: %.2f%% return vs %.2f%% buy-and-hold (outperformance: %.2f%%)%n",
 					symbol, result.getBestStrategy().getTotalReturn(), buyHoldReturn, result.getOutperformance());
@@ -339,8 +318,8 @@ class AIStrategyModeIntegrationTest {
 		@DisplayName("Should include deployment insights in result")
 		void shouldIncludeDeploymentInsights() {
 			setupOptimizedStrategyMock("SPY", 35.0);
-			when(deploymentInsightsCalculator.calculate(any(StrategyTestResult.class), anyInt())).thenReturn(
-					createMockDeploymentInsights());
+			when(deploymentInsightsCalculator.calculate(any(StrategyTestResult.class), anyInt()))
+				.thenReturn(createMockDeploymentInsights());
 
 			OptimizationResult result = optimizationEngine.optimize("SPY", "1D", "3y", "test-user");
 
@@ -382,6 +361,7 @@ class AIStrategyModeIntegrationTest {
 
 			System.out.printf("✓ AUTONOMOUS achieved %d trades%n", result.getBestStrategy().getTotalTrades());
 		}
+
 	}
 
 	// ========================================================================
@@ -393,7 +373,7 @@ class AIStrategyModeIntegrationTest {
 	class CrossModeComparisonTests {
 
 		@ParameterizedTest(name = "{0} - Both modes should produce valid strategies")
-		@ValueSource(strings = {"AAPL", "MSFT", "SPY", "QQQ"})
+		@ValueSource(strings = { "AAPL", "MSFT", "SPY", "QQQ" })
 		@DisplayName("Both modes should produce valid strategies")
 		void bothModesShouldProduceValidStrategies(String symbol) {
 			double buyHoldReturn = 50.0;
@@ -403,8 +383,7 @@ class AIStrategyModeIntegrationTest {
 			OptimizationResult autonomousResult = optimizationEngine.optimize(symbol, "1D", "3y", "test-user");
 
 			// Test GENERATIVE AI mode
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					symbol, 30.0, 70.0, 0.50, "UPTREND");
+			SymbolInsights insights = createInsightsWithOptimalThresholds(symbol, 30.0, 70.0, 0.50, "UPTREND");
 			AIStrategyRequest request = createGenerativeAIRequest(symbol);
 			AIStrategyResponse generativeResult = generateStrategyFromInsights(insights, request);
 
@@ -429,8 +408,7 @@ class AIStrategyModeIntegrationTest {
 			String symbol = "AAPL";
 
 			// GENERATIVE AI - uses historical insights
-			SymbolInsights insights = createInsightsWithOptimalThresholds(
-					symbol, 28.0, 72.0, 0.45, "RANGING_VOLATILE");
+			SymbolInsights insights = createInsightsWithOptimalThresholds(symbol, 28.0, 72.0, 0.45, "RANGING_VOLATILE");
 			AIStrategyRequest request = createGenerativeAIRequest(symbol);
 			AIStrategyResponse generativeResult = generateStrategyFromInsights(insights, request);
 
@@ -450,14 +428,15 @@ class AIStrategyModeIntegrationTest {
 
 			System.out.println("✓ GENERATIVE AI uses historical insights, AUTONOMOUS uses optimization");
 		}
+
 	}
 
 	// ========================================================================
 	// HELPER METHODS
 	// ========================================================================
 
-	private SymbolInsights createInsightsWithOptimalThresholds(String symbol, double rsiBuy,
-			double rsiSell, double hurst, String regime) {
+	private SymbolInsights createInsightsWithOptimalThresholds(String symbol, double rsiBuy, double rsiSell,
+			double hurst, String regime) {
 		SymbolInsights insights = new SymbolInsights();
 		insights.setSymbol(symbol);
 		insights.setTimeframe("1D");
@@ -501,8 +480,8 @@ class AIStrategyModeIntegrationTest {
 	}
 
 	/**
-	 * Simulates the generateStrategyFromTurningPoints method behavior for testing.
-	 * This mirrors what AIStrategyService.generateStrategyFromTurningPoints does.
+	 * Simulates the generateStrategyFromTurningPoints method behavior for testing. This
+	 * mirrors what AIStrategyService.generateStrategyFromTurningPoints does.
 	 */
 	private AIStrategyResponse generateStrategyFromInsights(SymbolInsights insights, AIStrategyRequest request) {
 		String symbol = insights.getSymbol();
@@ -571,9 +550,12 @@ class AIStrategyModeIntegrationTest {
 		code.append("        gain = ((current - entry_price) / entry_price) * 100\n");
 		code.append("        drop_from_peak = ((current - peak_price) / peak_price) * 100 if peak_price else 0\n");
 		code.append("        if gain <= -STOP_LOSS_PCT: entry_price = None; return 'SELL'\n");
-		code.append("        if gain >= TAKE_PROFIT_PCT and current_rsi > RSI_OVERBOUGHT: entry_price = None; return 'SELL'\n");
-		code.append("        trailing_stop = min(STOP_LOSS_PCT, gain * 0.5) if gain > STOP_LOSS_PCT else STOP_LOSS_PCT * 0.7\n");
-		code.append("        if gain > STOP_LOSS_PCT and drop_from_peak <= -trailing_stop: entry_price = None; return 'SELL'\n");
+		code.append(
+				"        if gain >= TAKE_PROFIT_PCT and current_rsi > RSI_OVERBOUGHT: entry_price = None; return 'SELL'\n");
+		code.append(
+				"        trailing_stop = min(STOP_LOSS_PCT, gain * 0.5) if gain > STOP_LOSS_PCT else STOP_LOSS_PCT * 0.7\n");
+		code.append(
+				"        if gain > STOP_LOSS_PCT and drop_from_peak <= -trailing_stop: entry_price = None; return 'SELL'\n");
 		code.append("        return 'HOLD'\n\n");
 
 		if (useMeanReversion) {
@@ -610,27 +592,30 @@ class AIStrategyModeIntegrationTest {
 	}
 
 	private void setupOptimizedStrategyMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createMockResponse(code, buyHoldReturn);
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createMockResponse(code, buyHoldReturn);
+			});
 	}
 
 	private void setupVariedStrategyResults(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createVariedMockResponse(code, buyHoldReturn);
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createVariedMockResponse(code, buyHoldReturn);
+			});
 	}
 
 	private void setupVolatileStockMock(String symbol, double buyHoldReturn) {
-		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(), anyString(), any()))
-				.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
-					String code = invocation.getArgument(0);
-					return createVolatileMockResponse(code, buyHoldReturn);
-				});
+		when(executionService.executeStrategy(anyString(), eq("python"), eq(symbol), anyString(), anyString(),
+				anyString(), any()))
+			.thenAnswer((Answer<ExecuteStrategyResponse>) invocation -> {
+				String code = invocation.getArgument(0);
+				return createVolatileMockResponse(code, buyHoldReturn);
+			});
 	}
 
 	private ExecuteStrategyResponse createMockResponse(String code, double buyHoldReturn) {

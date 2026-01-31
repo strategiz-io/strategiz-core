@@ -4,8 +4,8 @@ import io.strategiz.framework.exception.ErrorDetails;
 import org.springframework.http.HttpStatus;
 
 /**
- * Error details enum for data-strategy module.
- * Implements ErrorDetails for integration with the Strategiz exception framework.
+ * Error details enum for data-strategy module. Implements ErrorDetails for integration
+ * with the Strategiz exception framework.
  */
 public enum DataStrategyErrorDetails implements ErrorDetails {
 

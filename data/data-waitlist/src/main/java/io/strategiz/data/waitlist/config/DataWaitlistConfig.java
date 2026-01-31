@@ -9,5 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.data.waitlist")
 public class DataWaitlistConfig {
-    // Repository implementation is provided by client-firebase module
+
+	// Repository implementation is provided by client-firebase module
+
 }

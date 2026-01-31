@@ -13,20 +13,10 @@ import java.util.Map;
  * @param resourcesByRegion Breakdown of resources by GCP region
  * @param resources List of individual resources with details
  */
-public record GcpInfrastructureSummary(
-        int totalResources,
-        BigDecimal totalEstimatedMonthlyCost,
-        Map<String, Integer> resourcesByType,
-        Map<String, Integer> resourcesByRegion,
-        List<GcpResource> resources
-) {
-    public static GcpInfrastructureSummary empty() {
-        return new GcpInfrastructureSummary(
-                0,
-                BigDecimal.ZERO,
-                java.util.Collections.emptyMap(),
-                java.util.Collections.emptyMap(),
-                java.util.Collections.emptyList()
-        );
-    }
+public record GcpInfrastructureSummary(int totalResources, BigDecimal totalEstimatedMonthlyCost,
+		Map<String, Integer> resourcesByType, Map<String, Integer> resourcesByRegion, List<GcpResource> resources) {
+	public static GcpInfrastructureSummary empty() {
+		return new GcpInfrastructureSummary(0, BigDecimal.ZERO, java.util.Collections.emptyMap(),
+				java.util.Collections.emptyMap(), java.util.Collections.emptyList());
+	}
 }

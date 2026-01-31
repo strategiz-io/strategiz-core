@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Loads SendGrid configuration from Vault.
  *
- * Vault keys: sendgrid.api-key, sendgrid.from-email, sendgrid.from-name
- * Optional: sendgrid.alert-template-id, sendgrid.signal-template-id
+ * Vault keys: sendgrid.api-key, sendgrid.from-email, sendgrid.from-name Optional:
+ * sendgrid.alert-template-id, sendgrid.signal-template-id
  */
 @Configuration
 @ConditionalOnProperty(name = "sendgrid.enabled", havingValue = "true")

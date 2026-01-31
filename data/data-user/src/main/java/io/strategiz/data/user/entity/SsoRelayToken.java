@@ -5,120 +5,124 @@ import com.google.cloud.firestore.annotation.DocumentId;
 import java.time.Instant;
 
 /**
- * Entity for one-time SSO relay tokens used for cross-app authentication.
- * Tokens are single-use and expire quickly (60 seconds).
+ * Entity for one-time SSO relay tokens used for cross-app authentication. Tokens are
+ * single-use and expire quickly (60 seconds).
  *
  * Stored in Firestore collection: sso_relay_tokens
  *
- * Note: This is a simple entity without BaseEntity lifecycle management
- * since tokens are ephemeral and don't need audit trails or soft deletes.
+ * Note: This is a simple entity without BaseEntity lifecycle management since tokens are
+ * ephemeral and don't need audit trails or soft deletes.
  */
 public class SsoRelayToken {
 
-    @DocumentId
-    private String token;
+	@DocumentId
+	private String token;
 
-    private String userId;
-    private String targetApp;
-    private String redirectUrl;
-    private long expiresAtEpochSecond;
-    private boolean used;
-    private String createdFromIp;
-    private long createdAtEpochSecond;
+	private String userId;
 
-    public SsoRelayToken() {
-        this.used = false;
-        this.createdAtEpochSecond = Instant.now().getEpochSecond();
-    }
+	private String targetApp;
 
-    public SsoRelayToken(String token, String userId, String targetApp, String redirectUrl, int ttlSeconds) {
-        this();
-        this.token = token;
-        this.userId = userId;
-        this.targetApp = targetApp;
-        this.redirectUrl = redirectUrl;
-        this.expiresAtEpochSecond = Instant.now().plusSeconds(ttlSeconds).getEpochSecond();
-    }
+	private String redirectUrl;
 
-    public String getToken() {
-        return token;
-    }
+	private long expiresAtEpochSecond;
 
-    public void setToken(String token) {
-        this.token = token;
-    }
+	private boolean used;
 
-    public String getUserId() {
-        return userId;
-    }
+	private String createdFromIp;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private long createdAtEpochSecond;
 
-    public String getTargetApp() {
-        return targetApp;
-    }
+	public SsoRelayToken() {
+		this.used = false;
+		this.createdAtEpochSecond = Instant.now().getEpochSecond();
+	}
 
-    public void setTargetApp(String targetApp) {
-        this.targetApp = targetApp;
-    }
+	public SsoRelayToken(String token, String userId, String targetApp, String redirectUrl, int ttlSeconds) {
+		this();
+		this.token = token;
+		this.userId = userId;
+		this.targetApp = targetApp;
+		this.redirectUrl = redirectUrl;
+		this.expiresAtEpochSecond = Instant.now().plusSeconds(ttlSeconds).getEpochSecond();
+	}
 
-    public String getRedirectUrl() {
-        return redirectUrl;
-    }
+	public String getToken() {
+		return token;
+	}
 
-    public void setRedirectUrl(String redirectUrl) {
-        this.redirectUrl = redirectUrl;
-    }
+	public void setToken(String token) {
+		this.token = token;
+	}
 
-    public long getExpiresAtEpochSecond() {
-        return expiresAtEpochSecond;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setExpiresAtEpochSecond(long expiresAtEpochSecond) {
-        this.expiresAtEpochSecond = expiresAtEpochSecond;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public boolean isUsed() {
-        return used;
-    }
+	public String getTargetApp() {
+		return targetApp;
+	}
 
-    public void setUsed(boolean used) {
-        this.used = used;
-    }
+	public void setTargetApp(String targetApp) {
+		this.targetApp = targetApp;
+	}
 
-    public String getCreatedFromIp() {
-        return createdFromIp;
-    }
+	public String getRedirectUrl() {
+		return redirectUrl;
+	}
 
-    public void setCreatedFromIp(String createdFromIp) {
-        this.createdFromIp = createdFromIp;
-    }
+	public void setRedirectUrl(String redirectUrl) {
+		this.redirectUrl = redirectUrl;
+	}
 
-    public long getCreatedAtEpochSecond() {
-        return createdAtEpochSecond;
-    }
+	public long getExpiresAtEpochSecond() {
+		return expiresAtEpochSecond;
+	}
 
-    public void setCreatedAtEpochSecond(long createdAtEpochSecond) {
-        this.createdAtEpochSecond = createdAtEpochSecond;
-    }
+	public void setExpiresAtEpochSecond(long expiresAtEpochSecond) {
+		this.expiresAtEpochSecond = expiresAtEpochSecond;
+	}
 
-    /**
-     * Check if token is valid (not expired and not used)
-     */
-    public boolean isValid() {
-        return !used && Instant.now().getEpochSecond() < expiresAtEpochSecond;
-    }
+	public boolean isUsed() {
+		return used;
+	}
 
-    @Override
-    public String toString() {
-        return "SsoRelayToken{" +
-                "token='" + (token != null ? token.substring(0, Math.min(8, token.length())) + "..." : "null") + '\'' +
-                ", userId='" + userId + '\'' +
-                ", targetApp='" + targetApp + '\'' +
-                ", expiresAt=" + Instant.ofEpochSecond(expiresAtEpochSecond) +
-                ", used=" + used +
-                '}';
-    }
+	public void setUsed(boolean used) {
+		this.used = used;
+	}
+
+	public String getCreatedFromIp() {
+		return createdFromIp;
+	}
+
+	public void setCreatedFromIp(String createdFromIp) {
+		this.createdFromIp = createdFromIp;
+	}
+
+	public long getCreatedAtEpochSecond() {
+		return createdAtEpochSecond;
+	}
+
+	public void setCreatedAtEpochSecond(long createdAtEpochSecond) {
+		this.createdAtEpochSecond = createdAtEpochSecond;
+	}
+
+	/**
+	 * Check if token is valid (not expired and not used)
+	 */
+	public boolean isValid() {
+		return !used && Instant.now().getEpochSecond() < expiresAtEpochSecond;
+	}
+
+	@Override
+	public String toString() {
+		return "SsoRelayToken{" + "token='"
+				+ (token != null ? token.substring(0, Math.min(8, token.length())) + "..." : "null") + '\''
+				+ ", userId='" + userId + '\'' + ", targetApp='" + targetApp + '\'' + ", expiresAt="
+				+ Instant.ofEpochSecond(expiresAtEpochSecond) + ", used=" + used + '}';
+	}
+
 }

@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Repository for TokenUsageRecord stored at users/{userId}/token_usage/{recordId}.
- * Tracks individual AI API calls for audit trail and analytics.
+ * Repository for TokenUsageRecord stored at users/{userId}/token_usage/{recordId}. Tracks
+ * individual AI API calls for audit trail and analytics.
  */
 @Repository
 public class TokenUsageRepository extends SubcollectionRepository<TokenUsageRecord> {
@@ -86,8 +86,8 @@ public class TokenUsageRepository extends SubcollectionRepository<TokenUsageReco
 			}).collect(Collectors.toList());
 		}
 		catch (Exception e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"TokenUsageRecord", userId);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TokenUsageRecord",
+					userId);
 		}
 	}
 
@@ -150,8 +150,8 @@ public class TokenUsageRepository extends SubcollectionRepository<TokenUsageReco
 			}).collect(Collectors.toList());
 		}
 		catch (Exception e) {
-			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
-					"TokenUsageRecord", userId);
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "TokenUsageRecord",
+					userId);
 		}
 	}
 

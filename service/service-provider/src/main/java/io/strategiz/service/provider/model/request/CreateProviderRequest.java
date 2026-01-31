@@ -8,240 +8,244 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
 /**
- * Request model for creating a new provider connection.
- * Used for initiating OAuth flows or API key connections.
+ * Request model for creating a new provider connection. Used for initiating OAuth flows
+ * or API key connections.
  */
 public class CreateProviderRequest {
-    
-    @NotBlank(message = "Provider ID is required")
-    @Pattern(regexp = "^[a-z0-9_-]+$", message = "Provider ID must contain only lowercase letters, numbers, hyphens, and underscores")
-    private String providerId;
-    
-    private String userId;
-    
-    @NotBlank(message = "Connection type is required")
-    @Pattern(regexp = "^(oauth|api_key)$", message = "Connection type must be either 'oauth' or 'api_key'")
-    private String connectionType;
-    
-    // Optional: For API key connections
-    private String apiKey;
-    private String apiSecret;
-    private String passphrase; // Some exchanges like Coinbase Pro require this
-    
-    // Optional: For OAuth connections
-    private String redirectUri; // Custom redirect URI if different from default
-    private String scope; // Custom OAuth scope if different from default
-    
-    // Optional: Account type preference
-    @Pattern(regexp = "^(paper|live)$", message = "Account type must be either 'paper' or 'live'")
-    private String accountType = "paper"; // Default to paper trading
-    
-    // Optional: Additional provider-specific configuration
-    private Map<String, Object> additionalConfig;
-    
-    // Optional: API key data from frontend (nested structure)
-    @JsonProperty("apiKeyData")
-    private Map<String, String> apiKeyData;
-    
-    // Optional: Credentials from frontend (new field to match frontend)
-    @JsonProperty("credentials")
-    private Map<String, String> credentials;
-    
-    // Optional: User preferences
-    private boolean enableNotifications = true;
-    private boolean enableAutoRefresh = true;
 
-    // Constructors
-    public CreateProviderRequest() {
-    }
+	@NotBlank(message = "Provider ID is required")
+	@Pattern(regexp = "^[a-z0-9_-]+$",
+			message = "Provider ID must contain only lowercase letters, numbers, hyphens, and underscores")
+	private String providerId;
 
-    public CreateProviderRequest(String providerId, String connectionType) {
-        this.providerId = providerId;
-        this.connectionType = connectionType;
-    }
+	private String userId;
 
-    // Getters and Setters
-    public String getProviderId() {
-        return providerId;
-    }
+	@NotBlank(message = "Connection type is required")
+	@Pattern(regexp = "^(oauth|api_key)$", message = "Connection type must be either 'oauth' or 'api_key'")
+	private String connectionType;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	// Optional: For API key connections
+	private String apiKey;
 
-    public String getUserId() {
-        return userId;
-    }
+	private String apiSecret;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private String passphrase; // Some exchanges like Coinbase Pro require this
 
-    public String getConnectionType() {
-        return connectionType;
-    }
+	// Optional: For OAuth connections
+	private String redirectUri; // Custom redirect URI if different from default
 
-    public void setConnectionType(String connectionType) {
-        this.connectionType = connectionType;
-    }
+	private String scope; // Custom OAuth scope if different from default
 
-    public String getApiKey() {
-        return apiKey;
-    }
+	// Optional: Account type preference
+	@Pattern(regexp = "^(paper|live)$", message = "Account type must be either 'paper' or 'live'")
+	private String accountType = "paper"; // Default to paper trading
 
-    public void setApiKey(String apiKey) {
-        this.apiKey = apiKey;
-    }
+	// Optional: Additional provider-specific configuration
+	private Map<String, Object> additionalConfig;
 
-    public String getApiSecret() {
-        return apiSecret;
-    }
+	// Optional: API key data from frontend (nested structure)
+	@JsonProperty("apiKeyData")
+	private Map<String, String> apiKeyData;
 
-    public void setApiSecret(String apiSecret) {
-        this.apiSecret = apiSecret;
-    }
+	// Optional: Credentials from frontend (new field to match frontend)
+	@JsonProperty("credentials")
+	private Map<String, String> credentials;
 
-    public String getPassphrase() {
-        return passphrase;
-    }
+	// Optional: User preferences
+	private boolean enableNotifications = true;
 
-    public void setPassphrase(String passphrase) {
-        this.passphrase = passphrase;
-    }
+	private boolean enableAutoRefresh = true;
 
-    public String getRedirectUri() {
-        return redirectUri;
-    }
+	// Constructors
+	public CreateProviderRequest() {
+	}
 
-    public void setRedirectUri(String redirectUri) {
-        this.redirectUri = redirectUri;
-    }
+	public CreateProviderRequest(String providerId, String connectionType) {
+		this.providerId = providerId;
+		this.connectionType = connectionType;
+	}
 
-    public String getScope() {
-        return scope;
-    }
+	// Getters and Setters
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public String getAccountType() {
-        return accountType;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Map<String, Object> getAdditionalConfig() {
-        return additionalConfig;
-    }
+	public String getConnectionType() {
+		return connectionType;
+	}
 
-    public void setAdditionalConfig(Map<String, Object> additionalConfig) {
-        this.additionalConfig = additionalConfig;
-    }
+	public void setConnectionType(String connectionType) {
+		this.connectionType = connectionType;
+	}
 
-    public boolean isEnableNotifications() {
-        return enableNotifications;
-    }
+	public String getApiKey() {
+		return apiKey;
+	}
 
-    public void setEnableNotifications(boolean enableNotifications) {
-        this.enableNotifications = enableNotifications;
-    }
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
+	}
 
-    public boolean isEnableAutoRefresh() {
-        return enableAutoRefresh;
-    }
+	public String getApiSecret() {
+		return apiSecret;
+	}
 
-    public void setEnableAutoRefresh(boolean enableAutoRefresh) {
-        this.enableAutoRefresh = enableAutoRefresh;
-    }
-    
-    public Map<String, String> getApiKeyData() {
-        return apiKeyData;
-    }
-    
-    public void setApiKeyData(Map<String, String> apiKeyData) {
-        this.apiKeyData = apiKeyData;
-        // If apiKeyData is provided, extract values to individual fields
-        if (apiKeyData != null) {
-            this.apiKey = apiKeyData.get("apiKey");
-            this.apiSecret = apiKeyData.get("apiSecret");
-            // Handle OTP through additionalConfig
-            String otp = apiKeyData.get("otp");
-            if (otp != null && !otp.trim().isEmpty()) {
-                if (this.additionalConfig == null) {
-                    this.additionalConfig = new java.util.HashMap<>();
-                }
-                this.additionalConfig.put("otp", otp);
-            }
-        }
-    }
-    
-    public void setCredentials(Map<String, String> credentials) {
-        this.credentials = credentials;
-        // If credentials are provided, extract values to individual fields
-        if (credentials != null) {
-            this.apiKey = credentials.get("apiKey");
-            this.apiSecret = credentials.get("apiSecret");
-            this.passphrase = credentials.get("passphrase");
-            // Handle OTP through additionalConfig
-            String otp = credentials.get("otp");
-            if (otp != null && !otp.trim().isEmpty()) {
-                if (this.additionalConfig == null) {
-                    this.additionalConfig = new java.util.HashMap<>();
-                }
-                this.additionalConfig.put("otp", otp);
-            }
-        }
-    }
+	public void setApiSecret(String apiSecret) {
+		this.apiSecret = apiSecret;
+	}
 
-    // Helper methods
-    public boolean isOAuthConnection() {
-        return "oauth".equals(connectionType);
-    }
+	public String getPassphrase() {
+		return passphrase;
+	}
 
-    public boolean isApiKeyConnection() {
-        return "api_key".equals(connectionType);
-    }
+	public void setPassphrase(String passphrase) {
+		this.passphrase = passphrase;
+	}
 
-    public boolean hasApiCredentials() {
-        return apiKey != null && !apiKey.trim().isEmpty() && 
-               apiSecret != null && !apiSecret.trim().isEmpty();
-    }
+	public String getRedirectUri() {
+		return redirectUri;
+	}
 
-    public Map<String, Object> getCredentials() {
-        // If credentials field was directly populated, return it (with proper type conversion)
-        if (this.credentials != null && !this.credentials.isEmpty()) {
-            Map<String, Object> result = new java.util.HashMap<>(this.credentials);
-            // Also include OTP from additionalConfig if present
-            if (additionalConfig != null && additionalConfig.containsKey("otp")) {
-                result.put("otp", additionalConfig.get("otp"));
-            }
-            return result;
-        }
-        
-        // Otherwise build from individual fields
-        Map<String, Object> result = new java.util.HashMap<>();
-        if (apiKey != null) result.put("apiKey", apiKey);
-        if (apiSecret != null) result.put("apiSecret", apiSecret);
-        if (passphrase != null) result.put("passphrase", passphrase);
-        // Support for OTP if provided in additionalConfig
-        if (additionalConfig != null && additionalConfig.containsKey("otp")) {
-            result.put("otp", additionalConfig.get("otp"));
-        }
-        return result;
-    }
+	public void setRedirectUri(String redirectUri) {
+		this.redirectUri = redirectUri;
+	}
 
-    @Override
-    public String toString() {
-        return "CreateProviderRequest{" +
-                "providerId='" + providerId + '\'' +
-                ", connectionType='" + connectionType + '\'' +
-                ", accountType='" + accountType + '\'' +
-                ", enableNotifications=" + enableNotifications +
-                ", enableAutoRefresh=" + enableAutoRefresh +
-                ", hasApiCredentials=" + hasApiCredentials() +
-                '}';
-    }
-} 
+	public String getScope() {
+		return scope;
+	}
+
+	public void setScope(String scope) {
+		this.scope = scope;
+	}
+
+	public String getAccountType() {
+		return accountType;
+	}
+
+	public void setAccountType(String accountType) {
+		this.accountType = accountType;
+	}
+
+	public Map<String, Object> getAdditionalConfig() {
+		return additionalConfig;
+	}
+
+	public void setAdditionalConfig(Map<String, Object> additionalConfig) {
+		this.additionalConfig = additionalConfig;
+	}
+
+	public boolean isEnableNotifications() {
+		return enableNotifications;
+	}
+
+	public void setEnableNotifications(boolean enableNotifications) {
+		this.enableNotifications = enableNotifications;
+	}
+
+	public boolean isEnableAutoRefresh() {
+		return enableAutoRefresh;
+	}
+
+	public void setEnableAutoRefresh(boolean enableAutoRefresh) {
+		this.enableAutoRefresh = enableAutoRefresh;
+	}
+
+	public Map<String, String> getApiKeyData() {
+		return apiKeyData;
+	}
+
+	public void setApiKeyData(Map<String, String> apiKeyData) {
+		this.apiKeyData = apiKeyData;
+		// If apiKeyData is provided, extract values to individual fields
+		if (apiKeyData != null) {
+			this.apiKey = apiKeyData.get("apiKey");
+			this.apiSecret = apiKeyData.get("apiSecret");
+			// Handle OTP through additionalConfig
+			String otp = apiKeyData.get("otp");
+			if (otp != null && !otp.trim().isEmpty()) {
+				if (this.additionalConfig == null) {
+					this.additionalConfig = new java.util.HashMap<>();
+				}
+				this.additionalConfig.put("otp", otp);
+			}
+		}
+	}
+
+	public void setCredentials(Map<String, String> credentials) {
+		this.credentials = credentials;
+		// If credentials are provided, extract values to individual fields
+		if (credentials != null) {
+			this.apiKey = credentials.get("apiKey");
+			this.apiSecret = credentials.get("apiSecret");
+			this.passphrase = credentials.get("passphrase");
+			// Handle OTP through additionalConfig
+			String otp = credentials.get("otp");
+			if (otp != null && !otp.trim().isEmpty()) {
+				if (this.additionalConfig == null) {
+					this.additionalConfig = new java.util.HashMap<>();
+				}
+				this.additionalConfig.put("otp", otp);
+			}
+		}
+	}
+
+	// Helper methods
+	public boolean isOAuthConnection() {
+		return "oauth".equals(connectionType);
+	}
+
+	public boolean isApiKeyConnection() {
+		return "api_key".equals(connectionType);
+	}
+
+	public boolean hasApiCredentials() {
+		return apiKey != null && !apiKey.trim().isEmpty() && apiSecret != null && !apiSecret.trim().isEmpty();
+	}
+
+	public Map<String, Object> getCredentials() {
+		// If credentials field was directly populated, return it (with proper type
+		// conversion)
+		if (this.credentials != null && !this.credentials.isEmpty()) {
+			Map<String, Object> result = new java.util.HashMap<>(this.credentials);
+			// Also include OTP from additionalConfig if present
+			if (additionalConfig != null && additionalConfig.containsKey("otp")) {
+				result.put("otp", additionalConfig.get("otp"));
+			}
+			return result;
+		}
+
+		// Otherwise build from individual fields
+		Map<String, Object> result = new java.util.HashMap<>();
+		if (apiKey != null)
+			result.put("apiKey", apiKey);
+		if (apiSecret != null)
+			result.put("apiSecret", apiSecret);
+		if (passphrase != null)
+			result.put("passphrase", passphrase);
+		// Support for OTP if provided in additionalConfig
+		if (additionalConfig != null && additionalConfig.containsKey("otp")) {
+			result.put("otp", additionalConfig.get("otp"));
+		}
+		return result;
+	}
+
+	@Override
+	public String toString() {
+		return "CreateProviderRequest{" + "providerId='" + providerId + '\'' + ", connectionType='" + connectionType
+				+ '\'' + ", accountType='" + accountType + '\'' + ", enableNotifications=" + enableNotifications
+				+ ", enableAutoRefresh=" + enableAutoRefresh + ", hasApiCredentials=" + hasApiCredentials() + '}';
+	}
+
+}

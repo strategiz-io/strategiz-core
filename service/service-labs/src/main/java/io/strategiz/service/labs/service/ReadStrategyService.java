@@ -18,141 +18,137 @@ import java.util.Optional;
 @Service
 public class ReadStrategyService extends BaseService {
 
-    private final ReadStrategyRepository readStrategyRepository;
-    private final StrategySubscriptionRepository subscriptionRepository;
+	private final ReadStrategyRepository readStrategyRepository;
 
-    @Autowired
-    public ReadStrategyService(
-            ReadStrategyRepository readStrategyRepository,
-            StrategySubscriptionRepository subscriptionRepository) {
-        this.readStrategyRepository = readStrategyRepository;
-        this.subscriptionRepository = subscriptionRepository;
-    }
+	private final StrategySubscriptionRepository subscriptionRepository;
 
-    @Override
-    protected String getModuleName() {
-        return "service-labs";
-    }
-    
-    /**
-     * Get all strategies for a user
-     */
-    public List<Strategy> getUserStrategies(String userId) {
-        log.debug("Fetching strategies for user: {}", userId);
-        return readStrategyRepository.findByUserId(userId);
-    }
-    
-    /**
-     * Get strategies by status for a user
-     */
-    public List<Strategy> getUserStrategiesByStatus(String userId, String status) {
-        log.debug("Fetching strategies for user: {} with status: {}", userId, status);
-        return readStrategyRepository.findByUserIdAndStatus(userId, status);
-    }
-    
-    /**
-     * Get strategies by language for a user
-     */
-    public List<Strategy> getUserStrategiesByLanguage(String userId, String language) {
-        log.debug("Fetching strategies for user: {} with language: {}", userId, language);
-        return readStrategyRepository.findByUserIdAndLanguage(userId, language);
-    }
-    
-    /**
-     * Get a specific strategy by ID with proper access control.
-     *
-     * Access rules based on publishStatus and publicStatus:
-     * - DRAFT + PRIVATE: Owner only
-     * - DRAFT + PUBLIC: INVALID (prevented by validation)
-     * - PUBLISHED + PRIVATE: Owner and subscribers only
-     * - PUBLISHED + PUBLIC: Everyone
-     *
-     * @param strategyId The strategy ID
-     * @param userId The user requesting access
-     * @return Optional of strategy if user has access
-     */
-    public Optional<Strategy> getStrategyById(String strategyId, String userId) {
-        log.debug("Fetching strategy: {} for user: {}", strategyId, userId);
+	@Autowired
+	public ReadStrategyService(ReadStrategyRepository readStrategyRepository,
+			StrategySubscriptionRepository subscriptionRepository) {
+		this.readStrategyRepository = readStrategyRepository;
+		this.subscriptionRepository = subscriptionRepository;
+	}
 
-        return readStrategyRepository.findById(strategyId)
-                .filter(strategy -> canViewStrategy(strategy, userId));
-    }
+	@Override
+	protected String getModuleName() {
+		return "service-labs";
+	}
 
-    /**
-     * Check if user can view the strategy based on access control rules.
-     *
-     * @param strategy The strategy to check
-     * @param userId The user requesting access (can be null for public access)
-     * @return true if user can view the strategy
-     */
-    private boolean canViewStrategy(Strategy strategy, String userId) {
-        // Owner can always view
-        if (userId != null && strategy.isOwner(userId)) {
-            return true;
-        }
+	/**
+	 * Get all strategies for a user
+	 */
+	public List<Strategy> getUserStrategies(String userId) {
+		log.debug("Fetching strategies for user: {}", userId);
+		return readStrategyRepository.findByUserId(userId);
+	}
 
-        // DRAFT strategies are owner-only (isPublished = false)
-        if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
-            return false;
-        }
+	/**
+	 * Get strategies by status for a user
+	 */
+	public List<Strategy> getUserStrategiesByStatus(String userId, String status) {
+		log.debug("Fetching strategies for user: {} with status: {}", userId, status);
+		return readStrategyRepository.findByUserIdAndStatus(userId, status);
+	}
 
-        // PUBLISHED + PUBLIC: Everyone can view (isPublished = true, isPublic = true)
-        if (Boolean.TRUE.equals(strategy.getIsPublic())) {
-            return true;
-        }
+	/**
+	 * Get strategies by language for a user
+	 */
+	public List<Strategy> getUserStrategiesByLanguage(String userId, String language) {
+		log.debug("Fetching strategies for user: {} with language: {}", userId, language);
+		return readStrategyRepository.findByUserIdAndLanguage(userId, language);
+	}
 
-        // PUBLISHED + PRIVATE: Only subscribers can view (besides owner)
-        if (userId != null) {
-            return hasActiveSubscription(userId, strategy.getId());
-        }
+	/**
+	 * Get a specific strategy by ID with proper access control.
+	 *
+	 * Access rules based on publishStatus and publicStatus: - DRAFT + PRIVATE: Owner only
+	 * - DRAFT + PUBLIC: INVALID (prevented by validation) - PUBLISHED + PRIVATE: Owner
+	 * and subscribers only - PUBLISHED + PUBLIC: Everyone
+	 * @param strategyId The strategy ID
+	 * @param userId The user requesting access
+	 * @return Optional of strategy if user has access
+	 */
+	public Optional<Strategy> getStrategyById(String strategyId, String userId) {
+		log.debug("Fetching strategy: {} for user: {}", strategyId, userId);
 
-        return false;
-    }
+		return readStrategyRepository.findById(strategyId).filter(strategy -> canViewStrategy(strategy, userId));
+	}
 
-    /**
-     * Check if user has active subscription to strategy.
-     */
-    private boolean hasActiveSubscription(String userId, String strategyId) {
-        return subscriptionRepository.hasActiveSubscription(userId, strategyId);
-    }
-    
-    /**
-     * Get all public strategies
-     */
-    public List<Strategy> getPublicStrategies() {
-        log.debug("Fetching public strategies");
-        return readStrategyRepository.findPublicStrategies();
-    }
-    
-    /**
-     * Get public strategies by language
-     */
-    public List<Strategy> getPublicStrategiesByLanguage(String language) {
-        log.debug("Fetching public strategies with language: {}", language);
-        return readStrategyRepository.findPublicStrategiesByLanguage(language);
-    }
-    
-    /**
-     * Get public strategies by tags
-     * Note: This requires a custom query since Firestore doesn't support array-contains-any in Spring Data
-     */
-    public List<Strategy> getPublicStrategiesByTags(List<String> tags) {
-        log.debug("Fetching public strategies with tags: {}", tags);
-        return readStrategyRepository.findPublicStrategiesByTags(tags);
-    }
-    
-    /**
-     * Search strategies by name
-     */
-    public List<Strategy> searchStrategiesByName(String userId, String searchTerm) {
-        log.debug("Searching strategies for user: {} with term: {}", userId, searchTerm);
-        return readStrategyRepository.searchByName(userId, searchTerm);
-    }
-    
-    /**
-     * Check if a strategy exists
-     */
-    public boolean strategyExists(String strategyId) {
-        return readStrategyRepository.existsById(strategyId);
-    }
+	/**
+	 * Check if user can view the strategy based on access control rules.
+	 * @param strategy The strategy to check
+	 * @param userId The user requesting access (can be null for public access)
+	 * @return true if user can view the strategy
+	 */
+	private boolean canViewStrategy(Strategy strategy, String userId) {
+		// Owner can always view
+		if (userId != null && strategy.isOwner(userId)) {
+			return true;
+		}
+
+		// DRAFT strategies are owner-only (isPublished = false)
+		if (!Boolean.TRUE.equals(strategy.getIsPublished())) {
+			return false;
+		}
+
+		// PUBLISHED + PUBLIC: Everyone can view (isPublished = true, isPublic = true)
+		if (Boolean.TRUE.equals(strategy.getIsPublic())) {
+			return true;
+		}
+
+		// PUBLISHED + PRIVATE: Only subscribers can view (besides owner)
+		if (userId != null) {
+			return hasActiveSubscription(userId, strategy.getId());
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if user has active subscription to strategy.
+	 */
+	private boolean hasActiveSubscription(String userId, String strategyId) {
+		return subscriptionRepository.hasActiveSubscription(userId, strategyId);
+	}
+
+	/**
+	 * Get all public strategies
+	 */
+	public List<Strategy> getPublicStrategies() {
+		log.debug("Fetching public strategies");
+		return readStrategyRepository.findPublicStrategies();
+	}
+
+	/**
+	 * Get public strategies by language
+	 */
+	public List<Strategy> getPublicStrategiesByLanguage(String language) {
+		log.debug("Fetching public strategies with language: {}", language);
+		return readStrategyRepository.findPublicStrategiesByLanguage(language);
+	}
+
+	/**
+	 * Get public strategies by tags Note: This requires a custom query since Firestore
+	 * doesn't support array-contains-any in Spring Data
+	 */
+	public List<Strategy> getPublicStrategiesByTags(List<String> tags) {
+		log.debug("Fetching public strategies with tags: {}", tags);
+		return readStrategyRepository.findPublicStrategiesByTags(tags);
+	}
+
+	/**
+	 * Search strategies by name
+	 */
+	public List<Strategy> searchStrategiesByName(String userId, String searchTerm) {
+		log.debug("Searching strategies for user: {} with term: {}", userId, searchTerm);
+		return readStrategyRepository.searchByName(userId, searchTerm);
+	}
+
+	/**
+	 * Check if a strategy exists
+	 */
+	public boolean strategyExists(String strategyId) {
+		return readStrategyRepository.existsById(strategyId);
+	}
+
 }

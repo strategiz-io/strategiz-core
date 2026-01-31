@@ -5,8 +5,9 @@ import io.strategiz.business.historicalinsights.model.StrategyType;
 import java.util.Map;
 
 /**
- * Python code templates for each strategy type. All templates include: - ATR-based dynamic stop
- * loss - Configurable take profit - Position state tracking - Proper indicator plotting
+ * Python code templates for each strategy type. All templates include: - ATR-based
+ * dynamic stop loss - Configurable take profit - Position state tracking - Proper
+ * indicator plotting
  *
  * Templates use placeholder substitution for parameters.
  */
@@ -39,12 +40,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * RSI Mean Reversion Strategy. Buys when RSI drops below oversold threshold, sells when RSI
-	 * rises above overbought threshold.
+	 * RSI Mean Reversion Strategy. Buys when RSI drops below oversold threshold, sells
+	 * when RSI rises above overbought threshold.
 	 *
-	 * Parameters: - period: RSI period (7, 10, 14, 21) - oversold: Buy threshold (20, 25, 30, 35) -
-	 * overbought: Sell threshold (65, 70, 75, 80) - atr_multiplier: Stop loss ATR multiplier (1.5,
-	 * 2.0, 2.5)
+	 * Parameters: - period: RSI period (7, 10, 14, 21) - oversold: Buy threshold (20, 25,
+	 * 30, 35) - overbought: Sell threshold (65, 70, 75, 80) - atr_multiplier: Stop loss
+	 * ATR multiplier (1.5, 2.0, 2.5)
 	 */
 	private static String generateRSIMeanReversion(Map<String, Object> params) {
 		int period = getInt(params, "period", 14);
@@ -126,11 +127,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * MACD Trend Following Strategy. Buys on bullish crossover (MACD crosses above signal), sells
-	 * on bearish crossover.
+	 * MACD Trend Following Strategy. Buys on bullish crossover (MACD crosses above
+	 * signal), sells on bearish crossover.
 	 *
-	 * Parameters: - fast: Fast EMA period (8, 10, 12) - slow: Slow EMA period (20, 26, 30) -
-	 * signal_period: Signal line period (7, 9, 12) - atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - fast: Fast EMA period (8, 10, 12) - slow: Slow EMA period (20, 26,
+	 * 30) - signal_period: Signal line period (7, 9, 12) - atr_multiplier: Stop loss ATR
+	 * multiplier
 	 */
 	private static String generateMACDTrendFollowing(Map<String, Object> params) {
 		int fast = getInt(params, "fast", 12);
@@ -218,8 +220,8 @@ public final class StrategyCodeTemplates {
 	/**
 	 * Bollinger Bands Mean Reversion Strategy. Buys at lower band, sells at upper band.
 	 *
-	 * Parameters: - period: Bollinger period (10, 15, 20, 25) - std_mult: Standard deviation
-	 * multiplier (1.5, 2.0, 2.5) - atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - period: Bollinger period (10, 15, 20, 25) - std_mult: Standard
+	 * deviation multiplier (1.5, 2.0, 2.5) - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateBollingerMeanReversion(Map<String, Object> params) {
 		int period = getInt(params, "period", 20);
@@ -297,10 +299,11 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * Bollinger Bands Breakout Strategy. Buys on upper band breakout with volume confirmation.
+	 * Bollinger Bands Breakout Strategy. Buys on upper band breakout with volume
+	 * confirmation.
 	 *
-	 * Parameters: - period: Bollinger period (10, 15, 20, 25) - std_mult: Standard deviation
-	 * multiplier (1.5, 2.0, 2.5) - atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - period: Bollinger period (10, 15, 20, 25) - std_mult: Standard
+	 * deviation multiplier (1.5, 2.0, 2.5) - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateBollingerBreakout(Map<String, Object> params) {
 		int period = getInt(params, "period", 20);
@@ -385,8 +388,8 @@ public final class StrategyCodeTemplates {
 	/**
 	 * EMA Crossover Strategy. Buys when fast EMA crosses above slow EMA.
 	 *
-	 * Parameters: - fast: Fast EMA period (5, 10, 20) - slow: Slow EMA period (20, 50, 100, 200) -
-	 * atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - fast: Fast EMA period (5, 10, 20) - slow: Slow EMA period (20, 50,
+	 * 100, 200) - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateMACrossoverEMA(Map<String, Object> params) {
 		int fast = getInt(params, "fast", 10);
@@ -469,8 +472,8 @@ public final class StrategyCodeTemplates {
 	/**
 	 * SMA Crossover Strategy. Buys when fast SMA crosses above slow SMA.
 	 *
-	 * Parameters: - fast: Fast SMA period (5, 10, 20) - slow: Slow SMA period (20, 50, 100, 200) -
-	 * atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - fast: Fast SMA period (5, 10, 20) - slow: Slow SMA period (20, 50,
+	 * 100, 200) - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateMACrossoverSMA(Map<String, Object> params) {
 		int fast = getInt(params, "fast", 10);
@@ -548,11 +551,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * Stochastic Oscillator Strategy. Buys on oversold crossover, sells on overbought crossover.
+	 * Stochastic Oscillator Strategy. Buys on oversold crossover, sells on overbought
+	 * crossover.
 	 *
-	 * Parameters: - k_period: %K period (10, 14, 20) - d_period: %D period (3, 5) - oversold:
-	 * Oversold level (20, 25, 30) - overbought: Overbought level (70, 75, 80) - atr_multiplier:
-	 * Stop loss ATR multiplier
+	 * Parameters: - k_period: %K period (10, 14, 20) - d_period: %D period (3, 5) -
+	 * oversold: Oversold level (20, 25, 30) - overbought: Overbought level (70, 75, 80) -
+	 * atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateStochastic(Map<String, Object> params) {
 		int kPeriod = getInt(params, "k_period", 14);
@@ -636,11 +640,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * Swing Trading Strategy. Buys X% drop from recent high, sells Y% rise from recent low.
+	 * Swing Trading Strategy. Buys X% drop from recent high, sells Y% rise from recent
+	 * low.
 	 *
-	 * Parameters: - buy_threshold: Percentage drop to buy (5, 8, 10, 12) - sell_threshold:
-	 * Percentage rise to sell (8, 12, 15, 20) - lookback: Lookback period for high/low (10, 20,
-	 * 30) - atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - buy_threshold: Percentage drop to buy (5, 8, 10, 12) -
+	 * sell_threshold: Percentage rise to sell (8, 12, 15, 20) - lookback: Lookback period
+	 * for high/low (10, 20, 30) - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateSwingTrading(Map<String, Object> params) {
 		int buyThreshold = getInt(params, "buy_threshold", 10);
@@ -716,12 +721,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * Combined Strategy with ADX Filter. Uses a primary indicator (RSI) but only trades when ADX
-	 * confirms trend strength.
+	 * Combined Strategy with ADX Filter. Uses a primary indicator (RSI) but only trades
+	 * when ADX confirms trend strength.
 	 *
-	 * Parameters: - adx_threshold: Minimum ADX for trend confirmation (20, 25, 30) - rsi_period:
-	 * RSI period - rsi_oversold: RSI buy threshold - rsi_overbought: RSI sell threshold -
-	 * atr_multiplier: Stop loss ATR multiplier
+	 * Parameters: - adx_threshold: Minimum ADX for trend confirmation (20, 25, 30) -
+	 * rsi_period: RSI period - rsi_oversold: RSI buy threshold - rsi_overbought: RSI sell
+	 * threshold - atr_multiplier: Stop loss ATR multiplier
 	 */
 	private static String generateCombinedADX(Map<String, Object> params) {
 		int adxThreshold = getInt(params, "adx_threshold", 25);
@@ -730,119 +735,120 @@ public final class StrategyCodeTemplates {
 		int rsiOverbought = getInt(params, "rsi_overbought", 70);
 		double atrMult = getDouble(params, "atr_multiplier", 2.0);
 
-		return String.format("""
-				# Combined RSI + ADX Filter Strategy
-				# Parameters: adx_thresh=%d, rsi_period=%d, oversold=%d, overbought=%d, atr_mult=%.1f
+		return String.format(
+				"""
+						# Combined RSI + ADX Filter Strategy
+						# Parameters: adx_thresh=%d, rsi_period=%d, oversold=%d, overbought=%d, atr_mult=%.1f
 
-				import pandas as pd
-				import numpy as np
+						import pandas as pd
+						import numpy as np
 
-				# Strategy parameters
-				ADX_THRESHOLD = %d
-				ADX_PERIOD = 14
-				RSI_PERIOD = %d
-				OVERSOLD = %d
-				OVERBOUGHT = %d
-				ATR_PERIOD = 14
-				ATR_MULTIPLIER = %.1f
-				TAKE_PROFIT_RATIO = 2.0
+						# Strategy parameters
+						ADX_THRESHOLD = %d
+						ADX_PERIOD = 14
+						RSI_PERIOD = %d
+						OVERSOLD = %d
+						OVERBOUGHT = %d
+						ATR_PERIOD = 14
+						ATR_MULTIPLIER = %.1f
+						TAKE_PROFIT_RATIO = 2.0
 
-				def calculate_rsi(data, period):
-				    delta = data['close'].diff()
-				    gain = delta.where(delta > 0, 0.0)
-				    loss = (-delta).where(delta < 0, 0.0)
-				    avg_gain = gain.rolling(window=period, min_periods=1).mean()
-				    avg_loss = loss.rolling(window=period, min_periods=1).mean()
-				    rs = avg_gain / avg_loss.replace(0, np.inf)
-				    return 100 - (100 / (1 + rs))
+						def calculate_rsi(data, period):
+						    delta = data['close'].diff()
+						    gain = delta.where(delta > 0, 0.0)
+						    loss = (-delta).where(delta < 0, 0.0)
+						    avg_gain = gain.rolling(window=period, min_periods=1).mean()
+						    avg_loss = loss.rolling(window=period, min_periods=1).mean()
+						    rs = avg_gain / avg_loss.replace(0, np.inf)
+						    return 100 - (100 / (1 + rs))
 
-				def calculate_adx(data, period):
-				    high = data['high']
-				    low = data['low']
-				    close = data['close']
+						def calculate_adx(data, period):
+						    high = data['high']
+						    low = data['low']
+						    close = data['close']
 
-				    plus_dm = high.diff()
-				    minus_dm = -low.diff()
-				    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
-				    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
+						    plus_dm = high.diff()
+						    minus_dm = -low.diff()
+						    plus_dm = plus_dm.where((plus_dm > minus_dm) & (plus_dm > 0), 0.0)
+						    minus_dm = minus_dm.where((minus_dm > plus_dm) & (minus_dm > 0), 0.0)
 
-				    tr = pd.concat([high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
-				    atr = tr.rolling(window=period).mean()
+						    tr = pd.concat([high - low, (high - close.shift(1)).abs(), (low - close.shift(1)).abs()], axis=1).max(axis=1)
+						    atr = tr.rolling(window=period).mean()
 
-				    plus_di = 100 * (plus_dm.rolling(window=period).mean() / atr)
-				    minus_di = 100 * (minus_dm.rolling(window=period).mean() / atr)
+						    plus_di = 100 * (plus_dm.rolling(window=period).mean() / atr)
+						    minus_di = 100 * (minus_dm.rolling(window=period).mean() / atr)
 
-				    dx = 100 * ((plus_di - minus_di).abs() / (plus_di + minus_di + 0.0001))
-				    adx = dx.rolling(window=period).mean()
-				    return adx, plus_di, minus_di
+						    dx = 100 * ((plus_di - minus_di).abs() / (plus_di + minus_di + 0.0001))
+						    adx = dx.rolling(window=period).mean()
+						    return adx, plus_di, minus_di
 
-				def calculate_atr(data, period):
-				    high = data['high']
-				    low = data['low']
-				    close = data['close'].shift(1)
-				    tr = pd.concat([high - low, (high - close).abs(), (low - close).abs()], axis=1).max(axis=1)
-				    return tr.rolling(window=period, min_periods=1).mean()
+						def calculate_atr(data, period):
+						    high = data['high']
+						    low = data['low']
+						    close = data['close'].shift(1)
+						    tr = pd.concat([high - low, (high - close).abs(), (low - close).abs()], axis=1).max(axis=1)
+						    return tr.rolling(window=period, min_periods=1).mean()
 
-				# Calculate indicators
-				data['rsi'] = calculate_rsi(data, RSI_PERIOD)
-				data['adx'], data['plus_di'], data['minus_di'] = calculate_adx(data, ADX_PERIOD)
-				data['atr'] = calculate_atr(data, ATR_PERIOD)
+						# Calculate indicators
+						data['rsi'] = calculate_rsi(data, RSI_PERIOD)
+						data['adx'], data['plus_di'], data['minus_di'] = calculate_adx(data, ADX_PERIOD)
+						data['atr'] = calculate_atr(data, ATR_PERIOD)
 
-				# Plot indicators
-				plot(data['rsi'], 'RSI', color='purple', linewidth=1, overlay=False)
-				plot(data['adx'], 'ADX', color='blue', linewidth=1, overlay=False)
+						# Plot indicators
+						plot(data['rsi'], 'RSI', color='purple', linewidth=1, overlay=False)
+						plot(data['adx'], 'ADX', color='blue', linewidth=1, overlay=False)
 
-				# Trading logic
-				position = None
-				entry_price = 0
-				stop_loss = 0
-				take_profit = 0
+						# Trading logic
+						position = None
+						entry_price = 0
+						stop_loss = 0
+						take_profit = 0
 
-				for i in range(max(RSI_PERIOD, ADX_PERIOD * 2) + 1, len(data)):
-				    row = data.iloc[i]
-				    price = row['close']
-				    timestamp = row['timestamp']
-				    rsi = row['rsi']
-				    adx = row['adx']
-				    plus_di = row['plus_di']
-				    minus_di = row['minus_di']
-				    atr = row['atr']
+						for i in range(max(RSI_PERIOD, ADX_PERIOD * 2) + 1, len(data)):
+						    row = data.iloc[i]
+						    price = row['close']
+						    timestamp = row['timestamp']
+						    rsi = row['rsi']
+						    adx = row['adx']
+						    plus_di = row['plus_di']
+						    minus_di = row['minus_di']
+						    atr = row['atr']
 
-				    if position is None:
-				        # Buy when RSI oversold AND ADX shows trend
-				        if rsi < OVERSOLD and adx > ADX_THRESHOLD:
-				            position = 'long'
-				            entry_price = price
-				            stop_loss = price - (atr * ATR_MULTIPLIER)
-				            take_profit = price + (atr * ATR_MULTIPLIER * TAKE_PROFIT_RATIO)
-				            signal('BUY', timestamp, price, f'RSI={rsi:.1f}, ADX={adx:.1f}', 'arrow_up')
-				    else:
-				        # Exit conditions
-				        if rsi > OVERBOUGHT:
-				            signal('SELL', timestamp, price, f'RSI={rsi:.1f} (overbought)', 'arrow_down')
-				            position = None
-				        elif adx < ADX_THRESHOLD * 0.7:  # Trend weakening
-				            signal('SELL', timestamp, price, f'ADX={adx:.1f} (trend weak)', 'arrow_down')
-				            position = None
-				        elif price <= stop_loss:
-				            signal('SELL', timestamp, price, 'Stop Loss', 'arrow_down')
-				            position = None
-				        elif price >= take_profit:
-				            signal('SELL', timestamp, price, 'Take Profit', 'arrow_down')
-				            position = None
-				""", adxThreshold, rsiPeriod, rsiOversold, rsiOverbought, atrMult, adxThreshold, rsiPeriod, rsiOversold,
+						    if position is None:
+						        # Buy when RSI oversold AND ADX shows trend
+						        if rsi < OVERSOLD and adx > ADX_THRESHOLD:
+						            position = 'long'
+						            entry_price = price
+						            stop_loss = price - (atr * ATR_MULTIPLIER)
+						            take_profit = price + (atr * ATR_MULTIPLIER * TAKE_PROFIT_RATIO)
+						            signal('BUY', timestamp, price, f'RSI={rsi:.1f}, ADX={adx:.1f}', 'arrow_up')
+						    else:
+						        # Exit conditions
+						        if rsi > OVERBOUGHT:
+						            signal('SELL', timestamp, price, f'RSI={rsi:.1f} (overbought)', 'arrow_down')
+						            position = None
+						        elif adx < ADX_THRESHOLD * 0.7:  # Trend weakening
+						            signal('SELL', timestamp, price, f'ADX={adx:.1f} (trend weak)', 'arrow_down')
+						            position = None
+						        elif price <= stop_loss:
+						            signal('SELL', timestamp, price, 'Stop Loss', 'arrow_down')
+						            position = None
+						        elif price >= take_profit:
+						            signal('SELL', timestamp, price, 'Take Profit', 'arrow_down')
+						            position = None
+						""",
+				adxThreshold, rsiPeriod, rsiOversold, rsiOverbought, atrMult, adxThreshold, rsiPeriod, rsiOversold,
 				rsiOverbought, atrMult);
 	}
 
 	/**
-	 * Momentum Strategy with Trailing Stop - designed to outperform buy-and-hold.
-	 * Key feature: NO fixed profit target - lets winners run with trailing stop.
-	 * Uses EMA for trend confirmation and trails stop from highest high.
+	 * Momentum Strategy with Trailing Stop - designed to outperform buy-and-hold. Key
+	 * feature: NO fixed profit target - lets winners run with trailing stop. Uses EMA for
+	 * trend confirmation and trails stop from highest high.
 	 *
-	 * Parameters:
-	 * - ema_period: EMA period for trend filter (20, 50, 100)
-	 * - trail_percent: Trailing stop percentage from high (5, 8, 10, 12)
-	 * - atr_multiplier: Initial stop loss ATR multiplier
+	 * Parameters: - ema_period: EMA period for trend filter (20, 50, 100) -
+	 * trail_percent: Trailing stop percentage from high (5, 8, 10, 12) - atr_multiplier:
+	 * Initial stop loss ATR multiplier
 	 */
 	private static String generateMomentumTrailing(Map<String, Object> params) {
 		int emaPeriod = getInt(params, "ema_period", 50);
@@ -925,13 +931,12 @@ public final class StrategyCodeTemplates {
 	}
 
 	/**
-	 * Breakout Momentum Strategy - buys breakouts above resistance.
-	 * Uses trailing stop from the breakout high - no fixed profit target.
+	 * Breakout Momentum Strategy - buys breakouts above resistance. Uses trailing stop
+	 * from the breakout high - no fixed profit target.
 	 *
-	 * Parameters:
-	 * - lookback: Period for finding resistance (20, 50, 100)
-	 * - breakout_buffer: Percentage above resistance to confirm breakout (0.5, 1.0, 1.5)
-	 * - trail_percent: Trailing stop percentage (6, 8, 10, 12)
+	 * Parameters: - lookback: Period for finding resistance (20, 50, 100) -
+	 * breakout_buffer: Percentage above resistance to confirm breakout (0.5, 1.0, 1.5) -
+	 * trail_percent: Trailing stop percentage (6, 8, 10, 12)
 	 */
 	private static String generateBreakoutMomentum(Map<String, Object> params) {
 		int lookback = getInt(params, "lookback", 50);

@@ -9,5 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.client.webull")
 public class WebullClientConfig {
-    // Configuration beans can be added here as needed
+
+	// Configuration beans can be added here as needed
+
 }

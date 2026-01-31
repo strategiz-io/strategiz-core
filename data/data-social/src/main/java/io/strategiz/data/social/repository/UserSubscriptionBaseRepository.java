@@ -15,8 +15,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
- * Base repository for UserSubscription entities using Firestore.
- * Provides Firestore CRUD operations and specialized queries.
+ * Base repository for UserSubscription entities using Firestore. Provides Firestore CRUD
+ * operations and specialized queries.
  *
  * Collection path: userSubscriptions/{subscriptionId}
  */

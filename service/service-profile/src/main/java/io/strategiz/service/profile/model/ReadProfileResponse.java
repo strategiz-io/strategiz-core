@@ -6,208 +6,204 @@ import io.strategiz.service.profile.constants.ProfileConstants;
  * Response DTO for user profile data
  */
 public class ReadProfileResponse {
-    private String userId;
-    private String name;
-    private String email;
-    private String photoURL;
-    private boolean isEmailVerified;
-    private String subscriptionTier;
-    private Boolean demoMode;
-    private boolean isActive;
-    private long createdAt;
-    private long modifiedAt;
-    private String bio;
-    private String location;
-    private String occupation;
-    private String education;
 
-    // Default constructor
-    public ReadProfileResponse() {
-    }
+	private String userId;
 
-    // Full constructor
-    public ReadProfileResponse(String userId, String name, String email, String photoURL,
-                          boolean isEmailVerified, String subscriptionTier, Boolean demoMode,
-                          boolean isActive, long createdAt, long modifiedAt) {
-        this.userId = userId;
-        this.name = name;
-        this.email = email;
-        this.photoURL = photoURL;
-        this.isEmailVerified = isEmailVerified;
-        this.subscriptionTier = subscriptionTier;
-        this.demoMode = demoMode;
-        this.isActive = isActive;
-        this.createdAt = createdAt;
-        this.modifiedAt = modifiedAt;
-    }
+	private String name;
 
-    // Getters and setters
-    public String getUserId() {
-        return userId;
-    }
+	private String email;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private String photoURL;
 
-    public String getName() {
-        return name;
-    }
+	private boolean isEmailVerified;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+	private String subscriptionTier;
 
-    public String getEmail() {
-        return email;
-    }
+	private Boolean demoMode;
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+	private boolean isActive;
 
-    public String getPhotoURL() {
-        return photoURL;
-    }
+	private long createdAt;
 
-    public void setPhotoURL(String photoURL) {
-        this.photoURL = photoURL;
-    }
+	private long modifiedAt;
 
-    public boolean isEmailVerified() {
-        return isEmailVerified;
-    }
+	private String bio;
 
-    public void setEmailVerified(boolean isEmailVerified) {
-        this.isEmailVerified = isEmailVerified;
-    }
+	private String location;
 
-    public String getSubscriptionTier() {
-        return subscriptionTier;
-    }
+	private String occupation;
 
-    public void setSubscriptionTier(String subscriptionTier) {
-        this.subscriptionTier = subscriptionTier;
-    }
+	private String education;
 
-    public Boolean getDemoMode() {
-        return demoMode;
-    }
+	// Default constructor
+	public ReadProfileResponse() {
+	}
 
-    public void setDemoMode(Boolean demoMode) {
-        this.demoMode = demoMode;
-    }
+	// Full constructor
+	public ReadProfileResponse(String userId, String name, String email, String photoURL, boolean isEmailVerified,
+			String subscriptionTier, Boolean demoMode, boolean isActive, long createdAt, long modifiedAt) {
+		this.userId = userId;
+		this.name = name;
+		this.email = email;
+		this.photoURL = photoURL;
+		this.isEmailVerified = isEmailVerified;
+		this.subscriptionTier = subscriptionTier;
+		this.demoMode = demoMode;
+		this.isActive = isActive;
+		this.createdAt = createdAt;
+		this.modifiedAt = modifiedAt;
+	}
 
-    public boolean isActive() {
-        return isActive;
-    }
+	// Getters and setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setActive(boolean active) {
-        isActive = active;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public long getCreatedAt() {
-        return createdAt;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public void setCreatedAt(long createdAt) {
-        this.createdAt = createdAt;
-    }
+	public void setName(String name) {
+		this.name = name;
+	}
 
-    public long getModifiedAt() {
-        return modifiedAt;
-    }
+	public String getEmail() {
+		return email;
+	}
 
-    public void setModifiedAt(long modifiedAt) {
-        this.modifiedAt = modifiedAt;
-    }
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    public String getBio() {
-        return bio;
-    }
+	public String getPhotoURL() {
+		return photoURL;
+	}
 
-    public void setBio(String bio) {
-        this.bio = bio;
-    }
+	public void setPhotoURL(String photoURL) {
+		this.photoURL = photoURL;
+	}
 
-    public String getLocation() {
-        return location;
-    }
+	public boolean isEmailVerified() {
+		return isEmailVerified;
+	}
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
+	public void setEmailVerified(boolean isEmailVerified) {
+		this.isEmailVerified = isEmailVerified;
+	}
 
-    public String getOccupation() {
-        return occupation;
-    }
+	public String getSubscriptionTier() {
+		return subscriptionTier;
+	}
 
-    public void setOccupation(String occupation) {
-        this.occupation = occupation;
-    }
+	public void setSubscriptionTier(String subscriptionTier) {
+		this.subscriptionTier = subscriptionTier;
+	}
 
-    public String getEducation() {
-        return education;
-    }
+	public Boolean getDemoMode() {
+		return demoMode;
+	}
 
-    public void setEducation(String education) {
-        this.education = education;
-    }
+	public void setDemoMode(Boolean demoMode) {
+		this.demoMode = demoMode;
+	}
 
-    @Override
-    public String toString() {
-        return "ReadProfileResponse{" +
-                "userId='" + userId + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                ", photoURL='" + photoURL + '\'' +
-                ", isEmailVerified=" + isEmailVerified +
-                ", subscriptionTier='" + subscriptionTier + '\'' +
-                ", demoMode=" + demoMode +
-                ", isActive=" + isActive +
-                ", createdAt=" + createdAt +
-                ", modifiedAt=" + modifiedAt +
-                ", bio='" + bio + '\'' +
-                ", location='" + location + '\'' +
-                ", occupation='" + occupation + '\'' +
-                ", education='" + education + '\'' +
-                '}';
-    }
+	public boolean isActive() {
+		return isActive;
+	}
 
-    /**
-     * Creates a ReadProfileResponse from a UserEntity
-     */
-    public static ReadProfileResponse fromEntity(io.strategiz.data.user.entity.UserEntity user) {
-        if (user == null || user.getProfile() == null) {
-            return null;
-        }
-        
-        io.strategiz.data.user.entity.UserProfileEntity profile = user.getProfile();
-        
-        // Get timestamps from entity, fallback to current time if null
-        long createdAt = user.getCreatedDate() != null
-                ? user.getCreatedDate().toDate().getTime()
-                : System.currentTimeMillis();
-        long modifiedAt = user.getModifiedDate() != null
-                ? user.getModifiedDate().toDate().getTime()
-                : System.currentTimeMillis();
+	public void setActive(boolean active) {
+		isActive = active;
+	}
 
-        ReadProfileResponse response = new ReadProfileResponse(
-                user.getId(),
-                profile.getName(),
-                profile.getEmail(),
-                profile.getPhotoURL(),
-                profile.getIsEmailVerified() != null ? profile.getIsEmailVerified() : ProfileConstants.Defaults.EMAIL_VERIFIED,
-                profile.getSubscriptionTier(),
-                profile.getDemoMode(),
-                user.getIsActive() != null ? user.getIsActive() : ProfileConstants.Defaults.IS_ACTIVE,
-                createdAt,
-                modifiedAt
-        );
-        response.setBio(profile.getBio());
-        response.setLocation(profile.getLocation());
-        response.setOccupation(profile.getOccupation());
-        response.setEducation(profile.getEducation());
-        return response;
-    }
+	public long getCreatedAt() {
+		return createdAt;
+	}
+
+	public void setCreatedAt(long createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	public long getModifiedAt() {
+		return modifiedAt;
+	}
+
+	public void setModifiedAt(long modifiedAt) {
+		this.modifiedAt = modifiedAt;
+	}
+
+	public String getBio() {
+		return bio;
+	}
+
+	public void setBio(String bio) {
+		this.bio = bio;
+	}
+
+	public String getLocation() {
+		return location;
+	}
+
+	public void setLocation(String location) {
+		this.location = location;
+	}
+
+	public String getOccupation() {
+		return occupation;
+	}
+
+	public void setOccupation(String occupation) {
+		this.occupation = occupation;
+	}
+
+	public String getEducation() {
+		return education;
+	}
+
+	public void setEducation(String education) {
+		this.education = education;
+	}
+
+	@Override
+	public String toString() {
+		return "ReadProfileResponse{" + "userId='" + userId + '\'' + ", name='" + name + '\'' + ", email='" + email
+				+ '\'' + ", photoURL='" + photoURL + '\'' + ", isEmailVerified=" + isEmailVerified
+				+ ", subscriptionTier='" + subscriptionTier + '\'' + ", demoMode=" + demoMode + ", isActive=" + isActive
+				+ ", createdAt=" + createdAt + ", modifiedAt=" + modifiedAt + ", bio='" + bio + '\'' + ", location='"
+				+ location + '\'' + ", occupation='" + occupation + '\'' + ", education='" + education + '\'' + '}';
+	}
+
+	/**
+	 * Creates a ReadProfileResponse from a UserEntity
+	 */
+	public static ReadProfileResponse fromEntity(io.strategiz.data.user.entity.UserEntity user) {
+		if (user == null || user.getProfile() == null) {
+			return null;
+		}
+
+		io.strategiz.data.user.entity.UserProfileEntity profile = user.getProfile();
+
+		// Get timestamps from entity, fallback to current time if null
+		long createdAt = user.getCreatedDate() != null ? user.getCreatedDate().toDate().getTime()
+				: System.currentTimeMillis();
+		long modifiedAt = user.getModifiedDate() != null ? user.getModifiedDate().toDate().getTime()
+				: System.currentTimeMillis();
+
+		ReadProfileResponse response = new ReadProfileResponse(user.getId(), profile.getName(), profile.getEmail(),
+				profile.getPhotoURL(),
+				profile.getIsEmailVerified() != null ? profile.getIsEmailVerified()
+						: ProfileConstants.Defaults.EMAIL_VERIFIED,
+				profile.getSubscriptionTier(), profile.getDemoMode(),
+				user.getIsActive() != null ? user.getIsActive() : ProfileConstants.Defaults.IS_ACTIVE, createdAt,
+				modifiedAt);
+		response.setBio(profile.getBio());
+		response.setLocation(profile.getLocation());
+		response.setOccupation(profile.getOccupation());
+		response.setEducation(profile.getEducation());
+		return response;
+	}
+
 }

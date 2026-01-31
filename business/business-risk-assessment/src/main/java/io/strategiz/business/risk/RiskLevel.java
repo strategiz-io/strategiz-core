@@ -4,10 +4,10 @@ package io.strategiz.business.risk;
  * Risk level classification based on aggregate risk score.
  *
  * <ul>
- *   <li>LOW (0-29): Normal — proceed with device trust</li>
- *   <li>MEDIUM (30-49): Caution — require at least one explicit factor</li>
- *   <li>HIGH (50-74): Elevated — require full MFA regardless of device trust</li>
- *   <li>CRITICAL (75-100): Block — lock account, notify user</li>
+ * <li>LOW (0-29): Normal — proceed with device trust</li>
+ * <li>MEDIUM (30-49): Caution — require at least one explicit factor</li>
+ * <li>HIGH (50-74): Elevated — require full MFA regardless of device trust</li>
+ * <li>CRITICAL (75-100): Block — lock account, notify user</li>
  * </ul>
  */
 public enum RiskLevel {

@@ -17,8 +17,7 @@ import io.strategiz.data.quality.repository.CachedQualityMetricsRepository;
 /**
  * Firestore implementation of CachedQualityMetricsRepository.
  *
- * Collection path: system/quality_cache
- * Latest document: system/quality_cache/latest
+ * Collection path: system/quality_cache Latest document: system/quality_cache/latest
  */
 @Repository
 public class CachedQualityMetricsRepositoryImpl implements CachedQualityMetricsRepository {

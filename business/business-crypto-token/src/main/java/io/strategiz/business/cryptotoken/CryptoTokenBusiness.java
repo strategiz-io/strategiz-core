@@ -19,11 +19,15 @@ import java.util.UUID;
 /**
  * Business logic for STRAT crypto token operations.
  *
- * <p>Platform fee is configurable via PlatformConfig entity (admin console).
- * STRAT tokens are the universal currency for AI usage, tips, and owner subscriptions.</p>
+ * <p>
+ * Platform fee is configurable via PlatformConfig entity (admin console). STRAT tokens
+ * are the universal currency for AI usage, tips, and owner subscriptions.
+ * </p>
  *
- * <p>Monthly STRAT allocations are credited to user wallets on subscription
- * creation and renewal. AI usage debits STRAT from the wallet.</p>
+ * <p>
+ * Monthly STRAT allocations are credited to user wallets on subscription creation and
+ * renewal. AI usage debits STRAT from the wallet.
+ * </p>
  */
 @Component
 public class CryptoTokenBusiness {
@@ -47,7 +51,6 @@ public class CryptoTokenBusiness {
 
 	/**
 	 * Get the current platform fee percentage from config.
-	 *
 	 * @return Platform fee as decimal (e.g., 0.15 for 15%)
 	 */
 	public double getPlatformFeePercent() {
@@ -74,7 +77,9 @@ public class CryptoTokenBusiness {
 	 * Credit tokens to user (used after Stripe purchase completes).
 	 */
 	public CryptoTransaction creditPurchasedTokens(String userId, long amountInCents, String stripeSessionId) {
-		long tokenAmount = amountInCents * CryptoWallet.MICRO_UNITS; // $1 = 100 STRAT = 100,000,000 micro-units
+		long tokenAmount = amountInCents * CryptoWallet.MICRO_UNITS; // $1 = 100 STRAT =
+																		// 100,000,000
+																		// micro-units
 
 		CryptoWallet wallet = walletRepository.credit(userId, tokenAmount, userId);
 
@@ -104,7 +109,6 @@ public class CryptoTokenBusiness {
 
 	/**
 	 * Credit STRAT tokens from a pack purchase.
-	 *
 	 * @param userId User to credit
 	 * @param stratAmount Amount of STRAT tokens to credit (not micro-units)
 	 * @param packId The STRAT pack ID
@@ -302,9 +306,8 @@ public class CryptoTokenBusiness {
 	}
 
 	/**
-	 * Credit monthly STRAT allocation to user's wallet.
-	 * Called when a subscription is created or renewed (invoice.paid).
-	 *
+	 * Credit monthly STRAT allocation to user's wallet. Called when a subscription is
+	 * created or renewed (invoice.paid).
 	 * @param userId User to credit
 	 * @param stratAmount Amount of STRAT to credit (not micro-units)
 	 * @return Transaction record
@@ -334,7 +337,6 @@ public class CryptoTokenBusiness {
 
 	/**
 	 * Debit STRAT from user's wallet for AI usage.
-	 *
 	 * @param userId User to debit
 	 * @param stratAmount Amount of STRAT to debit (not micro-units)
 	 * @param referenceType Reference type (e.g., REF_AI_CHAT, REF_STRATEGY_GENERATION)
@@ -369,10 +371,9 @@ public class CryptoTokenBusiness {
 
 	/**
 	 * Convert tokens to AI credits.
-	 *
-	 * @deprecated STRAT tokens CANNOT be converted to AI credits.
-	 *             AI credits come from platform subscription tier only.
-	 *             This method is kept for backward compatibility but will throw an exception.
+	 * @deprecated STRAT tokens CANNOT be converted to AI credits. AI credits come from
+	 * platform subscription tier only. This method is kept for backward compatibility but
+	 * will throw an exception.
 	 */
 	@Deprecated(forRemoval = true)
 	public CryptoTransaction convertToAiCredits(String userId, long tokenAmount) {

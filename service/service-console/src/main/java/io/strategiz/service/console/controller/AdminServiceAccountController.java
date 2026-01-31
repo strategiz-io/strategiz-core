@@ -16,11 +16,8 @@ import java.util.Map;
 /**
  * Admin controller for managing Service Accounts.
  *
- * Service accounts enable machine-to-machine (M2M) authentication for:
- * - CI/CD pipelines
- * - Integration testing
- * - External service integrations
- * - Automated scripts
+ * Service accounts enable machine-to-machine (M2M) authentication for: - CI/CD pipelines
+ * - Integration testing - External service integrations - Automated scripts
  *
  * All endpoints require admin authentication.
  */
@@ -45,16 +42,18 @@ public class AdminServiceAccountController extends BaseController {
 	/**
 	 * Create a new service account.
 	 *
-	 * IMPORTANT: The clientSecret is only returned once at creation time.
-	 * Store it securely - it cannot be retrieved later.
+	 * IMPORTANT: The clientSecret is only returned once at creation time. Store it
+	 * securely - it cannot be retrieved later.
 	 */
 	@PostMapping
-	@Operation(summary = "Create service account", description = "Create a new service account for M2M authentication. The client secret is only shown once!")
+	@Operation(summary = "Create service account",
+			description = "Create a new service account for M2M authentication. The client secret is only shown once!")
 	public ResponseEntity<Map<String, Object>> createServiceAccount(@RequestBody CreateRequest request) {
 		log.info("Creating service account: name={}", request.name);
 
 		ServiceAccountCreateResult result = serviceAccountService.createServiceAccount(request.name,
-				request.description, request.scopes, "admin"); // TODO: get from authenticated user
+				request.description, request.scopes, "admin"); // TODO: get from
+																// authenticated user
 
 		Map<String, Object> response = new HashMap<>();
 		response.put("id", result.account().getId());
@@ -62,8 +61,8 @@ public class AdminServiceAccountController extends BaseController {
 		response.put("clientId", result.account().getClientId());
 		response.put("clientSecret", result.clientSecret()); // Only shown once!
 		response.put("scopes", result.account().getScopes());
-		response.put("message",
-				"IMPORTANT: Save the clientSecret now - it cannot be retrieved later. " + "Use it with clientId to authenticate.");
+		response.put("message", "IMPORTANT: Save the clientSecret now - it cannot be retrieved later. "
+				+ "Use it with clientId to authenticate.");
 
 		log.info("Service account created: id={}, clientId={}", result.account().getId(),
 				result.account().getClientId());
@@ -142,11 +141,12 @@ public class AdminServiceAccountController extends BaseController {
 	/**
 	 * Regenerate the client secret for a service account.
 	 *
-	 * IMPORTANT: The new clientSecret is only returned once.
-	 * Store it securely - it cannot be retrieved later.
+	 * IMPORTANT: The new clientSecret is only returned once. Store it securely - it
+	 * cannot be retrieved later.
 	 */
 	@PostMapping("/{id}/regenerate-secret")
-	@Operation(summary = "Regenerate secret", description = "Generate a new client secret. The old secret will stop working immediately.")
+	@Operation(summary = "Regenerate secret",
+			description = "Generate a new client secret. The old secret will stop working immediately.")
 	public ResponseEntity<Map<String, Object>> regenerateSecret(@PathVariable String id) {
 		log.info("Regenerating secret for service account: id={}", id);
 

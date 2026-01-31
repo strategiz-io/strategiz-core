@@ -41,7 +41,8 @@ public class FraudDetectionService {
 		this.recaptchaClient = recaptchaClient;
 		if (recaptchaClient != null) {
 			logger.info("FraudDetectionService initialized with RecaptchaClient");
-		} else {
+		}
+		else {
 			logger.info("FraudDetectionService initialized without RecaptchaClient - fraud detection disabled");
 		}
 	}

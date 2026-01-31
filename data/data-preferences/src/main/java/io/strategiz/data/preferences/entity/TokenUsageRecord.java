@@ -10,13 +10,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Token usage record for audit trail and analytics.
- * Stored at users/{userId}/token_usage/{recordId}.
+ * Token usage record for audit trail and analytics. Stored at
+ * users/{userId}/token_usage/{recordId}.
  *
- * Tracks individual AI API calls with:
- * - Model used and token counts
- * - Credits consumed (weighted by model cost)
- * - Request type for analytics
+ * Tracks individual AI API calls with: - Model used and token counts - Credits consumed
+ * (weighted by model cost) - Request type for analytics
  */
 @Collection("token_usage")
 public class TokenUsageRecord extends BaseEntity {

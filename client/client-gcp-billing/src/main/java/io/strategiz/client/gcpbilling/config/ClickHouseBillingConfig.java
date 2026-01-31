@@ -9,15 +9,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration for ClickHouse Cloud Billing API.
- * Loads credentials from Vault for secure access to the ClickHouse Cloud API.
+ * Configuration for ClickHouse Cloud Billing API. Loads credentials from Vault for secure
+ * access to the ClickHouse Cloud API.
  *
  * Enable with: clickhouse.billing.enabled=true
  *
- * Vault secrets required at secret/strategiz/clickhouse-billing:
- * - organization-id: ClickHouse Cloud organization ID
- * - key-id: API key ID for HTTP Basic Auth
- * - key-secret: API key secret for HTTP Basic Auth
+ * Vault secrets required at secret/strategiz/clickhouse-billing: - organization-id:
+ * ClickHouse Cloud organization ID - key-id: API key ID for HTTP Basic Auth - key-secret:
+ * API key secret for HTTP Basic Auth
  */
 @Configuration
 @ConditionalOnProperty(name = "clickhouse.billing.enabled", havingValue = "true", matchIfMissing = false)

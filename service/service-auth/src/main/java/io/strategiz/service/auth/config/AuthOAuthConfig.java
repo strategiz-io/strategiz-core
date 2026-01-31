@@ -13,11 +13,11 @@ import org.springframework.core.env.Environment;
 import java.util.Map;
 
 /**
- * Configuration properties for Authentication OAuth providers. Handles OAuth providers used for
- * user authentication (login/signup).
+ * Configuration properties for Authentication OAuth providers. Handles OAuth providers
+ * used for user authentication (login/signup).
  *
- * OAuth credentials are loaded from Spring Environment (set by OAuthVaultConfig) at startup
- * and cached for subsequent requests.
+ * OAuth credentials are loaded from Spring Environment (set by OAuthVaultConfig) at
+ * startup and cached for subsequent requests.
  */
 @Configuration
 @EnableConfigurationProperties

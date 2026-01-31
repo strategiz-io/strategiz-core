@@ -6,171 +6,182 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Result of Robinhood OAuth connection.
- * Handles the multi-step authentication flow including MFA.
+ * Result of Robinhood OAuth connection. Handles the multi-step authentication flow
+ * including MFA.
  */
 public class RobinhoodConnectionResult {
 
-    public enum ConnectionStatus {
-        SUCCESS,              // Fully connected with tokens
-        MFA_REQUIRED,         // Need MFA code from user
-        DEVICE_APPROVAL,      // Need device approval via Robinhood app
-        PENDING_MFA,          // MFA submitted, awaiting completion
-        ERROR                 // Connection failed
-    }
+	public enum ConnectionStatus {
 
-    private String userId;
-    private String providerId;
-    private String providerName;
-    private ConnectionStatus connectionStatus;
+		SUCCESS, // Fully connected with tokens
+		MFA_REQUIRED, // Need MFA code from user
+		DEVICE_APPROVAL, // Need device approval via Robinhood app
+		PENDING_MFA, // MFA submitted, awaiting completion
+		ERROR // Connection failed
 
-    // Token data (only set on SUCCESS)
-    private String accessToken;
-    private String refreshToken;
-    private Instant expiresAt;
+	}
 
-    // MFA data (only set when MFA_REQUIRED)
-    private RobinhoodChallenge challenge;
-    private String challengeType;
-    private String deviceToken;
+	private String userId;
 
-    // Account info (only set on SUCCESS)
-    private Map<String, Object> accountInfo;
+	private String providerId;
 
-    // Timestamps
-    private Instant connectedAt;
+	private String providerName;
 
-    // Error info
-    private String errorMessage;
-    private String errorCode;
+	private ConnectionStatus connectionStatus;
 
-    // Getters and setters
-    public String getUserId() {
-        return userId;
-    }
+	// Token data (only set on SUCCESS)
+	private String accessToken;
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	private String refreshToken;
 
-    public String getProviderId() {
-        return providerId;
-    }
+	private Instant expiresAt;
 
-    public void setProviderId(String providerId) {
-        this.providerId = providerId;
-    }
+	// MFA data (only set when MFA_REQUIRED)
+	private RobinhoodChallenge challenge;
 
-    public String getProviderName() {
-        return providerName;
-    }
+	private String challengeType;
 
-    public void setProviderName(String providerName) {
-        this.providerName = providerName;
-    }
+	private String deviceToken;
 
-    public ConnectionStatus getConnectionStatus() {
-        return connectionStatus;
-    }
+	// Account info (only set on SUCCESS)
+	private Map<String, Object> accountInfo;
 
-    public void setConnectionStatus(ConnectionStatus connectionStatus) {
-        this.connectionStatus = connectionStatus;
-    }
+	// Timestamps
+	private Instant connectedAt;
 
-    public String getAccessToken() {
-        return accessToken;
-    }
+	// Error info
+	private String errorMessage;
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
+	private String errorCode;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
+	// Getters and setters
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
+	public String getProviderId() {
+		return providerId;
+	}
 
-    public void setExpiresAt(Instant expiresAt) {
-        this.expiresAt = expiresAt;
-    }
+	public void setProviderId(String providerId) {
+		this.providerId = providerId;
+	}
 
-    public RobinhoodChallenge getChallenge() {
-        return challenge;
-    }
+	public String getProviderName() {
+		return providerName;
+	}
 
-    public void setChallenge(RobinhoodChallenge challenge) {
-        this.challenge = challenge;
-    }
+	public void setProviderName(String providerName) {
+		this.providerName = providerName;
+	}
 
-    public String getChallengeType() {
-        return challengeType;
-    }
+	public ConnectionStatus getConnectionStatus() {
+		return connectionStatus;
+	}
 
-    public void setChallengeType(String challengeType) {
-        this.challengeType = challengeType;
-    }
+	public void setConnectionStatus(ConnectionStatus connectionStatus) {
+		this.connectionStatus = connectionStatus;
+	}
 
-    public String getDeviceToken() {
-        return deviceToken;
-    }
+	public String getAccessToken() {
+		return accessToken;
+	}
 
-    public void setDeviceToken(String deviceToken) {
-        this.deviceToken = deviceToken;
-    }
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
+	}
 
-    public Map<String, Object> getAccountInfo() {
-        return accountInfo;
-    }
+	public String getRefreshToken() {
+		return refreshToken;
+	}
 
-    public void setAccountInfo(Map<String, Object> accountInfo) {
-        this.accountInfo = accountInfo;
-    }
+	public void setRefreshToken(String refreshToken) {
+		this.refreshToken = refreshToken;
+	}
 
-    public Instant getConnectedAt() {
-        return connectedAt;
-    }
+	public Instant getExpiresAt() {
+		return expiresAt;
+	}
 
-    public void setConnectedAt(Instant connectedAt) {
-        this.connectedAt = connectedAt;
-    }
+	public void setExpiresAt(Instant expiresAt) {
+		this.expiresAt = expiresAt;
+	}
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
+	public RobinhoodChallenge getChallenge() {
+		return challenge;
+	}
 
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
+	public void setChallenge(RobinhoodChallenge challenge) {
+		this.challenge = challenge;
+	}
 
-    public String getErrorCode() {
-        return errorCode;
-    }
+	public String getChallengeType() {
+		return challengeType;
+	}
 
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
-    }
+	public void setChallengeType(String challengeType) {
+		this.challengeType = challengeType;
+	}
 
-    // Convenience methods
-    public boolean isSuccess() {
-        return connectionStatus == ConnectionStatus.SUCCESS;
-    }
+	public String getDeviceToken() {
+		return deviceToken;
+	}
 
-    public boolean isMfaRequired() {
-        return connectionStatus == ConnectionStatus.MFA_REQUIRED;
-    }
+	public void setDeviceToken(String deviceToken) {
+		this.deviceToken = deviceToken;
+	}
 
-    public boolean isDeviceApprovalRequired() {
-        return connectionStatus == ConnectionStatus.DEVICE_APPROVAL;
-    }
+	public Map<String, Object> getAccountInfo() {
+		return accountInfo;
+	}
 
-    public boolean isError() {
-        return connectionStatus == ConnectionStatus.ERROR;
-    }
+	public void setAccountInfo(Map<String, Object> accountInfo) {
+		this.accountInfo = accountInfo;
+	}
+
+	public Instant getConnectedAt() {
+		return connectedAt;
+	}
+
+	public void setConnectedAt(Instant connectedAt) {
+		this.connectedAt = connectedAt;
+	}
+
+	public String getErrorMessage() {
+		return errorMessage;
+	}
+
+	public void setErrorMessage(String errorMessage) {
+		this.errorMessage = errorMessage;
+	}
+
+	public String getErrorCode() {
+		return errorCode;
+	}
+
+	public void setErrorCode(String errorCode) {
+		this.errorCode = errorCode;
+	}
+
+	// Convenience methods
+	public boolean isSuccess() {
+		return connectionStatus == ConnectionStatus.SUCCESS;
+	}
+
+	public boolean isMfaRequired() {
+		return connectionStatus == ConnectionStatus.MFA_REQUIRED;
+	}
+
+	public boolean isDeviceApprovalRequired() {
+		return connectionStatus == ConnectionStatus.DEVICE_APPROVAL;
+	}
+
+	public boolean isError() {
+		return connectionStatus == ConnectionStatus.ERROR;
+	}
+
 }

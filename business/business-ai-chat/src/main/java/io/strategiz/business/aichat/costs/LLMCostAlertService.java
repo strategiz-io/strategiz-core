@@ -15,7 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Service that generates cost alerts based on LLM spending patterns and configured thresholds.
+ * Service that generates cost alerts based on LLM spending patterns and configured
+ * thresholds.
  */
 @Service
 @ConditionalOnProperty(name = "llm.billing.enabled", havingValue = "true", matchIfMissing = false)

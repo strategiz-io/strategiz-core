@@ -9,24 +9,26 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 
 /**
- * Configuration for service-auth module.
- * Imports data module configurations to ensure repositories and entities are available.
+ * Configuration for service-auth module. Imports data module configurations to ensure
+ * repositories and entities are available.
  */
 @Configuration
 @ComponentScan(basePackages = "io.strategiz.service.auth")
-@Import({DataAuthConfig.class})
+@Import({ DataAuthConfig.class })
 public class ServiceAuthConfig {
-    
-    /**
-     * Configure MessageSource to load auth error messages
-     * NOTE: Commented out - using GlobalMessageSourceConfig which includes all module messages
-     */
-    // @Bean
-    // public MessageSource messageSource() {
-    //     ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
-    //     messageSource.setBasenames("messages/auth-errors");
-    //     messageSource.setDefaultEncoding("UTF-8");
-    //     messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not found
-    //     return messageSource;
-    // }
+
+	/**
+	 * Configure MessageSource to load auth error messages NOTE: Commented out - using
+	 * GlobalMessageSourceConfig which includes all module messages
+	 */
+	// @Bean
+	// public MessageSource messageSource() {
+	// ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+	// messageSource.setBasenames("messages/auth-errors");
+	// messageSource.setDefaultEncoding("UTF-8");
+	// messageSource.setUseCodeAsDefaultMessage(true); // Fallback to code if message not
+	// found
+	// return messageSource;
+	// }
+
 }

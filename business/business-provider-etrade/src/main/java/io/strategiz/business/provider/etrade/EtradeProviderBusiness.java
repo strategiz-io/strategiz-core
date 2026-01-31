@@ -32,22 +32,18 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Business logic for E*TRADE provider integration.
- * Handles OAuth 1.0a flows, API interactions, and business rules specific to E*TRADE.
+ * Business logic for E*TRADE provider integration. Handles OAuth 1.0a flows, API
+ * interactions, and business rules specific to E*TRADE.
  *
- * Key differences from Schwab (OAuth 2.0):
- * - Uses OAuth 1.0a with HMAC-SHA1 signing
- * - No refresh tokens - access tokens expire after 2 hours of inactivity
- * - Three-legged flow: Request Token → Authorize → Access Token
- * - Stores both accessToken AND accessTokenSecret (OAuth 1.0a requirement)
+ * Key differences from Schwab (OAuth 2.0): - Uses OAuth 1.0a with HMAC-SHA1 signing - No
+ * refresh tokens - access tokens expire after 2 hours of inactivity - Three-legged flow:
+ * Request Token → Authorize → Access Token - Stores both accessToken AND
+ * accessTokenSecret (OAuth 1.0a requirement)
  *
- * OAuth 1.0a Flow:
- * 1. Get request token from E*TRADE
- * 2. Store request token temporarily (in memory cache)
- * 3. Redirect user to E*TRADE authorization page
- * 4. Receive callback with oauth_verifier
- * 5. Exchange request token + verifier for access token
- * 6. Store access token + secret in Vault
+ * OAuth 1.0a Flow: 1. Get request token from E*TRADE 2. Store request token temporarily
+ * (in memory cache) 3. Redirect user to E*TRADE authorization page 4. Receive callback
+ * with oauth_verifier 5. Exchange request token + verifier for access token 6. Store
+ * access token + secret in Vault
  */
 @Component
 public class EtradeProviderBusiness implements ProviderIntegrationHandler {
@@ -88,8 +84,7 @@ public class EtradeProviderBusiness implements ProviderIntegrationHandler {
 	}
 
 	/**
-	 * Start OAuth 1.0a flow by getting request token and generating authorization
-	 * URL.
+	 * Start OAuth 1.0a flow by getting request token and generating authorization URL.
 	 * @param userId The user requesting authorization
 	 * @param state Security state parameter (userId-uuid)
 	 * @return OAuth authorization URL
@@ -105,8 +100,7 @@ public class EtradeProviderBusiness implements ProviderIntegrationHandler {
 			String requestTokenSecret = requestTokenData.get("oauth_token_secret");
 
 			if (requestToken == null || requestTokenSecret == null) {
-				throw new StrategizException(EtradeErrors.ETRADE_AUTH_FAILED,
-						"Failed to obtain E*TRADE request token");
+				throw new StrategizException(EtradeErrors.ETRADE_AUTH_FAILED, "Failed to obtain E*TRADE request token");
 			}
 
 			// Step 2: Store request token temporarily for callback
@@ -327,8 +321,7 @@ public class EtradeProviderBusiness implements ProviderIntegrationHandler {
 				return holdings.get();
 			}
 			else {
-				throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND,
-						"No E*TRADE provider data found after sync");
+				throw new StrategizException(ErrorCode.RESOURCE_NOT_FOUND, "No E*TRADE provider data found after sync");
 			}
 
 		}
@@ -603,7 +596,8 @@ public class EtradeProviderBusiness implements ProviderIntegrationHandler {
 		BigDecimal marketValue = extractBigDecimal(position, "marketValue");
 		BigDecimal currentPrice = extractBigDecimal(position, "lastTrade");
 		BigDecimal costBasis = extractBigDecimal(position, "totalCost");
-		BigDecimal pricePaid = extractBigDecimal(position, "pricePaid"); // Average buy price
+		BigDecimal pricePaid = extractBigDecimal(position, "pricePaid"); // Average buy
+																			// price
 		BigDecimal totalGain = extractBigDecimal(position, "totalGain");
 		BigDecimal totalGainPct = extractBigDecimal(position, "totalGainPct");
 
@@ -640,7 +634,8 @@ public class EtradeProviderBusiness implements ProviderIntegrationHandler {
 			return null;
 		}
 
-		// E*TRADE structure: { "BalanceResponse": { "Computed": { "cashAvailableForInvestment": ... } } }
+		// E*TRADE structure: { "BalanceResponse": { "Computed": {
+		// "cashAvailableForInvestment": ... } } }
 		try {
 			Map<String, Object> balanceResponse = (Map<String, Object>) balanceData.get("BalanceResponse");
 			if (balanceResponse == null) {

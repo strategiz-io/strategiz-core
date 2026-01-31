@@ -39,532 +39,497 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 /**
- * Controller for watchlist data.
- * Returns demo data until proper repository implementations are available.
- * The mode only affects UI behavior, not the data itself.
+ * Controller for watchlist data. Returns demo data until proper repository
+ * implementations are available. The mode only affects UI behavior, not the data itself.
  */
 @RestController
 @RequestMapping("/v1/dashboard/watchlists")
 @CrossOrigin(origins = "*")
 @RequireAuth(minAcr = "1")
 public class WatchlistController extends BaseController {
-    
-    @Override
-    protected String getModuleName() {
-        return "service-dashboard";
-    }
-    
-    private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
 
-    private final UserRepository userRepository;
-    private final CoinGeckoClient coinGeckoClient;
-    private final WatchlistBaseRepository watchlistRepository;
-    private final WatchlistService watchlistService;
+	@Override
+	protected String getModuleName() {
+		return "service-dashboard";
+	}
 
-    @Autowired
-    public WatchlistController(UserRepository userRepository,
-                              CoinGeckoClient coinGeckoClient,
-                              WatchlistBaseRepository watchlistRepository,
-                              WatchlistService watchlistService) {
-        this.userRepository = userRepository;
-        this.coinGeckoClient = coinGeckoClient;
-        this.watchlistRepository = watchlistRepository;
-        this.watchlistService = watchlistService;
-    }
-    
-    /**
-     * Get watchlist data for authenticated user.
-     * Returns REAL market data from CoinGecko (crypto) and Alpaca (stocks/ETFs).
-     *
-     * @param user The authenticated user from token
-     * @return Real-time watchlist data with market information
-     */
-    @GetMapping
-    public ResponseEntity<Map<String, Object>> getWatchlist(@AuthUser AuthenticatedUser user) {
-        String userId = user.getUserId();
-        log.info("Retrieving REAL watchlist data for user: {}", userId);
-        
-        try {
-            // Get user demo mode for UI context only
-            Boolean demoMode = getUserDemoMode(userId);
-            
-            // Get REAL market data instead of demo data
-            WatchlistCollectionResponse watchlist = getRealWatchlistData(userId);
-            
-            // Create response with real data
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("userId", userId);
-            responseData.put("demoMode", demoMode); // For UI context only
-            responseData.put("watchlist", formatWatchlistForUI(watchlist));
-            responseData.put("metadata", createMetadata(watchlist, "real")); // Mark as real data
-            
-            return ResponseEntity.ok(responseData);
-            
-        } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
-        } catch (Exception e) {
-            log.error("Error retrieving watchlist for user: {}", userId, e);
-            // Return empty watchlist on error - NO MOCK DATA
-            WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
-            empty.setItems(new ArrayList<>());
-            empty.setTotalCount(0);
-            empty.setActiveCount(0);
-            empty.setIsEmpty(true);
+	private static final Logger log = LoggerFactory.getLogger(WatchlistController.class);
 
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("userId", userId);
-            responseData.put("demoMode", "real");
-            responseData.put("watchlist", formatWatchlistForUI(empty));
-            responseData.put("metadata", createMetadata(empty, "real"));
-            return ResponseEntity.ok(responseData);
-        }
-    }
-    
-    /**
-     * Create a new watchlist item.
-     *
-     * @param user The authenticated user from token
-     * @param request The watchlist item creation request
-     * @return Operation result with created item details
-     */
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createWatchlistItem(
-            @AuthUser AuthenticatedUser user,
-            @RequestBody CreateWatchlistItemRequest request) {
+	private final UserRepository userRepository;
 
-        String userId = user.getUserId();
-        log.info("Creating watchlist item for user: {} - {}", userId, request.getSymbol());
-        
-        // Validate input
-        if (request.getSymbol() == null || request.getSymbol().trim().isEmpty()) {
-            throw new StrategizException(ServiceDashboardErrorDetails.INVALID_SYMBOL, "service-dashboard", request.getSymbol());
-        }
-        
-        try {
-            String symbol = request.getSymbol().toUpperCase().trim();
+	private final CoinGeckoClient coinGeckoClient;
 
-            // Check if item already exists in user's watchlist
-            if (watchlistRepository.existsBySymbol(symbol, userId)) {
-                log.info("Symbol {} already exists in watchlist for user {}", symbol, userId);
-                return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "operation", "CREATE",
-                    "symbol", symbol,
-                    "message", "Symbol already exists in watchlist"
-                ));
-            }
+	private final WatchlistBaseRepository watchlistRepository;
 
-            // Create new watchlist item entity
-            WatchlistItemEntity entity = new WatchlistItemEntity();
-            entity.setSymbol(symbol);
-            entity.setName(request.getName() != null ? request.getName() : symbol);
-            entity.setType(request.getType() != null ? request.getType().toUpperCase() : "STOCK");
-            entity.setExchange(request.getExchange());
-            entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
-            entity.setAlertEnabled(request.getAlertEnabled() != null ? request.getAlertEnabled() : false);
+	private final WatchlistService watchlistService;
 
-            // Enrich with market data before saving
-            entity = watchlistService.enrichWatchlistItem(entity);
+	@Autowired
+	public WatchlistController(UserRepository userRepository, CoinGeckoClient coinGeckoClient,
+			WatchlistBaseRepository watchlistRepository, WatchlistService watchlistService) {
+		this.userRepository = userRepository;
+		this.coinGeckoClient = coinGeckoClient;
+		this.watchlistRepository = watchlistRepository;
+		this.watchlistService = watchlistService;
+	}
 
-            // Save to Firestore
-            WatchlistItemEntity savedEntity = watchlistRepository.save(entity, userId);
-            log.info("Created watchlist item {} for user {}", symbol, userId);
+	/**
+	 * Get watchlist data for authenticated user. Returns REAL market data from CoinGecko
+	 * (crypto) and Alpaca (stocks/ETFs).
+	 * @param user The authenticated user from token
+	 * @return Real-time watchlist data with market information
+	 */
+	@GetMapping
+	public ResponseEntity<Map<String, Object>> getWatchlist(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Retrieving REAL watchlist data for user: {}", userId);
 
-            WatchlistOperationResponse response = WatchlistOperationResponse.success(
-                "CREATE",
-                savedEntity.getId(),
-                savedEntity.getSymbol(),
-                "Watchlist item created successfully"
-            );
+		try {
+			// Get user demo mode for UI context only
+			Boolean demoMode = getUserDemoMode(userId);
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "operation", response.getOperation(),
-                "id", response.getId(),
-                "symbol", response.getSymbol(),
-                "message", response.getMessage()
-            ));
+			// Get REAL market data instead of demo data
+			WatchlistCollectionResponse watchlist = getRealWatchlistData(userId);
 
-        } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
-        } catch (Exception e) {
-            log.error("Error creating watchlist item for user: {} - {}", userId, request.getSymbol(), e);
-            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "create_watchlist_item", e.getMessage());
-        }
-    }
-    
-    /**
-     * Delete a watchlist item.
-     *
-     * @param user The authenticated user from token
-     * @param itemId The ID of the watchlist item to delete
-     * @return Operation result
-     */
-    @DeleteMapping("/{itemId}")
-    public ResponseEntity<Map<String, Object>> deleteWatchlistItem(
-            @AuthUser AuthenticatedUser user,
-            @PathVariable String itemId) {
+			// Create response with real data
+			Map<String, Object> responseData = new HashMap<>();
+			responseData.put("userId", userId);
+			responseData.put("demoMode", demoMode); // For UI context only
+			responseData.put("watchlist", formatWatchlistForUI(watchlist));
+			responseData.put("metadata", createMetadata(watchlist, "real")); // Mark as
+																				// real
+																				// data
 
-        String userId = user.getUserId();
-        log.info("Deleting watchlist item: {} for user: {}", itemId, userId);
-        
-        // Validate input
-        if (itemId == null || itemId.trim().isEmpty()) {
-            throw new StrategizException(ServiceDashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard", userId, itemId);
-        }
-        
-        try {
-            // Check if item exists
-            Optional<WatchlistItemEntity> existing = watchlistRepository.findById(itemId, userId);
-            if (existing.isEmpty()) {
-                log.warn("Watchlist item {} not found for user {}", itemId, userId);
-                return ResponseEntity.ok(Map.of(
-                    "success", false,
-                    "operation", "DELETE",
-                    "message", "Watchlist item not found"
-                ));
-            }
+			return ResponseEntity.ok(responseData);
 
-            // Delete from Firestore
-            watchlistRepository.delete(itemId, userId);
-            log.info("Deleted watchlist item {} for user {}", itemId, userId);
+		}
+		catch (StrategizException e) {
+			// Re-throw business exceptions
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Error retrieving watchlist for user: {}", userId, e);
+			// Return empty watchlist on error - NO MOCK DATA
+			WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+			empty.setItems(new ArrayList<>());
+			empty.setTotalCount(0);
+			empty.setActiveCount(0);
+			empty.setIsEmpty(true);
 
-            WatchlistOperationResponse response = WatchlistOperationResponse.success(
-                "DELETE",
-                "Watchlist item deleted successfully"
-            );
+			Map<String, Object> responseData = new HashMap<>();
+			responseData.put("userId", userId);
+			responseData.put("demoMode", "real");
+			responseData.put("watchlist", formatWatchlistForUI(empty));
+			responseData.put("metadata", createMetadata(empty, "real"));
+			return ResponseEntity.ok(responseData);
+		}
+	}
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "operation", response.getOperation(),
-                "message", response.getMessage()
-            ));
+	/**
+	 * Create a new watchlist item.
+	 * @param user The authenticated user from token
+	 * @param request The watchlist item creation request
+	 * @return Operation result with created item details
+	 */
+	@PostMapping
+	public ResponseEntity<Map<String, Object>> createWatchlistItem(@AuthUser AuthenticatedUser user,
+			@RequestBody CreateWatchlistItemRequest request) {
 
-        } catch (StrategizException e) {
-            // Re-throw business exceptions
-            throw e;
-        } catch (Exception e) {
-            log.error("Error deleting watchlist item: {} for user: {}", itemId, userId, e);
-            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "delete_watchlist_item", e.getMessage());
-        }
-    }
-    
-    /**
-     * Check if symbol is in user's watchlist.
-     *
-     * @param user The authenticated user from token
-     * @param symbol The symbol to check
-     * @return Whether the symbol is in the user's watchlist
-     */
-    @GetMapping("/check/{symbol}")
-    public ResponseEntity<Map<String, Object>> checkSymbolInWatchlist(
-            @AuthUser AuthenticatedUser user,
-            @PathVariable String symbol) {
+		String userId = user.getUserId();
+		log.info("Creating watchlist item for user: {} - {}", userId, request.getSymbol());
 
-        String userId = user.getUserId();
-        log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
-        
-        try {
-            // Check if symbol exists in user's watchlist
-            boolean inWatchlist = watchlistRepository.existsBySymbol(symbol.toUpperCase(), userId);
+		// Validate input
+		if (request.getSymbol() == null || request.getSymbol().trim().isEmpty()) {
+			throw new StrategizException(ServiceDashboardErrorDetails.INVALID_SYMBOL, "service-dashboard",
+					request.getSymbol());
+		}
 
-            return ResponseEntity.ok(Map.of(
-                "userId", userId,
-                "symbol", symbol.toUpperCase(),
-                "inWatchlist", inWatchlist
-            ));
+		try {
+			String symbol = request.getSymbol().toUpperCase().trim();
 
-        } catch (Exception e) {
-            log.error("Error checking symbol in watchlist: {} for user: {}", symbol, userId, e);
-            throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", "check_symbol_in_watchlist", e.getMessage());
-        }
-    }
-    
-    /**
-     * Initialize watchlist with default symbols for new users.
-     * Auto-populates with 6 default symbols (5 stocks/ETFs + 1 crypto).
-     * Idempotent - returns existing items if already initialized.
-     *
-     * @param user The authenticated user from token
-     * @return Initialized watchlist with default symbols
-     */
-    @PostMapping("/initialize")
-    public ResponseEntity<Map<String, Object>> initializeWatchlist(@AuthUser AuthenticatedUser user) {
-        String userId = user.getUserId();
-        log.info("Initializing watchlist for user: {}", userId);
+			// Check if item already exists in user's watchlist
+			if (watchlistRepository.existsBySymbol(symbol, userId)) {
+				log.info("Symbol {} already exists in watchlist for user {}", symbol, userId);
+				return ResponseEntity.ok(Map.of("success", false, "operation", "CREATE", "symbol", symbol, "message",
+						"Symbol already exists in watchlist"));
+			}
 
-        try {
-            // Call service to initialize default watchlist
-            List<WatchlistItemEntity> entities = watchlistService.initializeDefaultWatchlist(userId);
+			// Create new watchlist item entity
+			WatchlistItemEntity entity = new WatchlistItemEntity();
+			entity.setSymbol(symbol);
+			entity.setName(request.getName() != null ? request.getName() : symbol);
+			entity.setType(request.getType() != null ? request.getType().toUpperCase() : "STOCK");
+			entity.setExchange(request.getExchange());
+			entity.setSortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0);
+			entity.setAlertEnabled(request.getAlertEnabled() != null ? request.getAlertEnabled() : false);
 
-            // Convert entities to WatchlistItem DTOs
-            List<WatchlistItem> items = entities.stream()
-                .map(this::convertToWatchlistItem)
-                .collect(Collectors.toList());
+			// Enrich with market data before saving
+			entity = watchlistService.enrichWatchlistItem(entity);
 
-            // Create collection response
-            WatchlistCollectionResponse watchlist = new WatchlistCollectionResponse();
-            watchlist.setItems(items);
-            watchlist.setTotalCount(items.size());
-            watchlist.setActiveCount(items.size());
-            watchlist.setIsEmpty(items.isEmpty());
+			// Save to Firestore
+			WatchlistItemEntity savedEntity = watchlistRepository.save(entity, userId);
+			log.info("Created watchlist item {} for user {}", symbol, userId);
 
-            // Format response same as GET endpoint
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("userId", userId);
-            responseData.put("demoMode", getUserDemoMode(userId));
-            responseData.put("watchlist", formatWatchlistForUI(watchlist));
-            responseData.put("metadata", createMetadata(watchlist, "real"));
+			WatchlistOperationResponse response = WatchlistOperationResponse.success("CREATE", savedEntity.getId(),
+					savedEntity.getSymbol(), "Watchlist item created successfully");
 
-            log.info("Successfully initialized watchlist for user {} with {} symbols", userId, items.size());
+			return ResponseEntity.ok(Map.of("success", true, "operation", response.getOperation(), "id",
+					response.getId(), "symbol", response.getSymbol(), "message", response.getMessage()));
 
-            return ResponseEntity.ok(responseData);
+		}
+		catch (StrategizException e) {
+			// Re-throw business exceptions
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Error creating watchlist item for user: {} - {}", userId, request.getSymbol(), e);
+			throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard",
+					"create_watchlist_item", e.getMessage());
+		}
+	}
 
-        } catch (StrategizException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Error initializing watchlist for user: {}", userId, e);
-            throw new StrategizException(
-                ServiceDashboardErrorDetails.DASHBOARD_ERROR,
-                "service-dashboard",
-                e,
-                "Failed to initialize watchlist"
-            );
-        }
-    }
+	/**
+	 * Delete a watchlist item.
+	 * @param user The authenticated user from token
+	 * @param itemId The ID of the watchlist item to delete
+	 * @return Operation result
+	 */
+	@DeleteMapping("/{itemId}")
+	public ResponseEntity<Map<String, Object>> deleteWatchlistItem(@AuthUser AuthenticatedUser user,
+			@PathVariable String itemId) {
 
-    /**
-     * Get REAL watchlist data from user's saved items + market APIs
-     */
-    private WatchlistCollectionResponse getRealWatchlistData(String userId) {
-        log.info("Fetching watchlist data for user: {}", userId);
-        List<WatchlistItem> items = new ArrayList<>();
+		String userId = user.getUserId();
+		log.info("Deleting watchlist item: {} for user: {}", itemId, userId);
 
-        try {
-            // First, get user's saved watchlist items from Firestore
-            List<WatchlistItemEntity> savedItems = watchlistRepository.findAllByUserId(userId);
-            log.info("Found {} saved watchlist items for user {}", savedItems.size(), userId);
+		// Validate input
+		if (itemId == null || itemId.trim().isEmpty()) {
+			throw new StrategizException(ServiceDashboardErrorDetails.WATCHLIST_ITEM_NOT_FOUND, "service-dashboard",
+					userId, itemId);
+		}
 
-            // If user has no saved items, return empty watchlist - NO MOCK DATA
-            if (savedItems.isEmpty()) {
-                log.info("No saved items, returning empty watchlist for user {}", userId);
-                WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
-                empty.setItems(new ArrayList<>());
-                empty.setTotalCount(0);
-                empty.setActiveCount(0);
-                empty.setIsEmpty(true);
-                return empty;
-            }
+		try {
+			// Check if item exists
+			Optional<WatchlistItemEntity> existing = watchlistRepository.findById(itemId, userId);
+			if (existing.isEmpty()) {
+				log.warn("Watchlist item {} not found for user {}", itemId, userId);
+				return ResponseEntity
+					.ok(Map.of("success", false, "operation", "DELETE", "message", "Watchlist item not found"));
+			}
 
-            // Separate items by type for enrichment
-            List<String> cryptoSymbols = savedItems.stream()
-                .filter(item -> "CRYPTO".equalsIgnoreCase(item.getType()))
-                .map(WatchlistItemEntity::getSymbol)
-                .collect(Collectors.toList());
+			// Delete from Firestore
+			watchlistRepository.delete(itemId, userId);
+			log.info("Deleted watchlist item {} for user {}", itemId, userId);
 
-            List<WatchlistItemEntity> stockItems = savedItems.stream()
-                .filter(item -> !"CRYPTO".equalsIgnoreCase(item.getType()))
-                .collect(Collectors.toList());
+			WatchlistOperationResponse response = WatchlistOperationResponse.success("DELETE",
+					"Watchlist item deleted successfully");
 
-            // Fetch crypto market data from CoinGecko
-            if (!cryptoSymbols.isEmpty()) {
-                List<WatchlistItem> enrichedCrypto = fetchCryptoMarketData(cryptoSymbols, savedItems);
-                items.addAll(enrichedCrypto);
-            }
+			return ResponseEntity
+				.ok(Map.of("success", true, "operation", response.getOperation(), "message", response.getMessage()));
 
-            // Enrich stock/ETF items with REAL Alpaca data
-            for (WatchlistItemEntity entity : stockItems) {
-                try {
-                    WatchlistItemEntity enriched = watchlistService.enrichWatchlistItem(entity);
-                    items.add(convertToWatchlistItem(enriched));
-                } catch (Exception e) {
-                    log.warn("Failed to enrich {}: {} - showing with saved data", entity.getSymbol(), e.getMessage());
-                    // Still include item even without fresh data - show saved/cached prices
-                    items.add(convertToWatchlistItem(entity));
-                }
-            }
+		}
+		catch (StrategizException e) {
+			// Re-throw business exceptions
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Error deleting watchlist item: {} for user: {}", itemId, userId, e);
+			throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard",
+					"delete_watchlist_item", e.getMessage());
+		}
+	}
 
-            log.info("Returning {} enriched watchlist items for user {}", items.size(), userId);
+	/**
+	 * Check if symbol is in user's watchlist.
+	 * @param user The authenticated user from token
+	 * @param symbol The symbol to check
+	 * @return Whether the symbol is in the user's watchlist
+	 */
+	@GetMapping("/check/{symbol}")
+	public ResponseEntity<Map<String, Object>> checkSymbolInWatchlist(@AuthUser AuthenticatedUser user,
+			@PathVariable String symbol) {
 
-        } catch (Exception e) {
-            log.error("Error fetching watchlist data for user {}", userId, e);
-            // If real data fails, return empty - NO MOCK DATA
-            WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
-            empty.setItems(new ArrayList<>());
-            empty.setTotalCount(0);
-            empty.setActiveCount(0);
-            empty.setIsEmpty(true);
-            return empty;
-        }
+		String userId = user.getUserId();
+		log.info("Checking if symbol {} is in watchlist for user: {}", symbol, userId);
 
-        // Create response
-        WatchlistCollectionResponse response = new WatchlistCollectionResponse();
-        response.setItems(items);
-        response.setTotalCount(items.size());
-        response.setActiveCount(items.size());
-        response.setIsEmpty(items.isEmpty());
+		try {
+			// Check if symbol exists in user's watchlist
+			boolean inWatchlist = watchlistRepository.existsBySymbol(symbol.toUpperCase(), userId);
 
-        return response;
-    }
+			return ResponseEntity
+				.ok(Map.of("userId", userId, "symbol", symbol.toUpperCase(), "inWatchlist", inWatchlist));
 
-    /**
-     * Convert WatchlistItemEntity to WatchlistItem DTO
-     */
-    private WatchlistItem convertToWatchlistItem(WatchlistItemEntity entity) {
-        return new WatchlistItem(
-            entity.getId(),
-            entity.getSymbol(),
-            entity.getName(),
-            entity.getType() != null ? entity.getType().toLowerCase() : "stock",
-            entity.getCurrentPrice(),
-            entity.getChange(),
-            entity.getChangePercent(),
-            entity.getChange() != null && entity.getChange().compareTo(BigDecimal.ZERO) > 0,
-            "/chart/" + entity.getSymbol().toLowerCase(),
-            entity.getVolume()
-        );
-    }
+		}
+		catch (Exception e) {
+			log.error("Error checking symbol in watchlist: {} for user: {}", symbol, userId, e);
+			throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard",
+					"check_symbol_in_watchlist", e.getMessage());
+		}
+	}
 
+	/**
+	 * Initialize watchlist with default symbols for new users. Auto-populates with 6
+	 * default symbols (5 stocks/ETFs + 1 crypto). Idempotent - returns existing items if
+	 * already initialized.
+	 * @param user The authenticated user from token
+	 * @return Initialized watchlist with default symbols
+	 */
+	@PostMapping("/initialize")
+	public ResponseEntity<Map<String, Object>> initializeWatchlist(@AuthUser AuthenticatedUser user) {
+		String userId = user.getUserId();
+		log.info("Initializing watchlist for user: {}", userId);
 
-    /**
-     * Fetch crypto market data from CoinGecko for saved symbols.
-     * Falls back to saved entity data if CoinGecko is unavailable.
-     */
-    private List<WatchlistItem> fetchCryptoMarketData(List<String> symbols, List<WatchlistItemEntity> savedItems) {
-        List<WatchlistItem> items = new ArrayList<>();
+		try {
+			// Call service to initialize default watchlist
+			List<WatchlistItemEntity> entities = watchlistService.initializeDefaultWatchlist(userId);
 
-        // Get saved crypto entities for fallback
-        List<WatchlistItemEntity> cryptoEntities = savedItems.stream()
-            .filter(e -> "CRYPTO".equalsIgnoreCase(e.getType()))
-            .collect(Collectors.toList());
+			// Convert entities to WatchlistItem DTOs
+			List<WatchlistItem> items = entities.stream()
+				.map(this::convertToWatchlistItem)
+				.collect(Collectors.toList());
 
-        try {
-            // Map symbols to CoinGecko IDs
-            Map<String, String> symbolToId = new HashMap<>();
-            symbolToId.put("BTC", "bitcoin");
-            symbolToId.put("ETH", "ethereum");
-            symbolToId.put("SOL", "solana");
-            symbolToId.put("BNB", "binancecoin");
-            symbolToId.put("ADA", "cardano");
-            symbolToId.put("XRP", "ripple");
-            symbolToId.put("DOGE", "dogecoin");
-            symbolToId.put("DOT", "polkadot");
-            symbolToId.put("AVAX", "avalanche-2");
-            symbolToId.put("MATIC", "matic-network");
+			// Create collection response
+			WatchlistCollectionResponse watchlist = new WatchlistCollectionResponse();
+			watchlist.setItems(items);
+			watchlist.setTotalCount(items.size());
+			watchlist.setActiveCount(items.size());
+			watchlist.setIsEmpty(items.isEmpty());
 
-            List<String> coinIds = symbols.stream()
-                .map(symbol -> symbolToId.getOrDefault(symbol.toUpperCase(), symbol.toLowerCase()))
-                .collect(Collectors.toList());
+			// Format response same as GET endpoint
+			Map<String, Object> responseData = new HashMap<>();
+			responseData.put("userId", userId);
+			responseData.put("demoMode", getUserDemoMode(userId));
+			responseData.put("watchlist", formatWatchlistForUI(watchlist));
+			responseData.put("metadata", createMetadata(watchlist, "real"));
 
-            List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
+			log.info("Successfully initialized watchlist for user {} with {} symbols", userId, items.size());
 
-            // Map back to WatchlistItem with saved entity info
-            for (CryptoCurrency crypto : cryptoData) {
-                String symbol = crypto.getSymbol().toUpperCase();
+			return ResponseEntity.ok(responseData);
 
-                // Find the saved entity for this symbol
-                WatchlistItemEntity savedEntity = savedItems.stream()
-                    .filter(e -> e.getSymbol().equalsIgnoreCase(symbol))
-                    .findFirst()
-                    .orElse(null);
+		}
+		catch (StrategizException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			log.error("Error initializing watchlist for user: {}", userId, e);
+			throw new StrategizException(ServiceDashboardErrorDetails.DASHBOARD_ERROR, "service-dashboard", e,
+					"Failed to initialize watchlist");
+		}
+	}
 
-                String id = savedEntity != null ? savedEntity.getId() : crypto.getSymbol().toLowerCase() + "-1";
-                String name = savedEntity != null && savedEntity.getName() != null ? savedEntity.getName() : crypto.getName();
+	/**
+	 * Get REAL watchlist data from user's saved items + market APIs
+	 */
+	private WatchlistCollectionResponse getRealWatchlistData(String userId) {
+		log.info("Fetching watchlist data for user: {}", userId);
+		List<WatchlistItem> items = new ArrayList<>();
 
-                BigDecimal price = crypto.getCurrentPrice();
-                BigDecimal change = crypto.getPriceChange24h();
-                BigDecimal changePercent = crypto.getPriceChangePercentage24h();
-                Long volume = crypto.getTotalVolume() != null ? crypto.getTotalVolume().longValue() : null;
+		try {
+			// First, get user's saved watchlist items from Firestore
+			List<WatchlistItemEntity> savedItems = watchlistRepository.findAllByUserId(userId);
+			log.info("Found {} saved watchlist items for user {}", savedItems.size(), userId);
 
-                items.add(new WatchlistItem(
-                    id,
-                    symbol,
-                    name,
-                    "crypto",
-                    price,
-                    change,
-                    changePercent,
-                    change != null && change.compareTo(BigDecimal.ZERO) > 0,
-                    "/chart/" + crypto.getSymbol().toLowerCase(),
-                    volume
-                ));
-            }
-        } catch (Exception e) {
-            log.warn("CoinGecko unavailable, using saved crypto data: {}", e.getMessage());
-            // Fallback: return saved crypto entities without fresh prices
-            for (WatchlistItemEntity entity : cryptoEntities) {
-                items.add(convertToWatchlistItem(entity));
-            }
-        }
+			// If user has no saved items, return empty watchlist - NO MOCK DATA
+			if (savedItems.isEmpty()) {
+				log.info("No saved items, returning empty watchlist for user {}", userId);
+				WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+				empty.setItems(new ArrayList<>());
+				empty.setTotalCount(0);
+				empty.setActiveCount(0);
+				empty.setIsEmpty(true);
+				return empty;
+			}
 
-        return items;
-    }
+			// Separate items by type for enrichment
+			List<String> cryptoSymbols = savedItems.stream()
+				.filter(item -> "CRYPTO".equalsIgnoreCase(item.getType()))
+				.map(WatchlistItemEntity::getSymbol)
+				.collect(Collectors.toList());
 
-    /**
-     * Get user trading mode, defaulting to demo if not found
-     */
-    private Boolean getUserDemoMode(String userId) {
-        try {
-            Optional<UserEntity> userOpt = userRepository.findById(userId);
-            if (userOpt.isPresent()) {
-                UserProfileEntity profile = userOpt.get().getProfile();
-                return profile != null ? profile.getDemoMode() : true;
-            }
-        } catch (Exception e) {
-            log.warn("Could not retrieve user demo mode for {}, defaulting to demo", userId);
-        }
-        return true;
-    }
+			List<WatchlistItemEntity> stockItems = savedItems.stream()
+				.filter(item -> !"CRYPTO".equalsIgnoreCase(item.getType()))
+				.collect(Collectors.toList());
 
-    /**
-     * Format watchlist data for UI consumption
-     */
-    private Map<String, Object> formatWatchlistForUI(WatchlistCollectionResponse watchlist) {
-        Map<String, Object> formattedWatchlist = new HashMap<>();
-        
-        // Real watchlist data
-        formattedWatchlist.put("items", watchlist.getItems());
-        formattedWatchlist.put("totalCount", watchlist.getTotalCount());
-        formattedWatchlist.put("activeCount", watchlist.getActiveCount());
-        formattedWatchlist.put("isEmpty", watchlist.getIsEmpty());
-        
-        // Standard categories for all users
-        formattedWatchlist.put("availableCategories", 
-            List.of("All", "Crypto", "Stocks", "ETFs", "Commodities"));
-        formattedWatchlist.put("description", "Your market watchlist");
-        
-        return formattedWatchlist;
-    }
-    
-    /**
-     * Creates metadata about the watchlist.
-     */
-    private Map<String, Object> createMetadata(WatchlistCollectionResponse watchlist, String dataType) {
-        Map<String, Object> metadata = new HashMap<>();
-        metadata.put("lastUpdated", System.currentTimeMillis());
-        metadata.put("demoMode", "real"); // Always real mode
-        metadata.put("dataType", dataType); // "real" for real data, "demo" only as fallback
-        
-        // Summary stats
-        metadata.put("summary", Map.of(
-            "totalSymbols", watchlist.getTotalCount(),
-            "activeSymbols", watchlist.getActiveCount(),
-            "cryptoCount", countByType(watchlist, "crypto"),
-            "stockCount", countByType(watchlist, "stock"),
-            "etfCount", countByType(watchlist, "etf")
-        ));
-        
-        return metadata;
-    }
-    
-    /**
-     * Helper to count items by type.
-     */
-    private long countByType(WatchlistCollectionResponse watchlist, String type) {
-        return watchlist.getItems().stream()
-            .filter(item -> type.equals(item.getType()))
-            .count();
-    }
+			// Fetch crypto market data from CoinGecko
+			if (!cryptoSymbols.isEmpty()) {
+				List<WatchlistItem> enrichedCrypto = fetchCryptoMarketData(cryptoSymbols, savedItems);
+				items.addAll(enrichedCrypto);
+			}
+
+			// Enrich stock/ETF items with REAL Alpaca data
+			for (WatchlistItemEntity entity : stockItems) {
+				try {
+					WatchlistItemEntity enriched = watchlistService.enrichWatchlistItem(entity);
+					items.add(convertToWatchlistItem(enriched));
+				}
+				catch (Exception e) {
+					log.warn("Failed to enrich {}: {} - showing with saved data", entity.getSymbol(), e.getMessage());
+					// Still include item even without fresh data - show saved/cached
+					// prices
+					items.add(convertToWatchlistItem(entity));
+				}
+			}
+
+			log.info("Returning {} enriched watchlist items for user {}", items.size(), userId);
+
+		}
+		catch (Exception e) {
+			log.error("Error fetching watchlist data for user {}", userId, e);
+			// If real data fails, return empty - NO MOCK DATA
+			WatchlistCollectionResponse empty = new WatchlistCollectionResponse();
+			empty.setItems(new ArrayList<>());
+			empty.setTotalCount(0);
+			empty.setActiveCount(0);
+			empty.setIsEmpty(true);
+			return empty;
+		}
+
+		// Create response
+		WatchlistCollectionResponse response = new WatchlistCollectionResponse();
+		response.setItems(items);
+		response.setTotalCount(items.size());
+		response.setActiveCount(items.size());
+		response.setIsEmpty(items.isEmpty());
+
+		return response;
+	}
+
+	/**
+	 * Convert WatchlistItemEntity to WatchlistItem DTO
+	 */
+	private WatchlistItem convertToWatchlistItem(WatchlistItemEntity entity) {
+		return new WatchlistItem(entity.getId(), entity.getSymbol(), entity.getName(),
+				entity.getType() != null ? entity.getType().toLowerCase() : "stock", entity.getCurrentPrice(),
+				entity.getChange(), entity.getChangePercent(),
+				entity.getChange() != null && entity.getChange().compareTo(BigDecimal.ZERO) > 0,
+				"/chart/" + entity.getSymbol().toLowerCase(), entity.getVolume());
+	}
+
+	/**
+	 * Fetch crypto market data from CoinGecko for saved symbols. Falls back to saved
+	 * entity data if CoinGecko is unavailable.
+	 */
+	private List<WatchlistItem> fetchCryptoMarketData(List<String> symbols, List<WatchlistItemEntity> savedItems) {
+		List<WatchlistItem> items = new ArrayList<>();
+
+		// Get saved crypto entities for fallback
+		List<WatchlistItemEntity> cryptoEntities = savedItems.stream()
+			.filter(e -> "CRYPTO".equalsIgnoreCase(e.getType()))
+			.collect(Collectors.toList());
+
+		try {
+			// Map symbols to CoinGecko IDs
+			Map<String, String> symbolToId = new HashMap<>();
+			symbolToId.put("BTC", "bitcoin");
+			symbolToId.put("ETH", "ethereum");
+			symbolToId.put("SOL", "solana");
+			symbolToId.put("BNB", "binancecoin");
+			symbolToId.put("ADA", "cardano");
+			symbolToId.put("XRP", "ripple");
+			symbolToId.put("DOGE", "dogecoin");
+			symbolToId.put("DOT", "polkadot");
+			symbolToId.put("AVAX", "avalanche-2");
+			symbolToId.put("MATIC", "matic-network");
+
+			List<String> coinIds = symbols.stream()
+				.map(symbol -> symbolToId.getOrDefault(symbol.toUpperCase(), symbol.toLowerCase()))
+				.collect(Collectors.toList());
+
+			List<CryptoCurrency> cryptoData = coinGeckoClient.getCryptocurrencyMarketData(coinIds, "usd");
+
+			// Map back to WatchlistItem with saved entity info
+			for (CryptoCurrency crypto : cryptoData) {
+				String symbol = crypto.getSymbol().toUpperCase();
+
+				// Find the saved entity for this symbol
+				WatchlistItemEntity savedEntity = savedItems.stream()
+					.filter(e -> e.getSymbol().equalsIgnoreCase(symbol))
+					.findFirst()
+					.orElse(null);
+
+				String id = savedEntity != null ? savedEntity.getId() : crypto.getSymbol().toLowerCase() + "-1";
+				String name = savedEntity != null && savedEntity.getName() != null ? savedEntity.getName()
+						: crypto.getName();
+
+				BigDecimal price = crypto.getCurrentPrice();
+				BigDecimal change = crypto.getPriceChange24h();
+				BigDecimal changePercent = crypto.getPriceChangePercentage24h();
+				Long volume = crypto.getTotalVolume() != null ? crypto.getTotalVolume().longValue() : null;
+
+				items.add(new WatchlistItem(id, symbol, name, "crypto", price, change, changePercent,
+						change != null && change.compareTo(BigDecimal.ZERO) > 0,
+						"/chart/" + crypto.getSymbol().toLowerCase(), volume));
+			}
+		}
+		catch (Exception e) {
+			log.warn("CoinGecko unavailable, using saved crypto data: {}", e.getMessage());
+			// Fallback: return saved crypto entities without fresh prices
+			for (WatchlistItemEntity entity : cryptoEntities) {
+				items.add(convertToWatchlistItem(entity));
+			}
+		}
+
+		return items;
+	}
+
+	/**
+	 * Get user trading mode, defaulting to demo if not found
+	 */
+	private Boolean getUserDemoMode(String userId) {
+		try {
+			Optional<UserEntity> userOpt = userRepository.findById(userId);
+			if (userOpt.isPresent()) {
+				UserProfileEntity profile = userOpt.get().getProfile();
+				return profile != null ? profile.getDemoMode() : true;
+			}
+		}
+		catch (Exception e) {
+			log.warn("Could not retrieve user demo mode for {}, defaulting to demo", userId);
+		}
+		return true;
+	}
+
+	/**
+	 * Format watchlist data for UI consumption
+	 */
+	private Map<String, Object> formatWatchlistForUI(WatchlistCollectionResponse watchlist) {
+		Map<String, Object> formattedWatchlist = new HashMap<>();
+
+		// Real watchlist data
+		formattedWatchlist.put("items", watchlist.getItems());
+		formattedWatchlist.put("totalCount", watchlist.getTotalCount());
+		formattedWatchlist.put("activeCount", watchlist.getActiveCount());
+		formattedWatchlist.put("isEmpty", watchlist.getIsEmpty());
+
+		// Standard categories for all users
+		formattedWatchlist.put("availableCategories", List.of("All", "Crypto", "Stocks", "ETFs", "Commodities"));
+		formattedWatchlist.put("description", "Your market watchlist");
+
+		return formattedWatchlist;
+	}
+
+	/**
+	 * Creates metadata about the watchlist.
+	 */
+	private Map<String, Object> createMetadata(WatchlistCollectionResponse watchlist, String dataType) {
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("lastUpdated", System.currentTimeMillis());
+		metadata.put("demoMode", "real"); // Always real mode
+		metadata.put("dataType", dataType); // "real" for real data, "demo" only as
+											// fallback
+
+		// Summary stats
+		metadata.put("summary",
+				Map.of("totalSymbols", watchlist.getTotalCount(), "activeSymbols", watchlist.getActiveCount(),
+						"cryptoCount", countByType(watchlist, "crypto"), "stockCount", countByType(watchlist, "stock"),
+						"etfCount", countByType(watchlist, "etf")));
+
+		return metadata;
+	}
+
+	/**
+	 * Helper to count items by type.
+	 */
+	private long countByType(WatchlistCollectionResponse watchlist, String type) {
+		return watchlist.getItems().stream().filter(item -> type.equals(item.getType())).count();
+	}
+
 }

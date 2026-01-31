@@ -4,7 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Represents the effectiveness ranking of a technical indicator based on historical backtesting.
+ * Represents the effectiveness ranking of a technical indicator based on historical
+ * backtesting.
  */
 public class IndicatorRanking {
 

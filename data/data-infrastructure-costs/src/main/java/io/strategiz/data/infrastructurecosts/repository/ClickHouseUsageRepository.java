@@ -39,9 +39,7 @@ public class ClickHouseUsageRepository {
 	}
 
 	private CollectionReference getClickHouseCollection() {
-		return firestore.collection(COLLECTION_PATH)
-			.document(SUBCOLLECTION_USAGE)
-			.collection(SUBCOLLECTION_TIMESCALE);
+		return firestore.collection(COLLECTION_PATH).document(SUBCOLLECTION_USAGE).collection(SUBCOLLECTION_TIMESCALE);
 	}
 
 	/**

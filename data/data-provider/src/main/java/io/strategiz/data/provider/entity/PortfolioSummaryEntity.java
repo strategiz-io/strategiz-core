@@ -11,537 +11,543 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Entity representing aggregated portfolio summary stored in Firestore
- * Collection: users/{userId}/portfolio_summary/current
+ * Entity representing aggregated portfolio summary stored in Firestore Collection:
+ * users/{userId}/portfolio_summary/current
  */
 @Collection("portfolio_summary")
 public class PortfolioSummaryEntity extends BaseEntity {
 
-    @DocumentId
-    private String documentId;
+	@DocumentId
+	private String documentId;
 
-    @PropertyName("total_value")
-    private BigDecimal totalValue;
+	@PropertyName("total_value")
+	private BigDecimal totalValue;
 
-    @PropertyName("total_return")
-    private BigDecimal totalReturn;
+	@PropertyName("total_return")
+	private BigDecimal totalReturn;
 
-    @PropertyName("total_return_percent")
-    private BigDecimal totalReturnPercent;
+	@PropertyName("total_return_percent")
+	private BigDecimal totalReturnPercent;
 
-    @PropertyName("cash_available")
-    private BigDecimal cashAvailable;
+	@PropertyName("cash_available")
+	private BigDecimal cashAvailable;
 
-    @PropertyName("day_change")
-    private BigDecimal dayChange;
+	@PropertyName("day_change")
+	private BigDecimal dayChange;
 
-    @PropertyName("day_change_percent")
-    private BigDecimal dayChangePercent;
+	@PropertyName("day_change_percent")
+	private BigDecimal dayChangePercent;
 
-    @PropertyName("week_change")
-    private BigDecimal weekChange;
+	@PropertyName("week_change")
+	private BigDecimal weekChange;
 
-    @PropertyName("week_change_percent")
-    private BigDecimal weekChangePercent;
+	@PropertyName("week_change_percent")
+	private BigDecimal weekChangePercent;
 
-    @PropertyName("month_change")
-    private BigDecimal monthChange;
+	@PropertyName("month_change")
+	private BigDecimal monthChange;
 
-    @PropertyName("month_change_percent")
-    private BigDecimal monthChangePercent;
+	@PropertyName("month_change_percent")
+	private BigDecimal monthChangePercent;
 
-    @PropertyName("asset_allocation")
-    private AssetAllocation assetAllocation;
+	@PropertyName("asset_allocation")
+	private AssetAllocation assetAllocation;
 
-    @PropertyName("category_allocations")
-    private List<CategoryAllocationData> categoryAllocations;
+	@PropertyName("category_allocations")
+	private List<CategoryAllocationData> categoryAllocations;
 
-    @PropertyName("account_performance")
-    private Map<String, BigDecimal> accountPerformance; // providerId -> value
+	@PropertyName("account_performance")
+	private Map<String, BigDecimal> accountPerformance; // providerId -> value
 
-    @PropertyName("top_performers")
-    private List<TopPerformer> topPerformers;
+	@PropertyName("top_performers")
+	private List<TopPerformer> topPerformers;
 
-    @PropertyName("top_losers")
-    private List<TopPerformer> topLosers;
+	@PropertyName("top_losers")
+	private List<TopPerformer> topLosers;
 
-    @PropertyName("performance_history")
-    private List<PerformanceHistory> performanceHistory;
+	@PropertyName("performance_history")
+	private List<PerformanceHistory> performanceHistory;
 
-    @PropertyName("last_synced_at")
-    private Instant lastSyncedAt;
+	@PropertyName("last_synced_at")
+	private Instant lastSyncedAt;
 
-    @PropertyName("providers_count")
-    private Integer providersCount;
+	@PropertyName("providers_count")
+	private Integer providersCount;
 
-    // Getters and Setters
-    public String getDocumentId() {
-        return documentId;
-    }
+	// Getters and Setters
+	public String getDocumentId() {
+		return documentId;
+	}
 
-    public void setDocumentId(String documentId) {
-        this.documentId = documentId;
-    }
+	public void setDocumentId(String documentId) {
+		this.documentId = documentId;
+	}
 
-    public BigDecimal getTotalValue() {
-        return totalValue;
-    }
+	public BigDecimal getTotalValue() {
+		return totalValue;
+	}
 
-    public void setTotalValue(BigDecimal totalValue) {
-        this.totalValue = totalValue;
-    }
+	public void setTotalValue(BigDecimal totalValue) {
+		this.totalValue = totalValue;
+	}
 
-    public BigDecimal getTotalReturn() {
-        return totalReturn;
-    }
+	public BigDecimal getTotalReturn() {
+		return totalReturn;
+	}
 
-    public void setTotalReturn(BigDecimal totalReturn) {
-        this.totalReturn = totalReturn;
-    }
+	public void setTotalReturn(BigDecimal totalReturn) {
+		this.totalReturn = totalReturn;
+	}
 
-    public BigDecimal getTotalReturnPercent() {
-        return totalReturnPercent;
-    }
+	public BigDecimal getTotalReturnPercent() {
+		return totalReturnPercent;
+	}
 
-    public void setTotalReturnPercent(BigDecimal totalReturnPercent) {
-        this.totalReturnPercent = totalReturnPercent;
-    }
+	public void setTotalReturnPercent(BigDecimal totalReturnPercent) {
+		this.totalReturnPercent = totalReturnPercent;
+	}
 
-    public BigDecimal getCashAvailable() {
-        return cashAvailable;
-    }
+	public BigDecimal getCashAvailable() {
+		return cashAvailable;
+	}
 
-    public void setCashAvailable(BigDecimal cashAvailable) {
-        this.cashAvailable = cashAvailable;
-    }
+	public void setCashAvailable(BigDecimal cashAvailable) {
+		this.cashAvailable = cashAvailable;
+	}
 
-    public BigDecimal getDayChange() {
-        return dayChange;
-    }
-
-    public void setDayChange(BigDecimal dayChange) {
-        this.dayChange = dayChange;
-    }
-
-    public BigDecimal getDayChangePercent() {
-        return dayChangePercent;
-    }
-
-    public void setDayChangePercent(BigDecimal dayChangePercent) {
-        this.dayChangePercent = dayChangePercent;
-    }
-
-    public BigDecimal getWeekChange() {
-        return weekChange;
-    }
-
-    public void setWeekChange(BigDecimal weekChange) {
-        this.weekChange = weekChange;
-    }
-
-    public BigDecimal getWeekChangePercent() {
-        return weekChangePercent;
-    }
-
-    public void setWeekChangePercent(BigDecimal weekChangePercent) {
-        this.weekChangePercent = weekChangePercent;
-    }
-
-    public BigDecimal getMonthChange() {
-        return monthChange;
-    }
+	public BigDecimal getDayChange() {
+		return dayChange;
+	}
+
+	public void setDayChange(BigDecimal dayChange) {
+		this.dayChange = dayChange;
+	}
+
+	public BigDecimal getDayChangePercent() {
+		return dayChangePercent;
+	}
+
+	public void setDayChangePercent(BigDecimal dayChangePercent) {
+		this.dayChangePercent = dayChangePercent;
+	}
+
+	public BigDecimal getWeekChange() {
+		return weekChange;
+	}
+
+	public void setWeekChange(BigDecimal weekChange) {
+		this.weekChange = weekChange;
+	}
 
-    public void setMonthChange(BigDecimal monthChange) {
-        this.monthChange = monthChange;
-    }
+	public BigDecimal getWeekChangePercent() {
+		return weekChangePercent;
+	}
 
-    public BigDecimal getMonthChangePercent() {
-        return monthChangePercent;
-    }
+	public void setWeekChangePercent(BigDecimal weekChangePercent) {
+		this.weekChangePercent = weekChangePercent;
+	}
 
-    public void setMonthChangePercent(BigDecimal monthChangePercent) {
-        this.monthChangePercent = monthChangePercent;
-    }
+	public BigDecimal getMonthChange() {
+		return monthChange;
+	}
 
-    public AssetAllocation getAssetAllocation() {
-        return assetAllocation;
-    }
+	public void setMonthChange(BigDecimal monthChange) {
+		this.monthChange = monthChange;
+	}
 
-    public void setAssetAllocation(AssetAllocation assetAllocation) {
-        this.assetAllocation = assetAllocation;
-    }
+	public BigDecimal getMonthChangePercent() {
+		return monthChangePercent;
+	}
 
-    public List<CategoryAllocationData> getCategoryAllocations() {
-        return categoryAllocations;
-    }
+	public void setMonthChangePercent(BigDecimal monthChangePercent) {
+		this.monthChangePercent = monthChangePercent;
+	}
 
-    public void setCategoryAllocations(List<CategoryAllocationData> categoryAllocations) {
-        this.categoryAllocations = categoryAllocations;
-    }
+	public AssetAllocation getAssetAllocation() {
+		return assetAllocation;
+	}
 
-    public Map<String, BigDecimal> getAccountPerformance() {
-        return accountPerformance;
-    }
+	public void setAssetAllocation(AssetAllocation assetAllocation) {
+		this.assetAllocation = assetAllocation;
+	}
 
-    public void setAccountPerformance(Map<String, BigDecimal> accountPerformance) {
-        this.accountPerformance = accountPerformance;
-    }
+	public List<CategoryAllocationData> getCategoryAllocations() {
+		return categoryAllocations;
+	}
 
-    public List<TopPerformer> getTopPerformers() {
-        return topPerformers;
-    }
+	public void setCategoryAllocations(List<CategoryAllocationData> categoryAllocations) {
+		this.categoryAllocations = categoryAllocations;
+	}
 
-    public void setTopPerformers(List<TopPerformer> topPerformers) {
-        this.topPerformers = topPerformers;
-    }
+	public Map<String, BigDecimal> getAccountPerformance() {
+		return accountPerformance;
+	}
 
-    public List<TopPerformer> getTopLosers() {
-        return topLosers;
-    }
+	public void setAccountPerformance(Map<String, BigDecimal> accountPerformance) {
+		this.accountPerformance = accountPerformance;
+	}
 
-    public void setTopLosers(List<TopPerformer> topLosers) {
-        this.topLosers = topLosers;
-    }
+	public List<TopPerformer> getTopPerformers() {
+		return topPerformers;
+	}
 
-    public List<PerformanceHistory> getPerformanceHistory() {
-        return performanceHistory;
-    }
+	public void setTopPerformers(List<TopPerformer> topPerformers) {
+		this.topPerformers = topPerformers;
+	}
 
-    public void setPerformanceHistory(List<PerformanceHistory> performanceHistory) {
-        this.performanceHistory = performanceHistory;
-    }
+	public List<TopPerformer> getTopLosers() {
+		return topLosers;
+	}
 
-    public Instant getLastSyncedAt() {
-        return lastSyncedAt;
-    }
+	public void setTopLosers(List<TopPerformer> topLosers) {
+		this.topLosers = topLosers;
+	}
 
-    public void setLastSyncedAt(Instant lastSyncedAt) {
-        this.lastSyncedAt = lastSyncedAt;
-    }
+	public List<PerformanceHistory> getPerformanceHistory() {
+		return performanceHistory;
+	}
 
-    public Integer getProvidersCount() {
-        return providersCount;
-    }
+	public void setPerformanceHistory(List<PerformanceHistory> performanceHistory) {
+		this.performanceHistory = performanceHistory;
+	}
 
-    public void setProvidersCount(Integer providersCount) {
-        this.providersCount = providersCount;
-    }
+	public Instant getLastSyncedAt() {
+		return lastSyncedAt;
+	}
 
-    /**
-     * Nested class for asset allocation
-     */
-    public static class AssetAllocation {
-        
-        @PropertyName("crypto")
-        private BigDecimal crypto;
+	public void setLastSyncedAt(Instant lastSyncedAt) {
+		this.lastSyncedAt = lastSyncedAt;
+	}
 
-        @PropertyName("crypto_percent")
-        private BigDecimal cryptoPercent;
+	public Integer getProvidersCount() {
+		return providersCount;
+	}
 
-        @PropertyName("stocks")
-        private BigDecimal stocks;
+	public void setProvidersCount(Integer providersCount) {
+		this.providersCount = providersCount;
+	}
 
-        @PropertyName("stocks_percent")
-        private BigDecimal stocksPercent;
+	/**
+	 * Nested class for asset allocation
+	 */
+	public static class AssetAllocation {
 
-        @PropertyName("forex")
-        private BigDecimal forex;
+		@PropertyName("crypto")
+		private BigDecimal crypto;
 
-        @PropertyName("forex_percent")
-        private BigDecimal forexPercent;
+		@PropertyName("crypto_percent")
+		private BigDecimal cryptoPercent;
 
-        @PropertyName("commodities")
-        private BigDecimal commodities;
+		@PropertyName("stocks")
+		private BigDecimal stocks;
 
-        @PropertyName("commodities_percent")
-        private BigDecimal commoditiesPercent;
+		@PropertyName("stocks_percent")
+		private BigDecimal stocksPercent;
 
-        @PropertyName("sectors")
-        private Map<String, BigDecimal> sectors; // sector -> percentage
+		@PropertyName("forex")
+		private BigDecimal forex;
 
-        // Getters and Setters
-        public BigDecimal getCrypto() {
-            return crypto;
-        }
+		@PropertyName("forex_percent")
+		private BigDecimal forexPercent;
 
-        public void setCrypto(BigDecimal crypto) {
-            this.crypto = crypto;
-        }
+		@PropertyName("commodities")
+		private BigDecimal commodities;
 
-        public BigDecimal getCryptoPercent() {
-            return cryptoPercent;
-        }
+		@PropertyName("commodities_percent")
+		private BigDecimal commoditiesPercent;
 
-        public void setCryptoPercent(BigDecimal cryptoPercent) {
-            this.cryptoPercent = cryptoPercent;
-        }
-
-        public BigDecimal getStocks() {
-            return stocks;
-        }
-
-        public void setStocks(BigDecimal stocks) {
-            this.stocks = stocks;
-        }
-
-        public BigDecimal getStocksPercent() {
-            return stocksPercent;
-        }
-
-        public void setStocksPercent(BigDecimal stocksPercent) {
-            this.stocksPercent = stocksPercent;
-        }
-
-        public BigDecimal getForex() {
-            return forex;
-        }
-
-        public void setForex(BigDecimal forex) {
-            this.forex = forex;
-        }
-
-        public BigDecimal getForexPercent() {
-            return forexPercent;
-        }
-
-        public void setForexPercent(BigDecimal forexPercent) {
-            this.forexPercent = forexPercent;
-        }
-
-        public BigDecimal getCommodities() {
-            return commodities;
-        }
-
-        public void setCommodities(BigDecimal commodities) {
-            this.commodities = commodities;
-        }
-
-        public BigDecimal getCommoditiesPercent() {
-            return commoditiesPercent;
-        }
-
-        public void setCommoditiesPercent(BigDecimal commoditiesPercent) {
-            this.commoditiesPercent = commoditiesPercent;
-        }
-
-        public Map<String, BigDecimal> getSectors() {
-            return sectors;
-        }
-
-        public void setSectors(Map<String, BigDecimal> sectors) {
-            this.sectors = sectors;
-        }
-    }
-
-    /**
-     * Nested class for category-based asset allocation data
-     * Used for pie chart display on dashboard
-     */
-    public static class CategoryAllocationData {
-
-        @PropertyName("category")
-        private String category;  // "CRYPTOCURRENCY", "STOCKS", "CASH", "FOREX"
+		@PropertyName("sectors")
+		private Map<String, BigDecimal> sectors; // sector -> percentage
 
-        @PropertyName("category_name")
-        private String categoryName;  // "Cryptocurrencies", "Stocks & Equities", etc.
-
-        @PropertyName("color")
-        private String color;  // "#39FF14", "#00BFFF", etc.
-
-        @PropertyName("value")
-        private BigDecimal value;
-
-        @PropertyName("percentage")
-        private BigDecimal percentage;
-
-        @PropertyName("asset_count")
-        private Integer assetCount;
-
-        // Default constructor for Firestore
-        public CategoryAllocationData() {}
-
-        // Constructor with all fields
-        public CategoryAllocationData(String category, String categoryName, String color,
-                                      BigDecimal value, BigDecimal percentage, Integer assetCount) {
-            this.category = category;
-            this.categoryName = categoryName;
-            this.color = color;
-            this.value = value;
-            this.percentage = percentage;
-            this.assetCount = assetCount;
-        }
-
-        // Getters and Setters
-        public String getCategory() {
-            return category;
-        }
-
-        public void setCategory(String category) {
-            this.category = category;
-        }
-
-        public String getCategoryName() {
-            return categoryName;
-        }
-
-        public void setCategoryName(String categoryName) {
-            this.categoryName = categoryName;
-        }
-
-        public String getColor() {
-            return color;
-        }
-
-        public void setColor(String color) {
-            this.color = color;
-        }
-
-        public BigDecimal getValue() {
-            return value;
-        }
-
-        public void setValue(BigDecimal value) {
-            this.value = value;
-        }
-
-        public BigDecimal getPercentage() {
-            return percentage;
-        }
-
-        public void setPercentage(BigDecimal percentage) {
-            this.percentage = percentage;
-        }
-
-        public Integer getAssetCount() {
-            return assetCount;
-        }
-
-        public void setAssetCount(Integer assetCount) {
-            this.assetCount = assetCount;
-        }
-    }
-
-    /**
-     * Nested class for top performers/losers
-     */
-    public static class TopPerformer {
-        
-        @PropertyName("asset")
-        private String asset;
-
-        @PropertyName("name")
-        private String name;
-
-        @PropertyName("provider")
-        private String provider;
-
-        @PropertyName("change_percent")
-        private BigDecimal changePercent;
-
-        @PropertyName("change_amount")
-        private BigDecimal changeAmount;
-
-        // Getters and Setters
-        public String getAsset() {
-            return asset;
-        }
-
-        public void setAsset(String asset) {
-            this.asset = asset;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getProvider() {
-            return provider;
-        }
-
-        public void setProvider(String provider) {
-            this.provider = provider;
-        }
-
-        public BigDecimal getChangePercent() {
-            return changePercent;
-        }
-
-        public void setChangePercent(BigDecimal changePercent) {
-            this.changePercent = changePercent;
-        }
-
-        public BigDecimal getChangeAmount() {
-            return changeAmount;
-        }
-
-        public void setChangeAmount(BigDecimal changeAmount) {
-            this.changeAmount = changeAmount;
-        }
-    }
-
-    /**
-     * Nested class for performance history
-     */
-    public static class PerformanceHistory {
-        
-        @PropertyName("date")
-        private Instant date;
-
-        @PropertyName("value")
-        private BigDecimal value;
-
-        @PropertyName("change")
-        private BigDecimal change;
-
-        @PropertyName("change_percent")
-        private BigDecimal changePercent;
-
-        // Getters and Setters
-        public Instant getDate() {
-            return date;
-        }
-
-        public void setDate(Instant date) {
-            this.date = date;
-        }
-
-        public BigDecimal getValue() {
-            return value;
-        }
-
-        public void setValue(BigDecimal value) {
-            this.value = value;
-        }
-
-        public BigDecimal getChange() {
-            return change;
-        }
-
-        public void setChange(BigDecimal change) {
-            this.change = change;
-        }
-
-        public BigDecimal getChangePercent() {
-            return changePercent;
-        }
-
-        public void setChangePercent(BigDecimal changePercent) {
-            this.changePercent = changePercent;
-        }
-    }
-    
-    // Required BaseEntity methods
-    @Override
-    public String getId() {
-        return documentId;
-    }
-
-    @Override
-    public void setId(String id) {
-        this.documentId = id;
-    }
+		// Getters and Setters
+		public BigDecimal getCrypto() {
+			return crypto;
+		}
+
+		public void setCrypto(BigDecimal crypto) {
+			this.crypto = crypto;
+		}
+
+		public BigDecimal getCryptoPercent() {
+			return cryptoPercent;
+		}
+
+		public void setCryptoPercent(BigDecimal cryptoPercent) {
+			this.cryptoPercent = cryptoPercent;
+		}
+
+		public BigDecimal getStocks() {
+			return stocks;
+		}
+
+		public void setStocks(BigDecimal stocks) {
+			this.stocks = stocks;
+		}
+
+		public BigDecimal getStocksPercent() {
+			return stocksPercent;
+		}
+
+		public void setStocksPercent(BigDecimal stocksPercent) {
+			this.stocksPercent = stocksPercent;
+		}
+
+		public BigDecimal getForex() {
+			return forex;
+		}
+
+		public void setForex(BigDecimal forex) {
+			this.forex = forex;
+		}
+
+		public BigDecimal getForexPercent() {
+			return forexPercent;
+		}
+
+		public void setForexPercent(BigDecimal forexPercent) {
+			this.forexPercent = forexPercent;
+		}
+
+		public BigDecimal getCommodities() {
+			return commodities;
+		}
+
+		public void setCommodities(BigDecimal commodities) {
+			this.commodities = commodities;
+		}
+
+		public BigDecimal getCommoditiesPercent() {
+			return commoditiesPercent;
+		}
+
+		public void setCommoditiesPercent(BigDecimal commoditiesPercent) {
+			this.commoditiesPercent = commoditiesPercent;
+		}
+
+		public Map<String, BigDecimal> getSectors() {
+			return sectors;
+		}
+
+		public void setSectors(Map<String, BigDecimal> sectors) {
+			this.sectors = sectors;
+		}
+
+	}
+
+	/**
+	 * Nested class for category-based asset allocation data Used for pie chart display on
+	 * dashboard
+	 */
+	public static class CategoryAllocationData {
+
+		@PropertyName("category")
+		private String category; // "CRYPTOCURRENCY", "STOCKS", "CASH", "FOREX"
+
+		@PropertyName("category_name")
+		private String categoryName; // "Cryptocurrencies", "Stocks & Equities", etc.
+
+		@PropertyName("color")
+		private String color; // "#39FF14", "#00BFFF", etc.
+
+		@PropertyName("value")
+		private BigDecimal value;
+
+		@PropertyName("percentage")
+		private BigDecimal percentage;
+
+		@PropertyName("asset_count")
+		private Integer assetCount;
+
+		// Default constructor for Firestore
+		public CategoryAllocationData() {
+		}
+
+		// Constructor with all fields
+		public CategoryAllocationData(String category, String categoryName, String color, BigDecimal value,
+				BigDecimal percentage, Integer assetCount) {
+			this.category = category;
+			this.categoryName = categoryName;
+			this.color = color;
+			this.value = value;
+			this.percentage = percentage;
+			this.assetCount = assetCount;
+		}
+
+		// Getters and Setters
+		public String getCategory() {
+			return category;
+		}
+
+		public void setCategory(String category) {
+			this.category = category;
+		}
+
+		public String getCategoryName() {
+			return categoryName;
+		}
+
+		public void setCategoryName(String categoryName) {
+			this.categoryName = categoryName;
+		}
+
+		public String getColor() {
+			return color;
+		}
+
+		public void setColor(String color) {
+			this.color = color;
+		}
+
+		public BigDecimal getValue() {
+			return value;
+		}
+
+		public void setValue(BigDecimal value) {
+			this.value = value;
+		}
+
+		public BigDecimal getPercentage() {
+			return percentage;
+		}
+
+		public void setPercentage(BigDecimal percentage) {
+			this.percentage = percentage;
+		}
+
+		public Integer getAssetCount() {
+			return assetCount;
+		}
+
+		public void setAssetCount(Integer assetCount) {
+			this.assetCount = assetCount;
+		}
+
+	}
+
+	/**
+	 * Nested class for top performers/losers
+	 */
+	public static class TopPerformer {
+
+		@PropertyName("asset")
+		private String asset;
+
+		@PropertyName("name")
+		private String name;
+
+		@PropertyName("provider")
+		private String provider;
+
+		@PropertyName("change_percent")
+		private BigDecimal changePercent;
+
+		@PropertyName("change_amount")
+		private BigDecimal changeAmount;
+
+		// Getters and Setters
+		public String getAsset() {
+			return asset;
+		}
+
+		public void setAsset(String asset) {
+			this.asset = asset;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public String getProvider() {
+			return provider;
+		}
+
+		public void setProvider(String provider) {
+			this.provider = provider;
+		}
+
+		public BigDecimal getChangePercent() {
+			return changePercent;
+		}
+
+		public void setChangePercent(BigDecimal changePercent) {
+			this.changePercent = changePercent;
+		}
+
+		public BigDecimal getChangeAmount() {
+			return changeAmount;
+		}
+
+		public void setChangeAmount(BigDecimal changeAmount) {
+			this.changeAmount = changeAmount;
+		}
+
+	}
+
+	/**
+	 * Nested class for performance history
+	 */
+	public static class PerformanceHistory {
+
+		@PropertyName("date")
+		private Instant date;
+
+		@PropertyName("value")
+		private BigDecimal value;
+
+		@PropertyName("change")
+		private BigDecimal change;
+
+		@PropertyName("change_percent")
+		private BigDecimal changePercent;
+
+		// Getters and Setters
+		public Instant getDate() {
+			return date;
+		}
+
+		public void setDate(Instant date) {
+			this.date = date;
+		}
+
+		public BigDecimal getValue() {
+			return value;
+		}
+
+		public void setValue(BigDecimal value) {
+			this.value = value;
+		}
+
+		public BigDecimal getChange() {
+			return change;
+		}
+
+		public void setChange(BigDecimal change) {
+			this.change = change;
+		}
+
+		public BigDecimal getChangePercent() {
+			return changePercent;
+		}
+
+		public void setChangePercent(BigDecimal changePercent) {
+			this.changePercent = changePercent;
+		}
+
+	}
+
+	// Required BaseEntity methods
+	@Override
+	public String getId() {
+		return documentId;
+	}
+
+	@Override
+	public void setId(String id) {
+		this.documentId = id;
+	}
+
 }

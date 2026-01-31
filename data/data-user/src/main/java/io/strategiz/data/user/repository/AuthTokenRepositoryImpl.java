@@ -12,84 +12,78 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * Firestore implementation of AuthTokenRepository.
- * Stores one-time SSO relay tokens for cross-app authentication.
+ * Firestore implementation of AuthTokenRepository. Stores one-time SSO relay tokens for
+ * cross-app authentication.
  *
- * Simple implementation without BaseRepository overhead since
- * tokens are ephemeral and don't need lifecycle management.
+ * Simple implementation without BaseRepository overhead since tokens are ephemeral and
+ * don't need lifecycle management.
  */
 @Repository
 public class AuthTokenRepositoryImpl implements AuthTokenRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthTokenRepositoryImpl.class);
-    private static final String COLLECTION_NAME = "sso_relay_tokens";
+	private static final Logger logger = LoggerFactory.getLogger(AuthTokenRepositoryImpl.class);
 
-    private final Firestore firestore;
+	private static final String COLLECTION_NAME = "sso_relay_tokens";
 
-    public AuthTokenRepositoryImpl(Firestore firestore) {
-        this.firestore = firestore;
-    }
+	private final Firestore firestore;
 
-    @Override
-    public Optional<SsoRelayToken> findByToken(String token) {
-        try {
-            DocumentSnapshot doc = firestore.collection(COLLECTION_NAME)
-                    .document(token)
-                    .get()
-                    .get();
+	public AuthTokenRepositoryImpl(Firestore firestore) {
+		this.firestore = firestore;
+	}
 
-            if (doc.exists()) {
-                SsoRelayToken entity = doc.toObject(SsoRelayToken.class);
-                if (entity != null) {
-                    entity.setToken(doc.getId());
-                }
-                return Optional.ofNullable(entity);
-            }
-            return Optional.empty();
-        } catch (Exception e) {
-            logger.error("Error finding SSO relay token: {}", e.getMessage());
-            return Optional.empty();
-        }
-    }
+	@Override
+	public Optional<SsoRelayToken> findByToken(String token) {
+		try {
+			DocumentSnapshot doc = firestore.collection(COLLECTION_NAME).document(token).get().get();
 
-    @Override
-    public SsoRelayToken save(SsoRelayToken token) {
-        try {
-            firestore.collection(COLLECTION_NAME)
-                    .document(token.getToken())
-                    .set(token)
-                    .get();
-            logger.debug("Saved SSO relay token for user: {}", token.getUserId());
-            return token;
-        } catch (Exception e) {
-            logger.error("Error saving SSO relay token: {}", e.getMessage());
-            throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "SsoRelayToken");
-        }
-    }
+			if (doc.exists()) {
+				SsoRelayToken entity = doc.toObject(SsoRelayToken.class);
+				if (entity != null) {
+					entity.setToken(doc.getId());
+				}
+				return Optional.ofNullable(entity);
+			}
+			return Optional.empty();
+		}
+		catch (Exception e) {
+			logger.error("Error finding SSO relay token: {}", e.getMessage());
+			return Optional.empty();
+		}
+	}
 
-    @Override
-    public void delete(String token) {
-        try {
-            firestore.collection(COLLECTION_NAME)
-                    .document(token)
-                    .delete()
-                    .get();
-            logger.debug("Deleted SSO relay token: {}", token.substring(0, Math.min(8, token.length())) + "...");
-        } catch (Exception e) {
-            logger.error("Error deleting SSO relay token: {}", e.getMessage());
-        }
-    }
+	@Override
+	public SsoRelayToken save(SsoRelayToken token) {
+		try {
+			firestore.collection(COLLECTION_NAME).document(token.getToken()).set(token).get();
+			logger.debug("Saved SSO relay token for user: {}", token.getUserId());
+			return token;
+		}
+		catch (Exception e) {
+			logger.error("Error saving SSO relay token: {}", e.getMessage());
+			throw new DataRepositoryException(DataRepositoryErrorDetails.ENTITY_SAVE_FAILED, e, "SsoRelayToken");
+		}
+	}
 
-    @Override
-    public void markAsUsed(String token) {
-        try {
-            firestore.collection(COLLECTION_NAME)
-                    .document(token)
-                    .update("used", true)
-                    .get();
-            logger.debug("Marked SSO relay token as used: {}", token.substring(0, Math.min(8, token.length())) + "...");
-        } catch (Exception e) {
-            logger.error("Error marking SSO relay token as used: {}", e.getMessage());
-        }
-    }
+	@Override
+	public void delete(String token) {
+		try {
+			firestore.collection(COLLECTION_NAME).document(token).delete().get();
+			logger.debug("Deleted SSO relay token: {}", token.substring(0, Math.min(8, token.length())) + "...");
+		}
+		catch (Exception e) {
+			logger.error("Error deleting SSO relay token: {}", e.getMessage());
+		}
+	}
+
+	@Override
+	public void markAsUsed(String token) {
+		try {
+			firestore.collection(COLLECTION_NAME).document(token).update("used", true).get();
+			logger.debug("Marked SSO relay token as used: {}", token.substring(0, Math.min(8, token.length())) + "...");
+		}
+		catch (Exception e) {
+			logger.error("Error marking SSO relay token as used: {}", e.getMessage());
+		}
+	}
+
 }

@@ -12,7 +12,9 @@ import java.util.Optional;
 /**
  * Repository for SecurityPreferences stored at users/{userId}/preferences/security
  *
- * <p>This repository manages user security preferences including MFA enforcement settings.</p>
+ * <p>
+ * This repository manages user security preferences including MFA enforcement settings.
+ * </p>
  */
 @Repository
 public class SecurityPreferencesRepository extends SubcollectionRepository<SecurityPreferences> {
@@ -123,8 +125,7 @@ public class SecurityPreferencesRepository extends SubcollectionRepository<Secur
 	}
 
 	/**
-	 * Disable MFA enforcement for a user.
-	 * Used when user removes their last MFA method.
+	 * Disable MFA enforcement for a user. Used when user removes their last MFA method.
 	 * @param userId The user ID
 	 */
 	public void disableMfaEnforcement(String userId) {

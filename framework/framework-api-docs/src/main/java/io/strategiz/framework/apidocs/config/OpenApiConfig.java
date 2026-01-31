@@ -55,11 +55,14 @@ public class OpenApiConfig {
 		return new OpenAPI()
 			.info(new Info().title(apiTitle)
 				.description(apiDescription + " All endpoints use real data from actual cryptocurrency exchanges.")
-				.version(apiVersion).contact(new Contact().name(contactName).url(contactUrl).email(contactEmail))
+				.version(apiVersion)
+				.contact(new Contact().name(contactName).url(contactUrl).email(contactEmail))
 				.license(new License().name(licenseName).url(licenseUrl)))
 			.servers(List.of(new Server().url(serverUrl).description(serverDescription)))
 			.components(new Components().addSecuritySchemes("bearer-jwt",
-					new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT")
+					new SecurityScheme().type(SecurityScheme.Type.HTTP)
+						.scheme("bearer")
+						.bearerFormat("JWT")
 						.description("JWT token authentication using the Bearer scheme.")));
 	}
 

@@ -11,31 +11,32 @@ import java.util.List;
  */
 @Repository
 public class ReadProviderDataRepositoryImpl implements ReadProviderDataRepository {
-    
-    private final ProviderDataBaseRepository baseRepository;
-    
-    @Autowired
-    public ReadProviderDataRepositoryImpl(ProviderDataBaseRepository baseRepository) {
-        this.baseRepository = baseRepository;
-    }
-    
-    @Override
-    public ProviderDataEntity getProviderData(String userId, String providerId) {
-        return baseRepository.findByProviderId(userId, providerId).orElse(null);
-    }
-    
-    @Override
-    public List<ProviderDataEntity> getAllProviderData(String userId) {
-        return baseRepository.findAllByUserId(userId);
-    }
-    
-    @Override
-    public List<ProviderDataEntity> getProviderDataByType(String userId, String accountType) {
-        return baseRepository.findByAccountType(userId, accountType);
-    }
-    
-    @Override
-    public boolean providerDataExists(String userId, String providerId) {
-        return baseRepository.existsByProviderId(userId, providerId);
-    }
+
+	private final ProviderDataBaseRepository baseRepository;
+
+	@Autowired
+	public ReadProviderDataRepositoryImpl(ProviderDataBaseRepository baseRepository) {
+		this.baseRepository = baseRepository;
+	}
+
+	@Override
+	public ProviderDataEntity getProviderData(String userId, String providerId) {
+		return baseRepository.findByProviderId(userId, providerId).orElse(null);
+	}
+
+	@Override
+	public List<ProviderDataEntity> getAllProviderData(String userId) {
+		return baseRepository.findAllByUserId(userId);
+	}
+
+	@Override
+	public List<ProviderDataEntity> getProviderDataByType(String userId, String accountType) {
+		return baseRepository.findByAccountType(userId, accountType);
+	}
+
+	@Override
+	public boolean providerDataExists(String userId, String providerId) {
+		return baseRepository.existsByProviderId(userId, providerId);
+	}
+
 }

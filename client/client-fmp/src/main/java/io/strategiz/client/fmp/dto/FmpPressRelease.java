@@ -13,14 +13,14 @@ import java.time.format.DateTimeParseException;
  * DTO representing a press release from FMP API.
  *
  * <p>
- * Press releases are official company announcements, typically more significant than regular news.
+ * Press releases are official company announcements, typically more significant than
+ * regular news.
  * </p>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FmpPressRelease {
 
-	private static final DateTimeFormatter FMP_DATE_FORMAT = DateTimeFormatter
-		.ofPattern("yyyy-MM-dd HH:mm:ss");
+	private static final DateTimeFormatter FMP_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 	@JsonProperty("symbol")
 	private String symbol;

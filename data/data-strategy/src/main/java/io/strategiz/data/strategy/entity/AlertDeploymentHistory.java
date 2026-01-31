@@ -9,8 +9,8 @@ import com.google.cloud.Timestamp;
 import java.util.Map;
 
 /**
- * Entity representing the history of alert triggers.
- * Records each time a strategy alert generates a signal.
+ * Entity representing the history of alert triggers. Records each time a strategy alert
+ * generates a signal.
  *
  * @author Strategiz Team
  * @version 1.0
@@ -19,112 +19,113 @@ import java.util.Map;
 @Collection("strategyAlertHistory")
 public class AlertDeploymentHistory extends BaseEntity {
 
-    @JsonProperty("id")
-    private String id;
+	@JsonProperty("id")
+	private String id;
 
-    @JsonProperty("alertId")
-    private String alertId;
+	@JsonProperty("alertId")
+	private String alertId;
 
-    @JsonProperty("userId")
-    private String userId;
+	@JsonProperty("userId")
+	private String userId;
 
-    @JsonProperty("symbol")
-    private String symbol;
+	@JsonProperty("symbol")
+	private String symbol;
 
-    @JsonProperty("signal")
-    private String signal; // BUY, SELL, HOLD
+	@JsonProperty("signal")
+	private String signal; // BUY, SELL, HOLD
 
-    @JsonProperty("price")
-    private Double price;
+	@JsonProperty("price")
+	private Double price;
 
-    @JsonProperty("timestamp")
-    private Timestamp timestamp;
+	@JsonProperty("timestamp")
+	private Timestamp timestamp;
 
-    @JsonProperty("notificationSent")
-    private Boolean notificationSent;
+	@JsonProperty("notificationSent")
+	private Boolean notificationSent;
 
-    @JsonProperty("metadata")
-    private Map<String, Object> metadata; // Store indicator values (RSI, MACD, etc.)
+	@JsonProperty("metadata")
+	private Map<String, Object> metadata; // Store indicator values (RSI, MACD, etc.)
 
-    // Constructors
-    public AlertDeploymentHistory() {
-        super();
-        this.timestamp = Timestamp.now();
-        this.notificationSent = false;
-    }
+	// Constructors
+	public AlertDeploymentHistory() {
+		super();
+		this.timestamp = Timestamp.now();
+		this.notificationSent = false;
+	}
 
-    @Override
-    public String getId() {
-        return id;
-    }
+	@Override
+	public String getId() {
+		return id;
+	}
 
-    @Override
-    public void setId(String id) {
-        this.id = id;
-    }
+	@Override
+	public void setId(String id) {
+		this.id = id;
+	}
 
-    // Getters and Setters
-    public String getAlertId() {
-        return alertId;
-    }
+	// Getters and Setters
+	public String getAlertId() {
+		return alertId;
+	}
 
-    public void setAlertId(String alertId) {
-        this.alertId = alertId;
-    }
+	public void setAlertId(String alertId) {
+		this.alertId = alertId;
+	}
 
-    public String getUserId() {
-        return userId;
-    }
+	public String getUserId() {
+		return userId;
+	}
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
 
-    public String getSymbol() {
-        return symbol;
-    }
+	public String getSymbol() {
+		return symbol;
+	}
 
-    public void setSymbol(String symbol) {
-        this.symbol = symbol;
-    }
+	public void setSymbol(String symbol) {
+		this.symbol = symbol;
+	}
 
-    public String getSignal() {
-        return signal;
-    }
+	public String getSignal() {
+		return signal;
+	}
 
-    public void setSignal(String signal) {
-        this.signal = signal;
-    }
+	public void setSignal(String signal) {
+		this.signal = signal;
+	}
 
-    public Double getPrice() {
-        return price;
-    }
+	public Double getPrice() {
+		return price;
+	}
 
-    public void setPrice(Double price) {
-        this.price = price;
-    }
+	public void setPrice(Double price) {
+		this.price = price;
+	}
 
-    public Timestamp getTimestamp() {
-        return timestamp;
-    }
+	public Timestamp getTimestamp() {
+		return timestamp;
+	}
 
-    public void setTimestamp(Timestamp timestamp) {
-        this.timestamp = timestamp;
-    }
+	public void setTimestamp(Timestamp timestamp) {
+		this.timestamp = timestamp;
+	}
 
-    public Boolean getNotificationSent() {
-        return notificationSent;
-    }
+	public Boolean getNotificationSent() {
+		return notificationSent;
+	}
 
-    public void setNotificationSent(Boolean notificationSent) {
-        this.notificationSent = notificationSent;
-    }
+	public void setNotificationSent(Boolean notificationSent) {
+		this.notificationSent = notificationSent;
+	}
 
-    public Map<String, Object> getMetadata() {
-        return metadata;
-    }
+	public Map<String, Object> getMetadata() {
+		return metadata;
+	}
 
-    public void setMetadata(Map<String, Object> metadata) {
-        this.metadata = metadata;
-    }
+	public void setMetadata(Map<String, Object> metadata) {
+		this.metadata = metadata;
+	}
+
 }

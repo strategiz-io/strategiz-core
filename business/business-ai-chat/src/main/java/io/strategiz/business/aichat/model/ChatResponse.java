@@ -38,8 +38,8 @@ public class ChatResponse {
 	private String usageWarningLevel;
 
 	/**
-	 * Additional metadata for the response (type, title, summary, riskLevel, etc.)
-	 * Used primarily for portfolio insights caching
+	 * Additional metadata for the response (type, title, summary, riskLevel, etc.) Used
+	 * primarily for portfolio insights caching
 	 */
 	private Map<String, Object> metadata;
 

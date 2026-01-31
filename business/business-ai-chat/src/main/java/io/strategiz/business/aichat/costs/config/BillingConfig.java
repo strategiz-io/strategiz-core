@@ -163,7 +163,8 @@ public class BillingConfig {
 
 		private boolean enabled = false;
 
-		private String billingDataset; // e.g., "project.billing_export.gcp_billing_export_v1"
+		private String billingDataset; // e.g.,
+										// "project.billing_export.gcp_billing_export_v1"
 
 		private int timeoutSeconds = 60;
 

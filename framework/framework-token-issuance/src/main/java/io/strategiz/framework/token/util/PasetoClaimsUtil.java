@@ -12,13 +12,14 @@ import java.util.Map;
 /**
  * Utility class for handling PASETO token claims with paseto4j.
  *
- * <p>Since paseto4j is a lower-level library that only handles encryption/decryption,
- * this utility provides:
+ * <p>
+ * Since paseto4j is a lower-level library that only handles encryption/decryption, this
+ * utility provides:
  * <ul>
- *   <li>JSON serialization of claims for token creation</li>
- *   <li>JSON deserialization of claims from token payload</li>
- *   <li>Expiration validation (which jpaseto did automatically)</li>
- *   <li>Standard claim handling (exp, iat, iss, aud, sub, jti)</li>
+ * <li>JSON serialization of claims for token creation</li>
+ * <li>JSON deserialization of claims from token payload</li>
+ * <li>Expiration validation (which jpaseto did automatically)</li>
+ * <li>Standard claim handling (exp, iat, iss, aud, sub, jti)</li>
  * </ul>
  */
 public final class PasetoClaimsUtil {

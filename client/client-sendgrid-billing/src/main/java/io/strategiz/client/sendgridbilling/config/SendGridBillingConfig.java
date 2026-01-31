@@ -18,8 +18,8 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Duration;
 
 /**
- * Configuration for SendGrid billing API client.
- * Loads API credentials from Vault for secure access.
+ * Configuration for SendGrid billing API client. Loads API credentials from Vault for
+ * secure access.
  *
  * Enable with: gcp.billing.enabled=true
  */
@@ -27,60 +27,56 @@ import java.time.Duration;
 @ConditionalOnProperty(name = "gcp.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class SendGridBillingConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(SendGridBillingConfig.class);
-    private static final int CONNECTION_TIMEOUT = 10000;
-    private static final int READ_TIMEOUT = 30000;
+	private static final Logger log = LoggerFactory.getLogger(SendGridBillingConfig.class);
 
-    @Value("${sendgrid.api.url:https://api.sendgrid.com/v3}")
-    private String apiUrl;
+	private static final int CONNECTION_TIMEOUT = 10000;
 
-    private final VaultSecretService vaultSecretService;
+	private static final int READ_TIMEOUT = 30000;
 
-    public SendGridBillingConfig(VaultSecretService vaultSecretService) {
-        this.vaultSecretService = vaultSecretService;
-    }
+	@Value("${sendgrid.api.url:https://api.sendgrid.com/v3}")
+	private String apiUrl;
 
-    @Bean(name = "sendgridBillingRestTemplate")
-    public RestTemplate sendgridBillingRestTemplate() {
-        log.info("Initializing SendGrid Billing RestTemplate");
+	private final VaultSecretService vaultSecretService;
 
-        RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
-                .setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
-                .setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
-                .build();
+	public SendGridBillingConfig(VaultSecretService vaultSecretService) {
+		this.vaultSecretService = vaultSecretService;
+	}
 
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setDefaultRequestConfig(requestConfig)
-                .build();
+	@Bean(name = "sendgridBillingRestTemplate")
+	public RestTemplate sendgridBillingRestTemplate() {
+		log.info("Initializing SendGrid Billing RestTemplate");
 
-        HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
+		RequestConfig requestConfig = RequestConfig.custom()
+			.setConnectTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+			.setResponseTimeout(Timeout.ofMilliseconds(READ_TIMEOUT))
+			.setConnectionRequestTimeout(Timeout.ofMilliseconds(CONNECTION_TIMEOUT))
+			.build();
 
-        return new RestTemplateBuilder()
-                .requestFactory(() -> requestFactory)
-                .setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
-                .setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
-                .build();
-    }
+		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
 
-    @Bean
-    public SendGridBillingProperties sendgridBillingProperties() {
-        // Load API key from Vault
-        String apiKey = vaultSecretService.readSecret("sendgrid.api-key", "");
+		HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
-        return new SendGridBillingProperties(apiUrl, apiKey);
-    }
+		return new RestTemplateBuilder().requestFactory(() -> requestFactory)
+			.setConnectTimeout(Duration.ofMillis(CONNECTION_TIMEOUT))
+			.setReadTimeout(Duration.ofMillis(READ_TIMEOUT))
+			.build();
+	}
 
-    /**
-     * Properties holder for SendGrid billing configuration
-     */
-    public record SendGridBillingProperties(
-            String apiUrl,
-            String apiKey
-    ) {
-        public boolean isConfigured() {
-            return apiKey != null && !apiKey.isEmpty();
-        }
-    }
+	@Bean
+	public SendGridBillingProperties sendgridBillingProperties() {
+		// Load API key from Vault
+		String apiKey = vaultSecretService.readSecret("sendgrid.api-key", "");
+
+		return new SendGridBillingProperties(apiUrl, apiKey);
+	}
+
+	/**
+	 * Properties holder for SendGrid billing configuration
+	 */
+	public record SendGridBillingProperties(String apiUrl, String apiKey) {
+		public boolean isConfigured() {
+			return apiKey != null && !apiKey.isEmpty();
+		}
+	}
+
 }

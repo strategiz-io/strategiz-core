@@ -9,18 +9,16 @@ import org.springframework.web.client.RestTemplate;
  * Configuration class for the monitoring service module
  */
 @Configuration
-@ComponentScan(basePackages = {
-    "io.strategiz.service.monitoring",
-    "io.strategiz.service.exchange"
-})
+@ComponentScan(basePackages = { "io.strategiz.service.monitoring", "io.strategiz.service.exchange" })
 public class ServiceMonitoringConfig {
-    
-    /**
-     * Create RestTemplate bean for HTTP requests
-     * @return RestTemplate instance
-     */
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
+
+	/**
+	 * Create RestTemplate bean for HTTP requests
+	 * @return RestTemplate instance
+	 */
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
+
 }

@@ -7,8 +7,7 @@ import com.google.cloud.firestore.annotation.DocumentId;
 /**
  * Firestore entity for cached quality metrics from build-time analysis.
  *
- * Firestore path: system/quality_cache/{analysisId}
- * Latest: system/quality_cache/latest
+ * Firestore path: system/quality_cache/{analysisId} Latest: system/quality_cache/latest
  */
 public class CachedQualityMetricsEntity {
 

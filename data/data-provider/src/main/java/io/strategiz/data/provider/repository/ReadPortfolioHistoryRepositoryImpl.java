@@ -13,34 +13,36 @@ import java.util.Optional;
  */
 @Repository
 public class ReadPortfolioHistoryRepositoryImpl extends PortfolioHistoryBaseRepository
-        implements ReadPortfolioHistoryRepository {
+		implements ReadPortfolioHistoryRepository {
 
-    public ReadPortfolioHistoryRepositoryImpl(Firestore firestore) {
-        super(firestore);
-    }
+	public ReadPortfolioHistoryRepositoryImpl(Firestore firestore) {
+		super(firestore);
+	}
 
-    @Override
-    public Optional<PortfolioHistoryEntity> findByUserIdAndDate(String userId, LocalDate date) {
-        return super.findByUserIdAndDate(userId, date);
-    }
+	@Override
+	public Optional<PortfolioHistoryEntity> findByUserIdAndDate(String userId, LocalDate date) {
+		return super.findByUserIdAndDate(userId, date);
+	}
 
-    @Override
-    public List<PortfolioHistoryEntity> findByUserId(String userId) {
-        return super.findByUserId(userId);
-    }
+	@Override
+	public List<PortfolioHistoryEntity> findByUserId(String userId) {
+		return super.findByUserId(userId);
+	}
 
-    @Override
-    public List<PortfolioHistoryEntity> findByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
-        return super.findByUserIdAndDateRange(userId, startDate, endDate);
-    }
+	@Override
+	public List<PortfolioHistoryEntity> findByUserIdAndDateRange(String userId, LocalDate startDate,
+			LocalDate endDate) {
+		return super.findByUserIdAndDateRange(userId, startDate, endDate);
+	}
 
-    @Override
-    public Optional<PortfolioHistoryEntity> findLatestByUserId(String userId) {
-        return super.findLatestByUserId(userId);
-    }
+	@Override
+	public Optional<PortfolioHistoryEntity> findLatestByUserId(String userId) {
+		return super.findLatestByUserId(userId);
+	}
 
-    @Override
-    public List<PortfolioHistoryEntity> findRecentByUserId(String userId, int limit) {
-        return super.findRecentByUserId(userId, limit);
-    }
+	@Override
+	public List<PortfolioHistoryEntity> findRecentByUserId(String userId, int limit) {
+		return super.findRecentByUserId(userId, limit);
+	}
+
 }

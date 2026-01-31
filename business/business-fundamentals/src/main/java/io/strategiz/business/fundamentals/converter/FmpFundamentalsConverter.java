@@ -17,11 +17,10 @@ import java.time.format.DateTimeFormatter;
  * Converter for transforming Financial Modeling Prep DTOs to FundamentalsEntity.
  *
  * <p>
- * This converter performs the following transformations:
- * - Maps data from FmpFundamentals (single flat DTO)
- * - Handles null values and missing data gracefully
- * - Determines period type from FMP's period field (Q1, Q2, Q3, Q4, FY)
- * - Parses fiscal period date from FMP date field
+ * This converter performs the following transformations: - Maps data from FmpFundamentals
+ * (single flat DTO) - Handles null values and missing data gracefully - Determines period
+ * type from FMP's period field (Q1, Q2, Q3, Q4, FY) - Parses fiscal period date from FMP
+ * date field
  * </p>
  */
 @Component
@@ -32,7 +31,6 @@ public class FmpFundamentalsConverter {
 
 	/**
 	 * Convert FmpFundamentals DTO to FundamentalsEntity.
-	 *
 	 * @param fmpFundamentals FMP fundamentals data
 	 * @return ClickHouse entity ready for persistence
 	 */
@@ -121,8 +119,8 @@ public class FmpFundamentalsConverter {
 	/**
 	 * Parse FMP period string to PeriodType constant.
 	 *
-	 * FMP periods: "Q1", "Q2", "Q3", "Q4", "FY", "TTM"
-	 * Our periods: "QUARTERLY", "ANNUAL", "TTM"
+	 * FMP periods: "Q1", "Q2", "Q3", "Q4", "FY", "TTM" Our periods: "QUARTERLY",
+	 * "ANNUAL", "TTM"
 	 */
 	private String parsePeriodType(String period) {
 		if (period == null || period.isBlank()) {

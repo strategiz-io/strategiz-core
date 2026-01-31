@@ -8,35 +8,37 @@ import org.springframework.http.HttpStatus;
  */
 public enum PortfolioErrorDetails implements ErrorDetails {
 
-    // Data retrieval errors
-    PORTFOLIO_DATA_RETRIEVAL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-data-retrieval-failed"),
-    PROVIDER_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "portfolio-provider-data-not-found"),
+	// Data retrieval errors
+	PORTFOLIO_DATA_RETRIEVAL_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-data-retrieval-failed"),
+	PROVIDER_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "portfolio-provider-data-not-found"),
 
-    // Calculation errors
-    METRICS_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-metrics-calculation-failed"),
-    AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-aggregation-failed"),
+	// Calculation errors
+	METRICS_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-metrics-calculation-failed"),
+	AGGREGATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-aggregation-failed"),
 
-    // General errors
-    PORTFOLIO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-general-error"),
+	// General errors
+	PORTFOLIO_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "portfolio-general-error"),
 
-    // Validation errors
-    INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "portfolio-invalid-argument");
+	// Validation errors
+	INVALID_ARGUMENT(HttpStatus.BAD_REQUEST, "portfolio-invalid-argument");
 
-    private final HttpStatus httpStatus;
-    private final String propertyKey;
+	private final HttpStatus httpStatus;
 
-    PortfolioErrorDetails(HttpStatus httpStatus, String propertyKey) {
-        this.httpStatus = httpStatus;
-        this.propertyKey = propertyKey;
-    }
+	private final String propertyKey;
 
-    @Override
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
-    }
+	PortfolioErrorDetails(HttpStatus httpStatus, String propertyKey) {
+		this.httpStatus = httpStatus;
+		this.propertyKey = propertyKey;
+	}
 
-    @Override
-    public String getPropertyKey() {
-        return propertyKey;
-    }
+	@Override
+	public HttpStatus getHttpStatus() {
+		return httpStatus;
+	}
+
+	@Override
+	public String getPropertyKey() {
+		return propertyKey;
+	}
+
 }

@@ -22,232 +22,241 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * Firestore implementation of PasskeyCredentialRepository
- * Provides CRUD operations for passkey credentials stored in Firestore
+ * Firestore implementation of PasskeyCredentialRepository Provides CRUD operations for
+ * passkey credentials stored in Firestore
  */
 @Repository
 public class PasskeyCredentialRepositoryImpl implements PasskeyCredentialRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(PasskeyCredentialRepositoryImpl.class);
-    
-    private final BaseRepository<PasskeyCredentialEntity> baseRepository;
-    private final Firestore firestore;
+	private static final Logger log = LoggerFactory.getLogger(PasskeyCredentialRepositoryImpl.class);
 
-    @Autowired
-    public PasskeyCredentialRepositoryImpl(Firestore firestore) {
-        this.firestore = firestore;
-        this.baseRepository = new BaseRepository<PasskeyCredentialEntity>(firestore, PasskeyCredentialEntity.class) {
-            @Override
-            protected String getModuleName() {
-                return "data-auth";
-            }
-        };
-    }
+	private final BaseRepository<PasskeyCredentialEntity> baseRepository;
 
-    // ===============================
-    // CrudRepository Implementation
-    // ===============================
+	private final Firestore firestore;
 
-    @Override
-    public <S extends PasskeyCredentialEntity> S save(S entity) {
-        String userId = "system"; // TODO: Get from SecurityContext when available
-        return (S) baseRepository.save(entity, userId);
-    }
+	@Autowired
+	public PasskeyCredentialRepositoryImpl(Firestore firestore) {
+		this.firestore = firestore;
+		this.baseRepository = new BaseRepository<PasskeyCredentialEntity>(firestore, PasskeyCredentialEntity.class) {
+			@Override
+			protected String getModuleName() {
+				return "data-auth";
+			}
+		};
+	}
 
-    @Override
-    public <S extends PasskeyCredentialEntity> Iterable<S> saveAll(Iterable<S> entities) {
-        return StreamSupport.stream(entities.spliterator(), false)
-                .map(this::save)
-                .collect(Collectors.toList());
-    }
+	// ===============================
+	// CrudRepository Implementation
+	// ===============================
 
-    @Override
-    public Optional<PasskeyCredentialEntity> findById(String id) {
-        return baseRepository.findById(id);
-    }
+	@Override
+	public <S extends PasskeyCredentialEntity> S save(S entity) {
+		String userId = "system"; // TODO: Get from SecurityContext when available
+		return (S) baseRepository.save(entity, userId);
+	}
 
-    @Override
-    public boolean existsById(String id) {
-        return findById(id).isPresent();
-    }
+	@Override
+	public <S extends PasskeyCredentialEntity> Iterable<S> saveAll(Iterable<S> entities) {
+		return StreamSupport.stream(entities.spliterator(), false).map(this::save).collect(Collectors.toList());
+	}
 
-    @Override
-    public Iterable<PasskeyCredentialEntity> findAll() {
-        return baseRepository.findAll();
-    }
+	@Override
+	public Optional<PasskeyCredentialEntity> findById(String id) {
+		return baseRepository.findById(id);
+	}
 
-    @Override
-    public Iterable<PasskeyCredentialEntity> findAllById(Iterable<String> ids) {
-        return StreamSupport.stream(ids.spliterator(), false)
-                .map(this::findById)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-    }
+	@Override
+	public boolean existsById(String id) {
+		return findById(id).isPresent();
+	}
 
-    @Override
-    public long count() {
-        return baseRepository.findAll().size();
-    }
+	@Override
+	public Iterable<PasskeyCredentialEntity> findAll() {
+		return baseRepository.findAll();
+	}
 
-    @Override
-    public void deleteById(String id) {
-        String userId = "system"; // TODO: Get from SecurityContext when available
-        baseRepository.delete(id, userId);
-    }
+	@Override
+	public Iterable<PasskeyCredentialEntity> findAllById(Iterable<String> ids) {
+		return StreamSupport.stream(ids.spliterator(), false)
+			.map(this::findById)
+			.filter(Optional::isPresent)
+			.map(Optional::get)
+			.collect(Collectors.toList());
+	}
 
-    @Override
-    public void delete(PasskeyCredentialEntity entity) {
-        deleteById(entity.getId());
-    }
+	@Override
+	public long count() {
+		return baseRepository.findAll().size();
+	}
 
-    @Override
-    public void deleteAllById(Iterable<? extends String> ids) {
-        ids.forEach(this::deleteById);
-    }
+	@Override
+	public void deleteById(String id) {
+		String userId = "system"; // TODO: Get from SecurityContext when available
+		baseRepository.delete(id, userId);
+	}
 
-    @Override
-    public void deleteAll(Iterable<? extends PasskeyCredentialEntity> entities) {
-        entities.forEach(this::delete);
-    }
+	@Override
+	public void delete(PasskeyCredentialEntity entity) {
+		deleteById(entity.getId());
+	}
 
-    @Override
-    public void deleteAll() {
-        List<PasskeyCredentialEntity> all = baseRepository.findAll();
-        all.forEach(this::delete);
-    }
+	@Override
+	public void deleteAllById(Iterable<? extends String> ids) {
+		ids.forEach(this::deleteById);
+	}
 
-    // ===============================
-    // Custom Query Methods
-    // ===============================
+	@Override
+	public void deleteAll(Iterable<? extends PasskeyCredentialEntity> entities) {
+		entities.forEach(this::delete);
+	}
 
-    @Override
-    public Optional<PasskeyCredentialEntity> findByCredentialId(String credentialId) {
-        try {
-            Query query = getCollection()
-                    .whereEqualTo("credentialId", credentialId)
-                    .whereEqualTo("isActive", true)
-                    .limit(1);
-            List<PasskeyCredentialEntity> results = executeQuery(query);
-            return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", credentialId);
-        }
-    }
+	@Override
+	public void deleteAll() {
+		List<PasskeyCredentialEntity> all = baseRepository.findAll();
+		all.forEach(this::delete);
+	}
 
-    @Override
-    public List<PasskeyCredentialEntity> findByUserId(String userId) {
-        try {
-            Query query = getCollection()
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("isActive", true);
-            return executeQuery(query);
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", userId);
-        }
-    }
+	// ===============================
+	// Custom Query Methods
+	// ===============================
 
-    @Override
-    public List<PasskeyCredentialEntity> findByDevice(String device) {
-        try {
-            Query query = getCollection()
-                    .whereEqualTo("device", device)
-                    .whereEqualTo("isActive", true);
-            return executeQuery(query);
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity", device);
-        }
-    }
+	@Override
+	public Optional<PasskeyCredentialEntity> findByCredentialId(String credentialId) {
+		try {
+			Query query = getCollection().whereEqualTo("credentialId", credentialId)
+				.whereEqualTo("isActive", true)
+				.limit(1);
+			List<PasskeyCredentialEntity> results = executeQuery(query);
+			return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity", credentialId);
+		}
+	}
 
-    @Override
-    public List<PasskeyCredentialEntity> findByVerifiedTrue() {
-        try {
-            Query query = getCollection()
-                    .whereEqualTo("verified", true)
-                    .whereEqualTo("isActive", true);
-            return executeQuery(query);
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
-        }
-    }
+	@Override
+	public List<PasskeyCredentialEntity> findByUserId(String userId) {
+		try {
+			Query query = getCollection().whereEqualTo("userId", userId).whereEqualTo("isActive", true);
+			return executeQuery(query);
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity", userId);
+		}
+	}
 
-    @Override
-    public List<PasskeyCredentialEntity> findByCreatedAtBefore(Instant before) {
-        try {
-            Query query = getCollection()
-                    .whereLessThan("createdDate", before)
-                    .whereEqualTo("isActive", true);
-            return executeQuery(query);
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
-        }
-    }
+	@Override
+	public List<PasskeyCredentialEntity> findByDevice(String device) {
+		try {
+			Query query = getCollection().whereEqualTo("device", device).whereEqualTo("isActive", true);
+			return executeQuery(query);
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity", device);
+		}
+	}
 
-    @Override
-    public List<PasskeyCredentialEntity> findByLastUsedAtBefore(Instant before) {
-        try {
-            Query query = getCollection()
-                    .whereLessThan("lastUsedAt", before)
-                    .whereEqualTo("isActive", true);
-            return executeQuery(query);
-        } catch (DataRepositoryException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
-        }
-    }
+	@Override
+	public List<PasskeyCredentialEntity> findByVerifiedTrue() {
+		try {
+			Query query = getCollection().whereEqualTo("verified", true).whereEqualTo("isActive", true);
+			return executeQuery(query);
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity");
+		}
+	}
 
-    @Override
-    public long countByUserId(String userId) {
-        return findByUserId(userId).size();
-    }
+	@Override
+	public List<PasskeyCredentialEntity> findByCreatedAtBefore(Instant before) {
+		try {
+			Query query = getCollection().whereLessThan("createdDate", before).whereEqualTo("isActive", true);
+			return executeQuery(query);
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity");
+		}
+	}
 
-    @Override
-    public boolean existsByCredentialId(String credentialId) {
-        return findByCredentialId(credentialId).isPresent();
-    }
+	@Override
+	public List<PasskeyCredentialEntity> findByLastUsedAtBefore(Instant before) {
+		try {
+			Query query = getCollection().whereLessThan("lastUsedAt", before).whereEqualTo("isActive", true);
+			return executeQuery(query);
+		}
+		catch (DataRepositoryException e) {
+			throw e;
+		}
+		catch (Exception e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity");
+		}
+	}
 
-    @Override
-    public void deleteByUserId(String userId) {
-        List<PasskeyCredentialEntity> entities = findByUserId(userId);
-        entities.forEach(this::delete);
-    }
+	@Override
+	public long countByUserId(String userId) {
+		return findByUserId(userId).size();
+	}
 
-    // ===============================
-    // Helper Methods
-    // ===============================
+	@Override
+	public boolean existsByCredentialId(String credentialId) {
+		return findByCredentialId(credentialId).isPresent();
+	}
 
-    protected CollectionReference getCollection() {
-        return firestore.collection("passkey_credentials");
-    }
+	@Override
+	public void deleteByUserId(String userId) {
+		List<PasskeyCredentialEntity> entities = findByUserId(userId);
+		entities.forEach(this::delete);
+	}
 
-    private List<PasskeyCredentialEntity> executeQuery(Query query) {
-        try {
-            ApiFuture<QuerySnapshot> future = query.get();
-            QuerySnapshot querySnapshot = future.get();
+	// ===============================
+	// Helper Methods
+	// ===============================
 
-            return querySnapshot.getDocuments().stream()
-                    .map(doc -> {
-                        PasskeyCredentialEntity entity = doc.toObject(PasskeyCredentialEntity.class);
-                        entity.setId(doc.getId());
-                        return entity;
-                    })
-                    .collect(Collectors.toList());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e, "PasskeyCredentialEntity");
-        } catch (ExecutionException e) {
-            throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e, "PasskeyCredentialEntity");
-        }
-    }
+	protected CollectionReference getCollection() {
+		return firestore.collection("passkey_credentials");
+	}
+
+	private List<PasskeyCredentialEntity> executeQuery(Query query) {
+		try {
+			ApiFuture<QuerySnapshot> future = query.get();
+			QuerySnapshot querySnapshot = future.get();
+
+			return querySnapshot.getDocuments().stream().map(doc -> {
+				PasskeyCredentialEntity entity = doc.toObject(PasskeyCredentialEntity.class);
+				entity.setId(doc.getId());
+				return entity;
+			}).collect(Collectors.toList());
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new DataRepositoryException(DataRepositoryErrorDetails.FIRESTORE_OPERATION_INTERRUPTED, e,
+					"PasskeyCredentialEntity");
+		}
+		catch (ExecutionException e) {
+			throw new DataRepositoryException(DataRepositoryErrorDetails.QUERY_EXECUTION_FAILED, e,
+					"PasskeyCredentialEntity");
+		}
+	}
+
 }

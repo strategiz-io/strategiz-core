@@ -1,7 +1,8 @@
 package io.strategiz.business.historicalinsights.model;
 
 /**
- * Enum representing the types of trading strategies that can be tested by the optimization engine.
+ * Enum representing the types of trading strategies that can be tested by the
+ * optimization engine.
  */
 public enum StrategyType {
 

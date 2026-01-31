@@ -10,33 +10,33 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to standardize API documentation across all controllers.
- * This provides consistent OpenAPI documentation for all endpoints.
+ * Annotation to standardize API documentation across all controllers. This provides
+ * consistent OpenAPI documentation for all endpoints.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ ElementType.TYPE, ElementType.METHOD })
 @SecurityRequirement(name = "bearer-jwt")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Successful operation"),
-    @ApiResponse(responseCode = "400", description = "Bad request - Invalid input parameters"),
-    @ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
-    @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions"),
-    @ApiResponse(responseCode = "404", description = "Resource not found"),
-    @ApiResponse(responseCode = "500", description = "Internal server error")
-})
+@ApiResponses(value = { @ApiResponse(responseCode = "200", description = "Successful operation"),
+		@ApiResponse(responseCode = "400", description = "Bad request - Invalid input parameters"),
+		@ApiResponse(responseCode = "401", description = "Unauthorized - Authentication required"),
+		@ApiResponse(responseCode = "403", description = "Forbidden - Insufficient permissions"),
+		@ApiResponse(responseCode = "404", description = "Resource not found"),
+		@ApiResponse(responseCode = "500", description = "Internal server error") })
 public @interface ApiDocumented {
-    /**
-     * Short summary of what the operation does
-     */
-    String summary() default "";
-    
-    /**
-     * Detailed description of the operation
-     */
-    String description() default "";
-    
-    /**
-     * API tags for grouping endpoints
-     */
-    String[] tags() default {};
+
+	/**
+	 * Short summary of what the operation does
+	 */
+	String summary() default "";
+
+	/**
+	 * Detailed description of the operation
+	 */
+	String description() default "";
+
+	/**
+	 * API tags for grouping endpoints
+	 */
+	String[] tags() default {};
+
 }

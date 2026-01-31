@@ -272,8 +272,8 @@ public class PasetoTokenValidator {
 			}
 			String deviceId = (String) claims.get("sub");
 			String fingerprint = (String) claims.get("fingerprint");
-			return Optional.of(Map.of("deviceId", deviceId != null ? deviceId : "",
-					"fingerprint", fingerprint != null ? fingerprint : ""));
+			return Optional.of(Map.of("deviceId", deviceId != null ? deviceId : "", "fingerprint",
+					fingerprint != null ? fingerprint : ""));
 		}
 		catch (PasetoException e) {
 			log.debug("Invalid device token: {}", e.getMessage());

@@ -20,7 +20,7 @@ import org.springframework.context.annotation.Primary;
  * &#64;SpringBootTest
  *
 
-@Import(TestConfig.class)
+&#64;Import(TestConfig.class)
  * public class MyIntegrationTest extends BaseIntegrationTest {
  *     // Tests
  * }

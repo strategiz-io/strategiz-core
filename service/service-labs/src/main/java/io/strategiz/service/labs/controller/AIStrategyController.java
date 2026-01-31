@@ -57,6 +57,13 @@ public class AIStrategyController extends BaseController {
 		String userId = user.getUserId();
 		logger.info("Received strategy generation request from user {}", userId);
 
+		// Prompt is required for non-autonomous requests
+		boolean isAutonomous = Boolean.TRUE.equals(request.getUseHistoricalInsights());
+		if (!isAutonomous && (request.getPrompt() == null || request.getPrompt().isBlank())) {
+			return ResponseEntity.badRequest()
+				.body(AIStrategyResponse.error("Prompt is required for non-autonomous strategy generation."));
+		}
+
 		// Check if Labs AI is enabled
 		if (!featureFlagService.isLabsAIEnabled()) {
 			logger.warn("Labs AI Strategy Generator is currently disabled");

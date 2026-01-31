@@ -187,8 +187,8 @@ public class PasetoTokenIssuer {
 	}
 
 	/**
-	 * Creates a device token for device trust identification. Long-lived (90 days),
-	 * uses session key. Contains deviceId and fingerprint for device recognition.
+	 * Creates a device token for device trust identification. Long-lived (90 days), uses
+	 * session key. Contains deviceId and fingerprint for device recognition.
 	 * @param deviceId the device ID
 	 * @param fingerprint the device fingerprint hash
 	 * @return the device token string

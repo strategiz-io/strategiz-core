@@ -55,7 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *     }
  *
  *
-@Test
+&#64;Test
  *     public void testInvalidCallback() throws Exception {
  *         Map<String, String> params = Map.of(
  *             "code", "invalid-code",
@@ -68,6 +68,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *     }
  * }
  * }</pre>
+ *
  * @see MockMvc
  * @see SpringBootTest
  */

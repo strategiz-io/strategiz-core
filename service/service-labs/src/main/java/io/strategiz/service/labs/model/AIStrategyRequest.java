@@ -1,8 +1,6 @@
 package io.strategiz.service.labs.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
-
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +57,6 @@ public class AIStrategyRequest {
 
 	}
 
-	@NotBlank(message = "Prompt is required")
 	@JsonProperty("prompt")
 	private String prompt;
 

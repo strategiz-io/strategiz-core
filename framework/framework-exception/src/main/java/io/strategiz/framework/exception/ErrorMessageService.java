@@ -55,11 +55,13 @@ public class ErrorMessageService implements InitializingBean {
 			log.info("Message source verification passed: query-execution-failed.code -> {}", testCode);
 		}
 		catch (NoSuchMessageException e) {
-			log.warn("Message source verification FAILED: cannot resolve 'query-execution-failed.code'. "
-					+ "Injected MessageSource type: {}. "
-					+ "Ensure GlobalMessageSourceConfig is loaded with data-base-errors basename.",
+			log.warn(
+					"Message source verification FAILED: cannot resolve 'query-execution-failed.code'. "
+							+ "Injected MessageSource type: {}. "
+							+ "Ensure GlobalMessageSourceConfig is loaded with data-base-errors basename.",
 					messageSource.getClass().getName());
-			// Attempt to add basenames if the injected source is a ResourceBundleMessageSource
+			// Attempt to add basenames if the injected source is a
+			// ResourceBundleMessageSource
 			if (messageSource instanceof ResourceBundleMessageSource rbms) {
 				log.info("Adding error message basenames to ResourceBundleMessageSource as fallback");
 				rbms.addBasenames("messages/data-base-errors", "messages/service-auth-errors",

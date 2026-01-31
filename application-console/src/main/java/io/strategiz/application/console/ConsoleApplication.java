@@ -44,11 +44,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 		// Data Layer
 		"io.strategiz.data.base", "io.strategiz.data.auth", "io.strategiz.data.provider", "io.strategiz.data.session",
-		"io.strategiz.data.user",
-		"io.strategiz.data.marketdata", "io.strategiz.data.symbol", "io.strategiz.data.strategy",
-		"io.strategiz.data.fundamentals", "io.strategiz.data.infrastructurecosts", "io.strategiz.data.featureflags",
-		"io.strategiz.data.preferences", "io.strategiz.data.cryptotoken", "io.strategiz.data.device",
-		"io.strategiz.data.testing", "io.strategiz.data.watchlist",
+		"io.strategiz.data.user", "io.strategiz.data.marketdata", "io.strategiz.data.symbol",
+		"io.strategiz.data.strategy", "io.strategiz.data.fundamentals", "io.strategiz.data.infrastructurecosts",
+		"io.strategiz.data.featureflags", "io.strategiz.data.preferences", "io.strategiz.data.cryptotoken",
+		"io.strategiz.data.device", "io.strategiz.data.testing", "io.strategiz.data.watchlist",
 
 		// Framework
 		"io.strategiz.framework.authorization", "io.strategiz.framework.token", "io.strategiz.framework.firebase",

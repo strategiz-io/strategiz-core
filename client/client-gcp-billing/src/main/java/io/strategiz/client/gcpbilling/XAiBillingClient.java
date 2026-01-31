@@ -18,170 +18,169 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Client for retrieving xAI Grok API costs and usage data.
- * Uses xAI Console API for usage tracking.
+ * Client for retrieving xAI Grok API costs and usage data. Uses xAI Console API for usage
+ * tracking.
  *
- * API Documentation: https://docs.x.ai
- * Required: xAI API key
+ * API Documentation: https://docs.x.ai Required: xAI API key
  *
- * Credentials loaded from Vault: secret/strategiz/ai/xai
- * Required secrets: api-key
+ * Credentials loaded from Vault: secret/strategiz/ai/xai Required secrets: api-key
  *
  * Enable with: ai.billing.enabled=true
  *
- * Note: xAI may not have a public billing API yet. This client will attempt
- * to track usage based on API calls and estimate costs based on published pricing.
+ * Note: xAI may not have a public billing API yet. This client will attempt to track
+ * usage based on API calls and estimate costs based on published pricing.
  */
 @Component
 @ConditionalOnProperty(name = "ai.billing.enabled", havingValue = "true", matchIfMissing = false)
 public class XAiBillingClient {
 
-    private static final Logger log = LoggerFactory.getLogger(XAiBillingClient.class);
-    private static final String API_BASE_URL = "https://api.x.ai/v1";
+	private static final Logger log = LoggerFactory.getLogger(XAiBillingClient.class);
 
-    // Grok pricing (as of 2025)
-    private static final BigDecimal GROK_4_INPUT_PRICE = new BigDecimal("3.00"); // per million tokens
-    private static final BigDecimal GROK_4_OUTPUT_PRICE = new BigDecimal("15.00"); // per million tokens
-    private static final BigDecimal GROK_4_MINI_INPUT_PRICE = new BigDecimal("0.30");
-    private static final BigDecimal GROK_4_MINI_OUTPUT_PRICE = new BigDecimal("0.50");
+	private static final String API_BASE_URL = "https://api.x.ai/v1";
 
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
-    private final String apiKey;
+	// Grok pricing (as of 2025)
+	private static final BigDecimal GROK_4_INPUT_PRICE = new BigDecimal("3.00"); // per
+																					// million
+																					// tokens
 
-    public XAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper,
-            VaultSecretService vaultSecretService) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
+	private static final BigDecimal GROK_4_OUTPUT_PRICE = new BigDecimal("15.00"); // per
+																					// million
+																					// tokens
 
-        // Load API key from Vault: secret/strategiz/ai/xai (api-key field)
-        String vaultKey = null;
-        try {
-            vaultKey = vaultSecretService.readSecret("ai/xai.api-key");
-            if (vaultKey == null || vaultKey.isEmpty()) {
-                log.warn("API key not found in Vault at ai/xai.api-key, "
-                        + "falling back to environment variable");
-                vaultKey = System.getenv("XAI_API_KEY");
-            }
-        } catch (Exception e) {
-            log.warn("Could not load xAI API key from Vault: {}, falling back to environment variable",
-                    e.getMessage());
-            vaultKey = System.getenv("XAI_API_KEY");
-        }
-        this.apiKey = vaultKey;
+	private static final BigDecimal GROK_4_MINI_INPUT_PRICE = new BigDecimal("0.30");
 
-        boolean configured = apiKey != null && !apiKey.isEmpty();
-        log.info("XAiBillingClient initialized - Configured: {}", configured);
-    }
+	private static final BigDecimal GROK_4_MINI_OUTPUT_PRICE = new BigDecimal("0.50");
 
-    /**
-     * Get estimated cost report based on usage tracking
-     *
-     * Note: If xAI doesn't provide a billing API, this will estimate costs
-     * based on token usage and published pricing.
-     *
-     * @param startDate Start date (inclusive)
-     * @param endDate End date (inclusive)
-     * @return AI provider cost data
-     */
-    @Cacheable(value = "xaiCosts", key = "#startDate.toString() + '-' + #endDate.toString()")
-    public AiProviderCost getCostReport(LocalDate startDate, LocalDate endDate) {
-        log.info("Fetching xAI cost estimate from {} to {}", startDate, endDate);
+	private final RestTemplate restTemplate;
 
-        if (apiKey == null || apiKey.isEmpty()) {
-            log.warn("xAI API key not configured");
-            return AiProviderCost.empty("xAI Grok", startDate, endDate);
-        }
+	private final ObjectMapper objectMapper;
 
-        try {
-            // Attempt to get usage data from xAI console
-            // This endpoint may not exist - xAI's billing API is not fully documented
-            String url = String.format("%s/usage?start_date=%s&end_date=%s",
-                    API_BASE_URL, startDate, endDate);
+	private final String apiKey;
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(apiKey);
-            headers.setContentType(MediaType.APPLICATION_JSON);
+	public XAiBillingClient(RestTemplate restTemplate, ObjectMapper objectMapper,
+			VaultSecretService vaultSecretService) {
+		this.restTemplate = restTemplate;
+		this.objectMapper = objectMapper;
 
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+		// Load API key from Vault: secret/strategiz/ai/xai (api-key field)
+		String vaultKey = null;
+		try {
+			vaultKey = vaultSecretService.readSecret("ai/xai.api-key");
+			if (vaultKey == null || vaultKey.isEmpty()) {
+				log.warn("API key not found in Vault at ai/xai.api-key, " + "falling back to environment variable");
+				vaultKey = System.getenv("XAI_API_KEY");
+			}
+		}
+		catch (Exception e) {
+			log.warn("Could not load xAI API key from Vault: {}, falling back to environment variable", e.getMessage());
+			vaultKey = System.getenv("XAI_API_KEY");
+		}
+		this.apiKey = vaultKey;
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                return parseUsageAndEstimateCost(response.getBody(), startDate, endDate);
-            }
+		boolean configured = apiKey != null && !apiKey.isEmpty();
+		log.info("XAiBillingClient initialized - Configured: {}", configured);
+	}
 
-            log.info("xAI billing API not available, returning estimated costs based on local tracking");
-            return estimateCostFromLocalTracking(startDate, endDate);
+	/**
+	 * Get estimated cost report based on usage tracking
+	 *
+	 * Note: If xAI doesn't provide a billing API, this will estimate costs based on token
+	 * usage and published pricing.
+	 * @param startDate Start date (inclusive)
+	 * @param endDate End date (inclusive)
+	 * @return AI provider cost data
+	 */
+	@Cacheable(value = "xaiCosts", key = "#startDate.toString() + '-' + #endDate.toString()")
+	public AiProviderCost getCostReport(LocalDate startDate, LocalDate endDate) {
+		log.info("Fetching xAI cost estimate from {} to {}", startDate, endDate);
 
-        } catch (Exception e) {
-            log.debug("xAI billing API not available (expected): {}", e.getMessage());
-            return estimateCostFromLocalTracking(startDate, endDate);
-        }
-    }
+		if (apiKey == null || apiKey.isEmpty()) {
+			log.warn("xAI API key not configured");
+			return AiProviderCost.empty("xAI Grok", startDate, endDate);
+		}
 
-    private AiProviderCost parseUsageAndEstimateCost(String jsonResponse, LocalDate startDate, LocalDate endDate) {
-        try {
-            JsonNode root = objectMapper.readTree(jsonResponse);
+		try {
+			// Attempt to get usage data from xAI console
+			// This endpoint may not exist - xAI's billing API is not fully documented
+			String url = String.format("%s/usage?start_date=%s&end_date=%s", API_BASE_URL, startDate, endDate);
 
-            long totalInputTokens = 0;
-            long totalOutputTokens = 0;
-            Map<String, BigDecimal> costByModel = new HashMap<>();
-            long totalRequests = 0;
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(apiKey);
+			headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Parse usage data if available
-            if (root.has("usage")) {
-                JsonNode usage = root.get("usage");
-                if (usage.has("input_tokens")) {
-                    totalInputTokens = usage.get("input_tokens").asLong();
-                }
-                if (usage.has("output_tokens")) {
-                    totalOutputTokens = usage.get("output_tokens").asLong();
-                }
-                if (usage.has("requests")) {
-                    totalRequests = usage.get("requests").asLong();
-                }
-            }
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
 
-            // Estimate costs based on pricing
-            BigDecimal inputCost = BigDecimal.valueOf(totalInputTokens)
-                    .multiply(GROK_4_INPUT_PRICE)
-                    .divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				return parseUsageAndEstimateCost(response.getBody(), startDate, endDate);
+			}
 
-            BigDecimal outputCost = BigDecimal.valueOf(totalOutputTokens)
-                    .multiply(GROK_4_OUTPUT_PRICE)
-                    .divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
+			log.info("xAI billing API not available, returning estimated costs based on local tracking");
+			return estimateCostFromLocalTracking(startDate, endDate);
 
-            BigDecimal totalCost = inputCost.add(outputCost);
+		}
+		catch (Exception e) {
+			log.debug("xAI billing API not available (expected): {}", e.getMessage());
+			return estimateCostFromLocalTracking(startDate, endDate);
+		}
+	}
 
-            costByModel.put("grok-4", totalCost);
+	private AiProviderCost parseUsageAndEstimateCost(String jsonResponse, LocalDate startDate, LocalDate endDate) {
+		try {
+			JsonNode root = objectMapper.readTree(jsonResponse);
 
-            Map<String, BigDecimal> costByService = Map.of(
-                    "completions", totalCost
-            );
+			long totalInputTokens = 0;
+			long totalOutputTokens = 0;
+			Map<String, BigDecimal> costByModel = new HashMap<>();
+			long totalRequests = 0;
 
-            log.info("Estimated xAI cost: ${} ({} input tokens, {} output tokens)",
-                    totalCost, totalInputTokens, totalOutputTokens);
+			// Parse usage data if available
+			if (root.has("usage")) {
+				JsonNode usage = root.get("usage");
+				if (usage.has("input_tokens")) {
+					totalInputTokens = usage.get("input_tokens").asLong();
+				}
+				if (usage.has("output_tokens")) {
+					totalOutputTokens = usage.get("output_tokens").asLong();
+				}
+				if (usage.has("requests")) {
+					totalRequests = usage.get("requests").asLong();
+				}
+			}
 
-            return new AiProviderCost(
-                    "xAI Grok",
-                    startDate,
-                    endDate,
-                    totalCost,
-                    costByModel,
-                    totalInputTokens + totalOutputTokens,
-                    totalRequests,
-                    costByService
-            );
+			// Estimate costs based on pricing
+			BigDecimal inputCost = BigDecimal.valueOf(totalInputTokens)
+				.multiply(GROK_4_INPUT_PRICE)
+				.divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
 
-        } catch (Exception e) {
-            log.error("Error parsing xAI usage data: {}", e.getMessage());
-            return AiProviderCost.empty("xAI Grok", startDate, endDate);
-        }
-    }
+			BigDecimal outputCost = BigDecimal.valueOf(totalOutputTokens)
+				.multiply(GROK_4_OUTPUT_PRICE)
+				.divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
 
-    private AiProviderCost estimateCostFromLocalTracking(LocalDate startDate, LocalDate endDate) {
-        // TODO: Implement local usage tracking once xAI provides a billing API
-        log.warn("xAI billing API not available and local usage tracking not yet implemented - returning empty cost report");
-        return AiProviderCost.empty("xAI Grok", startDate, endDate);
-    }
+			BigDecimal totalCost = inputCost.add(outputCost);
+
+			costByModel.put("grok-4", totalCost);
+
+			Map<String, BigDecimal> costByService = Map.of("completions", totalCost);
+
+			log.info("Estimated xAI cost: ${} ({} input tokens, {} output tokens)", totalCost, totalInputTokens,
+					totalOutputTokens);
+
+			return new AiProviderCost("xAI Grok", startDate, endDate, totalCost, costByModel,
+					totalInputTokens + totalOutputTokens, totalRequests, costByService);
+
+		}
+		catch (Exception e) {
+			log.error("Error parsing xAI usage data: {}", e.getMessage());
+			return AiProviderCost.empty("xAI Grok", startDate, endDate);
+		}
+	}
+
+	private AiProviderCost estimateCostFromLocalTracking(LocalDate startDate, LocalDate endDate) {
+		// TODO: Implement local usage tracking once xAI provides a billing API
+		log.warn(
+				"xAI billing API not available and local usage tracking not yet implemented - returning empty cost report");
+		return AiProviderCost.empty("xAI Grok", startDate, endDate);
+	}
+
 }

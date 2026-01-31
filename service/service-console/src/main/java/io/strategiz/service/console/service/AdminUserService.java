@@ -43,7 +43,7 @@ public class AdminUserService extends BaseService {
 
 	@Autowired
 	public AdminUserService(UserRepository userRepository, SessionRepository sessionRepository,
-			AlertNotificationPreferencesRepository alertPreferencesRepository,
+			@org.springframework.lang.Nullable AlertNotificationPreferencesRepository alertPreferencesRepository,
 			@org.springframework.lang.Nullable PasskeyCredentialRepository passkeyCredentialRepository) {
 		this.userRepository = userRepository;
 		this.sessionRepository = sessionRepository;
@@ -186,7 +186,8 @@ public class AdminUserService extends BaseService {
 		}
 
 		// Hard delete the user and all subcollections
-		// Note: hardDeleteUser checks if document exists directly in Firestore (regardless of isActive)
+		// Note: hardDeleteUser checks if document exists directly in Firestore
+		// (regardless of isActive)
 		userRepository.hardDeleteUser(userId, adminUserId);
 
 		log.warn("User {} has been permanently deleted (hard delete) by admin {}. Deleted {} passkey credentials.",
@@ -261,7 +262,7 @@ public class AdminUserService extends BaseService {
 		userRepository.save(user);
 
 		// Update phone number in alert preferences if provided
-		if (request.getPhoneNumber() != null) {
+		if (request.getPhoneNumber() != null && alertPreferencesRepository != null) {
 			try {
 				alertPreferencesRepository.updatePhoneNumber(userId, request.getPhoneNumber());
 			}
@@ -283,7 +284,8 @@ public class AdminUserService extends BaseService {
 			response.setEmail(profile.getEmail());
 			response.setName(profile.getName());
 			response.setRole(profile.getRole());
-			// Normalize subscription tier (handles legacy "trial" -> "explorer" conversion)
+			// Normalize subscription tier (handles legacy "trial" -> "explorer"
+			// conversion)
 			String normalizedTier = SubscriptionTier.fromId(profile.getSubscriptionTier()).getId();
 			response.setSubscriptionTier(normalizedTier);
 			response.setIsEmailVerified(profile.getIsEmailVerified());
@@ -316,14 +318,16 @@ public class AdminUserService extends BaseService {
 		}
 
 		// Get phone number from alert notification preferences
-		try {
-			AlertNotificationPreferences alertPrefs = alertPreferencesRepository.getByUserId(user.getId());
-			if (alertPrefs != null && alertPrefs.getPhoneNumber() != null) {
-				response.setPhoneNumber(alertPrefs.getPhoneNumber());
+		if (alertPreferencesRepository != null) {
+			try {
+				AlertNotificationPreferences alertPrefs = alertPreferencesRepository.getByUserId(user.getId());
+				if (alertPrefs != null && alertPrefs.getPhoneNumber() != null) {
+					response.setPhoneNumber(alertPrefs.getPhoneNumber());
+				}
 			}
-		}
-		catch (Exception e) {
-			log.debug("Could not fetch phone number for user {}: {}", user.getId(), e.getMessage());
+			catch (Exception e) {
+				log.debug("Could not fetch phone number for user {}: {}", user.getId(), e.getMessage());
+			}
 		}
 
 		return response;

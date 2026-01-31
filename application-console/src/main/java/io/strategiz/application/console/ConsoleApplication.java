@@ -22,7 +22,45 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration.class })
 @EnableCaching
 @EnableScheduling
-@ComponentScan(basePackages = { "io.strategiz" })
+@ComponentScan(basePackages = {
+		// Console Application
+		"io.strategiz.application.console",
+
+		// Console Admin Services
+		"io.strategiz.service.console",
+
+		// Market Data Service (for batch controller)
+		"io.strategiz.service.marketdata",
+
+		// Batch Jobs
+		"io.strategiz.batch.marketdata", "io.strategiz.batch.livestrategies", "io.strategiz.batch.fundamentals",
+
+		// Business Layer
+		"io.strategiz.business.tokenauth", "io.strategiz.business.marketdata",
+		"io.strategiz.business.infrastructurecosts",
+		"io.strategiz.business.livestrategies", "io.strategiz.business.fundamentals",
+		"io.strategiz.business.cryptotoken", "io.strategiz.business.risk", "io.strategiz.business.preferences",
+
+		// Data Layer
+		"io.strategiz.data.base", "io.strategiz.data.auth", "io.strategiz.data.provider", "io.strategiz.data.session",
+		"io.strategiz.data.user",
+		"io.strategiz.data.marketdata", "io.strategiz.data.symbol", "io.strategiz.data.strategy",
+		"io.strategiz.data.fundamentals", "io.strategiz.data.infrastructurecosts", "io.strategiz.data.featureflags",
+		"io.strategiz.data.preferences", "io.strategiz.data.cryptotoken", "io.strategiz.data.device",
+		"io.strategiz.data.testing", "io.strategiz.data.watchlist",
+
+		// Framework
+		"io.strategiz.framework.authorization", "io.strategiz.framework.token", "io.strategiz.framework.firebase",
+		"io.strategiz.framework.secrets", "io.strategiz.framework.exception",
+
+		// Clients
+		"io.strategiz.client.firebase", "io.strategiz.client.vault", "io.strategiz.client.alpaca",
+		"io.strategiz.client.gcpbilling", "io.strategiz.client.sendgridbilling", "io.strategiz.client.github",
+		"io.strategiz.client.execution", "io.strategiz.client.kraken", "io.strategiz.client.binanceus",
+		"io.strategiz.client.coinbase", "io.strategiz.client.coingecko",
+
+		// Service Framework Base
+		"io.strategiz.service.base" })
 public class ConsoleApplication {
 
 	public static void main(String[] args) {

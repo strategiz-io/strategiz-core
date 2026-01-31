@@ -185,10 +185,10 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Crypto Token -->
+        <!-- Risk Assessment (required by business-token-auth) -->
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>business-crypto-token</artifactId>
+            <artifactId>business-risk-assessment</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -200,12 +200,12 @@
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-preferences</artifactId>
+            <artifactId>data-device</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.strategiz</groupId>
-            <artifactId>data-device</artifactId>
+            <artifactId>data-preferences</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -221,6 +221,26 @@
         <dependency>
             <groupId>io.strategiz</groupId>
             <artifactId>data-watchlist</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-crypto-token</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-preferences</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>client-sendgrid-billing</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strategiz</groupId>
+            <artifactId>business-portfolio</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

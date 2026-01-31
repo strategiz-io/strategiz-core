@@ -1,48 +1,63 @@
 name: Server CI/CD
-# Updated to use Node.js 20.x for compatibility
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20.x]
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test --if-present
-    
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests -Dcheckstyle.skip=true -Dspotbugs.skip=true -Dpmd.skip=true
+
   deploy:
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js 20.x
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20.x'
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - name: Deploy to Firebase
-      uses: w9jds/firebase-action@master
-      with:
-        args: deploy --only functions
-      env:
-        FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: docker build -t gcr.io/strategiz-io/strategiz-api .
+
+      - name: Push Docker image
+        run: docker push gcr.io/strategiz-io/strategiz-api
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy strategiz-api \
+            --image gcr.io/strategiz-io/strategiz-api \
+            --region us-east1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 4Gi \
+            --cpu 2 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --timeout 3600 \
+            --concurrency 80 \
+            --port 8080 \
+            --set-env-vars '^@^SPRING_PROFILES_ACTIVE=prod,scheduler@VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app@STRATEGIZ_VAULT_ADDRESS=https://strategiz-vault-43628135674.us-east1.run.app@GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp@GRAFANA_PROMETHEUS_URL=https://prometheus-prod-66-prod-us-east-3.grafana.net/api/prom@OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp@OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf@OTEL_SERVICE_NAME=strategiz-core@OTEL_RESOURCE_ATTRIBUTES=service.namespace=strategiz;deployment.environment=production;service.version=1.0.0@OTEL_METRICS_EXPORTER=otlp@OTEL_LOGS_EXPORTER=otlp@OTEL_TRACES_EXPORTER=otlp@STRATEGIZ_FMP_ENABLED=true' \
+            --set-secrets 'VAULT_TOKEN=vault-root-token:latest,GRAFANA_OTLP_AUTH_HEADER=GRAFANA_OTLP_AUTH:latest,GRAFANA_PROMETHEUS_AUTH=GRAFANA_PROMETHEUS_AUTH:latest,OTEL_EXPORTER_OTLP_HEADERS=GRAFANA_OTLP_AUTH:latest,GITHUB_APP_ID=github-app-id:latest,GITHUB_APP_PRIVATE_KEY=github-app-private-key:latest,FMP_APIKEY=FMP_APIKEY:latest'

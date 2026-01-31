@@ -140,6 +140,21 @@ public class AdminUserController extends BaseController {
 		return ResponseEntity.ok(user);
 	}
 
+	@PostMapping("/{userId}/subscription-tier")
+	@Operation(summary = "Update user subscription tier",
+			description = "Updates the subscription tier for a specific user (explorer, strategist, or quant)")
+	public ResponseEntity<AdminUserResponse> updateUserSubscriptionTier(
+			@Parameter(description = "User ID") @PathVariable String userId, @RequestBody Map<String, String> body,
+			HttpServletRequest request) {
+		String adminUserId = (String) request.getAttribute("adminUserId");
+		String newTier = body.get("subscriptionTier");
+		logRequest("updateUserSubscriptionTier", adminUserId, "targetUserId=" + userId + ", newTier=" + newTier);
+
+		AdminUserResponse user = adminUserService.updateSubscriptionTier(userId, newTier, adminUserId);
+		log.info("User {} subscription tier updated to {} by admin {}", userId, newTier, adminUserId);
+		return ResponseEntity.ok(user);
+	}
+
 	@PutMapping("/{userId}")
 	@Operation(summary = "Update user profile", description = "Updates profile fields for a specific user")
 	public ResponseEntity<AdminUserResponse> updateUser(@Parameter(description = "User ID") @PathVariable String userId,

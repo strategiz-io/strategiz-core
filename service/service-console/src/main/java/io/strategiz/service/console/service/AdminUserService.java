@@ -229,6 +229,33 @@ public class AdminUserService extends BaseService {
 		return convertToResponse(user);
 	}
 
+	public AdminUserResponse updateSubscriptionTier(String userId, String newTier, String adminUserId) {
+		log.info("Updating user subscription tier: userId={}, newTier={}, by adminUserId={}", userId, newTier,
+				adminUserId);
+
+		// Validate tier
+		if (newTier == null
+				|| (!newTier.equals("explorer") && !newTier.equals("strategist") && !newTier.equals("quant"))) {
+			throw new StrategizException(ServiceConsoleErrorDetails.INVALID_SUBSCRIPTION_TIER, "service-console",
+					"Subscription tier must be explorer, strategist, or quant");
+		}
+
+		Optional<UserEntity> userOpt = userRepository.findById(userId);
+		if (userOpt.isEmpty()) {
+			throw new StrategizException(ServiceConsoleErrorDetails.USER_NOT_FOUND, "service-console", userId);
+		}
+
+		UserEntity user = userOpt.get();
+		UserProfileEntity profile = user.getProfile();
+		if (profile != null) {
+			profile.setSubscriptionTier(newTier);
+			userRepository.save(user);
+		}
+
+		log.info("User {} subscription tier updated to {} by admin {}", userId, newTier, adminUserId);
+		return convertToResponse(user);
+	}
+
 	public AdminUserResponse updateUser(String userId, UpdateUserRequest request, String adminUserId) {
 		log.info("Updating user: userId={}, by adminUserId={}", userId, adminUserId);
 

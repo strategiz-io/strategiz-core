@@ -22,6 +22,7 @@ public enum ServiceConsoleErrorDetails implements ErrorDetails {
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "console-user-not-found"),
 	CANNOT_MODIFY_OWN_ACCOUNT(HttpStatus.FORBIDDEN, "console-cannot-modify-own-account"),
 	INVALID_ROLE(HttpStatus.BAD_REQUEST, "console-invalid-role"),
+	INVALID_SUBSCRIPTION_TIER(HttpStatus.BAD_REQUEST, "console-invalid-subscription-tier"),
 	SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "console-session-not-found"),
 	SESSION_USER_MISMATCH(HttpStatus.FORBIDDEN, "console-session-user-mismatch"),
 

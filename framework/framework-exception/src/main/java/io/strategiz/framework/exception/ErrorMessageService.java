@@ -3,9 +3,9 @@ package io.strategiz.framework.exception;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.regex.Pattern;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.NoSuchMessageException;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
  * error. responses across the application.
  */
 @Service
-public class ErrorMessageService {
+public class ErrorMessageService implements InitializingBean {
 
 	private static final Logger log = LoggerFactory.getLogger(ErrorMessageService.class);
 
@@ -46,8 +46,8 @@ public class ErrorMessageService {
 		this.baseDocumentationUrl = "https://docs.strategiz.io/errors/";
 	}
 
-	@PostConstruct
-	void init() {
+	@Override
+	public void afterPropertiesSet() {
 		log.info("ErrorMessageService initialized with MessageSource: {}", messageSource.getClass().getName());
 		// Verify that error properties are resolvable
 		try {

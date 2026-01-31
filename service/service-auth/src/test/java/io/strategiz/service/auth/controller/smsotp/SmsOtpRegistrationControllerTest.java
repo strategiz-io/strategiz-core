@@ -84,7 +84,7 @@ class SmsOtpRegistrationControllerTest {
 
 			// When
 			ResponseEntity<Map<String, Object>> response = controller.registerPhoneNumber(validRequest,
-					TEST_IP_ADDRESS);
+					TEST_IP_ADDRESS, httpServletRequest);
 
 			// Then
 			assertNotNull(response);
@@ -109,7 +109,7 @@ class SmsOtpRegistrationControllerTest {
 				.thenReturn(true);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.registerPhoneNumber(requestNoCountry, null);
+			ResponseEntity<Map<String, Object>> response = controller.registerPhoneNumber(requestNoCountry, null, httpServletRequest);
 
 			// Then
 			assertNotNull(response);
@@ -126,7 +126,7 @@ class SmsOtpRegistrationControllerTest {
 
 			// When & Then
 			StrategizException exception = assertThrows(StrategizException.class,
-					() -> controller.registerPhoneNumber(validRequest, TEST_IP_ADDRESS));
+					() -> controller.registerPhoneNumber(validRequest, TEST_IP_ADDRESS, httpServletRequest));
 
 			assertEquals(AuthErrors.SMS_SEND_FAILED.name(), exception.getErrorCode());
 		}
@@ -160,7 +160,7 @@ class SmsOtpRegistrationControllerTest {
 
 			// When
 			ResponseEntity<Map<String, Object>> response = controller.verifyPhoneNumber(TEST_REGISTRATION_ID,
-					validRequest, httpServletRequest);
+					validRequest, httpServletRequest, httpServletResponse);
 
 			// Then
 			assertNotNull(response);
@@ -183,7 +183,8 @@ class SmsOtpRegistrationControllerTest {
 
 			// When & Then
 			StrategizException exception = assertThrows(StrategizException.class,
-					() -> controller.verifyPhoneNumber(TEST_REGISTRATION_ID, validRequest, httpServletRequest));
+					() -> controller.verifyPhoneNumber(TEST_REGISTRATION_ID, validRequest, httpServletRequest,
+						httpServletResponse));
 
 			assertEquals(AuthErrors.OTP_EXPIRED.name(), exception.getErrorCode());
 		}
@@ -212,7 +213,7 @@ class SmsOtpRegistrationControllerTest {
 
 			// When
 			ResponseEntity<Map<String, Object>> response = controller.resendVerificationOtp(TEST_REGISTRATION_ID,
-					validRequest, TEST_IP_ADDRESS);
+					validRequest, TEST_IP_ADDRESS, httpServletRequest);
 
 			// Then
 			assertNotNull(response);
@@ -231,7 +232,8 @@ class SmsOtpRegistrationControllerTest {
 
 			// When & Then
 			StrategizException exception = assertThrows(StrategizException.class,
-					() -> controller.resendVerificationOtp(TEST_REGISTRATION_ID, validRequest, TEST_IP_ADDRESS));
+					() -> controller.resendVerificationOtp(TEST_REGISTRATION_ID, validRequest, TEST_IP_ADDRESS,
+						httpServletRequest));
 
 			assertEquals(AuthErrors.SMS_SEND_FAILED.name(), exception.getErrorCode());
 		}
@@ -339,7 +341,7 @@ class SmsOtpRegistrationControllerTest {
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletResponse);
+			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletRequest, httpServletResponse);
 
 			// Then
 			assertNotNull(response);
@@ -371,7 +373,7 @@ class SmsOtpRegistrationControllerTest {
 				.thenReturn(authResult);
 
 			// When
-			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletResponse);
+			ResponseEntity<Map<String, Object>> response = controller.verifyFirebaseToken(request, httpServletRequest, httpServletResponse);
 
 			// Then
 			assertNotNull(response);

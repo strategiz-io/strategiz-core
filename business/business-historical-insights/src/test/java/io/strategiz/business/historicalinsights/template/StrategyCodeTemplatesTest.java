@@ -352,6 +352,8 @@ class StrategyCodeTemplatesTest {
 				Map.of("buy_threshold", 10, "sell_threshold", 15, "lookback", 20, "atr_multiplier", 2.0);
 			case COMBINED_ADX -> Map.of("adx_threshold", 25, "rsi_period", 14, "rsi_oversold", 30, "rsi_overbought", 70,
 					"atr_multiplier", 2.0);
+			case MOMENTUM_TRAILING -> Map.of("lookback", 20, "atr_multiplier", 2.0);
+			case BREAKOUT_MOMENTUM -> Map.of("lookback", 20, "atr_multiplier", 2.0);
 		};
 	}
 

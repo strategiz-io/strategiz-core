@@ -43,6 +43,12 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
         
+        <!-- Jakarta Annotation API (for @PostConstruct) -->
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
+
         <!-- Servlet API -->
         <dependency>
             <groupId>jakarta.servlet</groupId>

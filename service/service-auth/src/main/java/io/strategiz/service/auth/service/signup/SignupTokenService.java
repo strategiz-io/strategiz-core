@@ -27,12 +27,12 @@ import java.util.UUID;
 /**
  * Service for issuing and validating short-lived signup tokens.
  *
- * Signup tokens are PASETO v4.local tokens that prove email ownership without
- * creating an account. They are issued after OTP verification and consumed when
- * the user completes auth method registration (passkey/TOTP/SMS).
+ * Signup tokens are PASETO v4.local tokens that prove email ownership without creating an
+ * account. They are issued after OTP verification and consumed when the user completes
+ * auth method registration (passkey/TOTP/SMS).
  *
- * The token carries the user's email, name, and a pre-generated userId so that
- * account creation can happen atomically with auth method setup.
+ * The token carries the user's email, name, and a pre-generated userId so that account
+ * creation can happen atomically with auth method setup.
  */
 @Service
 public class SignupTokenService {
@@ -144,7 +144,8 @@ public class SignupTokenService {
 			if (expObj == null) {
 				throw new StrategizException(AuthErrors.INVALID_TOKEN, "Signup token has no expiration");
 			}
-			long expEpoch = expObj instanceof Number ? ((Number) expObj).longValue() : Long.parseLong(expObj.toString());
+			long expEpoch = expObj instanceof Number ? ((Number) expObj).longValue()
+					: Long.parseLong(expObj.toString());
 			if (Instant.now().isAfter(Instant.ofEpochSecond(expEpoch))) {
 				throw new StrategizException(AuthErrors.SESSION_EXPIRED,
 						"Signup token has expired. Please re-verify your email.");

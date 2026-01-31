@@ -8,11 +8,13 @@ import io.strategiz.business.tokenauth.SessionAuthBusiness;
 import io.strategiz.data.device.model.DeviceIdentity;
 import io.strategiz.framework.authorization.context.AuthenticatedUser;
 import io.strategiz.framework.authorization.context.SecurityContextHolder;
+import io.strategiz.framework.authorization.validator.PasetoTokenValidator;
 import io.strategiz.service.auth.exception.ServiceAuthErrorDetails;
 import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -54,9 +56,13 @@ public class DeviceTrustController extends BaseController {
 
 	private final CookieUtil cookieUtil;
 
-	public DeviceTrustController(DeviceTrustBusiness deviceTrustBusiness, CookieUtil cookieUtil) {
+	private final PasetoTokenValidator pasetoTokenValidator;
+
+	public DeviceTrustController(DeviceTrustBusiness deviceTrustBusiness, CookieUtil cookieUtil,
+			PasetoTokenValidator pasetoTokenValidator) {
 		this.deviceTrustBusiness = deviceTrustBusiness;
 		this.cookieUtil = cookieUtil;
+		this.pasetoTokenValidator = pasetoTokenValidator;
 	}
 
 	@Override
@@ -72,12 +78,28 @@ public class DeviceTrustController extends BaseController {
 	 */
 	@PostMapping("/verify")
 	@Operation(summary = "Verify device trust", description = "Check if device is trusted for one-click sign-in")
-	public ResponseEntity<Map<String, Object>> verifyDeviceTrust(@RequestBody Map<String, String> body,
-			HttpServletRequest request) {
+	public ResponseEntity<Map<String, Object>> verifyDeviceTrust(
+			@RequestBody(required = false) Map<String, String> body, HttpServletRequest request) {
 
-		String fingerprint = body.get("fingerprint");
+		String fingerprint = null;
+
+		// Try to read device identity from PASETO device cookie first
+		String deviceTokenCookie = extractCookieValue(request, CookieUtil.DEVICE_TOKEN_COOKIE);
+		if (deviceTokenCookie != null) {
+			Optional<Map<String, String>> deviceClaims = pasetoTokenValidator.validateDeviceToken(deviceTokenCookie);
+			if (deviceClaims.isPresent()) {
+				fingerprint = deviceClaims.get().get("deviceId");
+				log.info("Device trust verification using device cookie for deviceId: {}", fingerprint);
+			}
+		}
+
+		// Fallback to request body fingerprint (backward compatibility)
+		if (fingerprint == null && body != null) {
+			fingerprint = body.get("fingerprint");
+		}
+
 		if (fingerprint == null || fingerprint.isEmpty()) {
-			return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Missing fingerprint"));
+			return ResponseEntity.ok(Map.of("welcomeBack", false, "reason", "no_device_token"));
 		}
 
 		String clientIp = getClientIp(request);
@@ -220,6 +242,18 @@ public class DeviceTrustController extends BaseController {
 
 		log.info("Device trust revoked: userId={}, deviceId={}", userId, deviceId);
 		return ResponseEntity.ok(Map.of("success", true, "message", "Device trust revoked"));
+	}
+
+	private String extractCookieValue(HttpServletRequest request, String cookieName) {
+		if (request.getCookies() == null) {
+			return null;
+		}
+		for (Cookie cookie : request.getCookies()) {
+			if (cookieName.equals(cookie.getName())) {
+				return cookie.getValue();
+			}
+		}
+		return null;
 	}
 
 	private String getClientIp(HttpServletRequest request) {

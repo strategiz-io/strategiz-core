@@ -39,9 +39,9 @@ import java.util.Optional;
  * This controller handles passkey (WebAuthn) registration operations following REST best
  * practices with plural resource naming and proper HTTP verbs.
  *
- * Supports two flows:
- * 1. Signup flow: signup token cookie present → create account atomically with passkey
- * 2. Existing user flow: identity token or email lookup → add passkey to existing account
+ * Supports two flows: 1. Signup flow: signup token cookie present → create account
+ * atomically with passkey 2. Existing user flow: identity token or email lookup → add
+ * passkey to existing account
  *
  * Endpoints: - POST /auth/passkeys/registrations - Begin registration (create challenge)
  * - PUT /auth/passkeys/registrations/{id} - Complete registration (submit credential)
@@ -119,9 +119,9 @@ public class PasskeyRegistrationController extends BaseController {
 	}
 
 	/**
-	 * Resolve user ID from signup token cookie, identity token, or email lookup.
-	 * For signup flow (cookie present), returns the userId from the signup token
-	 * WITHOUT creating the account yet (that happens on completion).
+	 * Resolve user ID from signup token cookie, identity token, or email lookup. For
+	 * signup flow (cookie present), returns the userId from the signup token WITHOUT
+	 * creating the account yet (that happens on completion).
 	 */
 	private ResolvedUser resolveUser(String identityToken, String email,
 			jakarta.servlet.http.HttpServletRequest httpRequest) {
@@ -176,8 +176,8 @@ public class PasskeyRegistrationController extends BaseController {
 	 *
 	 * PUT /auth/passkeys/registrations/{id}
 	 *
-	 * For signup flow: creates account atomically, then registers passkey,
-	 * then issues session cookies.
+	 * For signup flow: creates account atomically, then registers passkey, then issues
+	 * session cookies.
 	 */
 	@PutMapping("/registrations/{registrationId}")
 	public ResponseEntity<AuthTokens> completeRegistration(@PathVariable String registrationId,

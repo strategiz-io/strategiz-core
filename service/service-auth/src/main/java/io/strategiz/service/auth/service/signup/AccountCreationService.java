@@ -24,9 +24,9 @@ import java.time.Instant;
  * Service for atomically creating user accounts during signup Step 2.
  *
  * This service is called when a user completes auth method registration
- * (passkey/TOTP/SMS) during signup. It creates the user account, email
- * reservation, EMAIL_OTP auth method, and the chosen auth method all within a
- * single Firestore transaction.
+ * (passkey/TOTP/SMS) during signup. It creates the user account, email reservation,
+ * EMAIL_OTP auth method, and the chosen auth method all within a single Firestore
+ * transaction.
  */
 @Service
 public class AccountCreationService extends BaseService {
@@ -55,9 +55,8 @@ public class AccountCreationService extends BaseService {
 	private String adminEmails;
 
 	/**
-	 * Create a user account atomically with email reservation and EMAIL_OTP auth
-	 * method. This is called from auth method registration controllers during the
-	 * signup flow.
+	 * Create a user account atomically with email reservation and EMAIL_OTP auth method.
+	 * This is called from auth method registration controllers during the signup flow.
 	 * @param claims The validated signup token claims
 	 * @return The created user entity
 	 */

@@ -241,7 +241,8 @@ public class SessionController extends BaseController {
 		java.util.Optional<SessionValidationResult> validationOpt = sessionService.validateSession(httpRequest);
 
 		if (validationOpt.isEmpty()) {
-			throwModuleException(ServiceAuthErrorDetails.INVALID_TOKEN, "No valid session found");
+			log.info("No valid session found, returning unauthenticated response");
+			return ResponseEntity.ok(CurrentUserResponse.notAuthenticated());
 		}
 
 		SessionValidationResult validation = validationOpt.get();

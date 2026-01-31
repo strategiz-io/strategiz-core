@@ -21,6 +21,8 @@ public class CookieUtil {
 
 	public static final String SIGNUP_TOKEN_COOKIE = "strategiz-signup-token";
 
+	public static final String DEVICE_TOKEN_COOKIE = "strategiz-device-token";
+
 	@Value("${app.cookie.secure:true}")
 	private boolean secureCookie;
 
@@ -32,6 +34,9 @@ public class CookieUtil {
 
 	@Value("${app.cookie.refresh-token-max-age:604800}") // 7 days default
 	private int refreshTokenMaxAge;
+
+	@Value("${app.cookie.device-token-max-age:7776000}") // 90 days default
+	private int deviceTokenMaxAge;
 
 	@Value("${app.cookie.same-site:Lax}")
 	private String sameSite;
@@ -116,6 +121,32 @@ public class CookieUtil {
 	}
 
 	/**
+	 * Set device token cookie (long-lived, HTTP-only, for device trust)
+	 */
+	public void setDeviceTokenCookie(HttpServletResponse response, String token) {
+		Cookie cookie = new Cookie(DEVICE_TOKEN_COOKIE, token);
+		cookie.setHttpOnly(true);
+		cookie.setSecure(secureCookie);
+		cookie.setPath("/");
+		cookie.setMaxAge(deviceTokenMaxAge);
+
+		cookie.setAttribute("SameSite", sameSite);
+
+		if (cookieDomain != null && !cookieDomain.isEmpty()) {
+			cookie.setDomain(cookieDomain);
+		}
+
+		response.addCookie(cookie);
+	}
+
+	/**
+	 * Clear device token cookie
+	 */
+	public void clearDeviceTokenCookie(HttpServletResponse response) {
+		clearCookie(response, DEVICE_TOKEN_COOKIE, "/");
+	}
+
+	/**
 	 * Clear signup token cookie
 	 */
 	public void clearSignupTokenCookie(HttpServletResponse response) {
@@ -130,6 +161,7 @@ public class CookieUtil {
 		clearCookie(response, REFRESH_TOKEN_COOKIE, "/");
 		clearCookie(response, SESSION_ID_COOKIE, "/");
 		clearCookie(response, SIGNUP_TOKEN_COOKIE, "/");
+		clearCookie(response, DEVICE_TOKEN_COOKIE, "/");
 	}
 
 	/**

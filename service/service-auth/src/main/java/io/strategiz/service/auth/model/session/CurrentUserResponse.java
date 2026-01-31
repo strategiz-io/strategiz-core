@@ -6,12 +6,28 @@ import jakarta.validation.constraints.NotNull;
 /**
  * Response model for current user information from session token
  */
-public record CurrentUserResponse(@NotBlank String id, @NotBlank String email, @NotBlank String name,
-		@NotNull Long createdAt, String role) {
+public record CurrentUserResponse(boolean authenticated, String id, String email, String name, Long createdAt,
+		String role) {
+
+	/**
+	 * Full constructor with authenticated flag defaulting to true
+	 */
+	public CurrentUserResponse(String id, String email, String name, Long createdAt, String role) {
+		this(true, id, email, name, createdAt, role);
+	}
+
 	/**
 	 * Constructor without role for backwards compatibility
 	 */
 	public CurrentUserResponse(String id, String email, String name, Long createdAt) {
-		this(id, email, name, createdAt, null);
+		this(true, id, email, name, createdAt, null);
 	}
+
+	/**
+	 * Factory method for unauthenticated response
+	 */
+	public static CurrentUserResponse notAuthenticated() {
+		return new CurrentUserResponse(false, null, null, null, null, null);
+	}
+
 }

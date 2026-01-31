@@ -71,8 +71,7 @@ public class EmailSignupController extends BaseController {
 	}
 
 	/**
-	 * Verify OTP and issue signup token cookie. No account is created at this
-	 * point.
+	 * Verify OTP and issue signup token cookie. No account is created at this point.
 	 *
 	 * POST /v1/auth/signup/email/verify
 	 * @param request Verification request with email, OTP code, and session ID

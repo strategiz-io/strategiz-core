@@ -395,8 +395,8 @@ class EmailSignupServiceTest {
 			when(otpCodeRepository.findBySessionId(sessionId)).thenReturn(Optional.of(entity));
 
 			// When
-			EmailSignupService.EmailVerificationResult result = emailSignupService
-				.verifyEmailOtp("USER@EXAMPLE.COM", otpCode, sessionId);
+			EmailSignupService.EmailVerificationResult result = emailSignupService.verifyEmailOtp("USER@EXAMPLE.COM",
+					otpCode, sessionId);
 
 			// Then
 			assertEquals(TEST_EMAIL, result.email());

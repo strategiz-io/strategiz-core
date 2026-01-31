@@ -27,9 +27,9 @@ import java.util.Map;
 /**
  * Controller for TOTP registration using resource-based REST endpoints
  *
- * Supports two flows:
- * 1. Signup flow: signup token cookie present → create account atomically with TOTP
- * 2. Existing user flow: userId in request → add TOTP to existing account
+ * Supports two flows: 1. Signup flow: signup token cookie present → create account
+ * atomically with TOTP 2. Existing user flow: userId in request → add TOTP to existing
+ * account
  *
  * Endpoints: - POST /auth/totp/registrations - Begin TOTP setup (generate secret) - PUT
  * /auth/totp/registrations/{registrationId} - Complete TOTP setup (verify code) - GET
@@ -64,8 +64,8 @@ public class TotpRegistrationController extends BaseController {
 	 *
 	 * POST /auth/totp/registrations
 	 *
-	 * For signup flow: userId is resolved from signup token cookie.
-	 * For existing users: userId comes from request body.
+	 * For signup flow: userId is resolved from signup token cookie. For existing users:
+	 * userId comes from request body.
 	 */
 	@PostMapping("/registrations")
 	public ResponseEntity<Map<String, Object>> beginRegistration(@RequestBody @Valid TotpRegistrationRequest request,
@@ -78,8 +78,8 @@ public class TotpRegistrationController extends BaseController {
 		var totpResult = totpRegistrationService.generateTotpSecretWithDetails(userId);
 
 		Map<String, Object> response = Map.of("success", true, "secret", totpResult.getSecret(), "qrCodeUri",
-				totpResult.getQrCodeUri(), "userId", userId, "registrationId",
-				"totp-" + System.currentTimeMillis(), "message", "TOTP setup initialized successfully");
+				totpResult.getQrCodeUri(), "userId", userId, "registrationId", "totp-" + System.currentTimeMillis(),
+				"message", "TOTP setup initialized successfully");
 
 		logRequestSuccess("beginTotpRegistration", userId, response);
 		return createCleanResponse(response);

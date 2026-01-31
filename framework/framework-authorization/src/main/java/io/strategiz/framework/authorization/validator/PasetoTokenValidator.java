@@ -241,6 +241,47 @@ public class PasetoTokenValidator {
 	}
 
 	/**
+	 * Validates if a token is a valid device token.
+	 * @param token the token to validate
+	 * @return true if valid device token
+	 */
+	public boolean isValidDeviceToken(String token) {
+		try {
+			Map<String, Object> claims = parseToken(token);
+			String tokenType = (String) claims.get("token_type");
+			return "device".equals(tokenType);
+		}
+		catch (PasetoException e) {
+			log.debug("Invalid device token: {}", e.getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * Validates a device token and returns the claims (deviceId + fingerprint).
+	 * @param token the token to validate
+	 * @return Optional containing a map with "deviceId" and "fingerprint" if valid
+	 */
+	public Optional<Map<String, String>> validateDeviceToken(String token) {
+		try {
+			Map<String, Object> claims = parseToken(token);
+			String tokenType = (String) claims.get("token_type");
+			if (!"device".equals(tokenType)) {
+				log.debug("Token is not a device token");
+				return Optional.empty();
+			}
+			String deviceId = (String) claims.get("sub");
+			String fingerprint = (String) claims.get("fingerprint");
+			return Optional.of(Map.of("deviceId", deviceId != null ? deviceId : "",
+					"fingerprint", fingerprint != null ? fingerprint : ""));
+		}
+		catch (PasetoException e) {
+			log.debug("Invalid device token: {}", e.getMessage());
+			return Optional.empty();
+		}
+	}
+
+	/**
 	 * Validates if a token is a valid recovery token.
 	 * @param token the token to validate
 	 * @return true if valid recovery token

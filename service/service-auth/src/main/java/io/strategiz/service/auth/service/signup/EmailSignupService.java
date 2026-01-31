@@ -138,9 +138,9 @@ public class EmailSignupService extends BaseService {
 	}
 
 	/**
-	 * Verify OTP and return verified email data. No account is created at this
-	 * point. The account will be created atomically when the user completes auth
-	 * method registration in Step 2.
+	 * Verify OTP and return verified email data. No account is created at this point. The
+	 * account will be created atomically when the user completes auth method registration
+	 * in Step 2.
 	 * @param email User's email
 	 * @param otpCode OTP code entered by user
 	 * @param sessionId Session ID from initiation

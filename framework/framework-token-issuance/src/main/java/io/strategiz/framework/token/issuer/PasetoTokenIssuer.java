@@ -187,6 +187,35 @@ public class PasetoTokenIssuer {
 	}
 
 	/**
+	 * Creates a device token for device trust identification. Long-lived (90 days),
+	 * uses session key. Contains deviceId and fingerprint for device recognition.
+	 * @param deviceId the device ID
+	 * @param fingerprint the device fingerprint hash
+	 * @return the device token string
+	 */
+	public String issueDeviceToken(String deviceId, String fingerprint) {
+		log.info("PasetoTokenIssuer.issueDeviceToken - deviceId (sub claim): {}", deviceId);
+		Instant now = Instant.now();
+		Instant expiresAt = now.plus(Duration.ofDays(90));
+		String tokenId = UUID.randomUUID().toString();
+
+		String payload = PasetoClaimsUtil.builder()
+			.subject(deviceId)
+			.issuer(issuer)
+			.audience(audience)
+			.issuedAt(now)
+			.expiration(expiresAt)
+			.tokenId(tokenId)
+			.claim("type", "DEVICE")
+			.claim("token_type", "device")
+			.claim("fingerprint", fingerprint != null ? fingerprint : "")
+			.buildJson();
+
+		log.info("Created device token for device: {} with 90-day expiry", deviceId);
+		return Paseto.encrypt(sessionKey, payload, EMPTY_FOOTER);
+	}
+
+	/**
 	 * Creates a new refresh token for a user.
 	 * @param userId the user ID
 	 * @return the token string

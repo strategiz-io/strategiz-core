@@ -1,5 +1,7 @@
 package io.strategiz.service.device.controller.anonymous;
 
+import io.strategiz.framework.token.issuer.PasetoTokenIssuer;
+import io.strategiz.service.auth.util.CookieUtil;
 import io.strategiz.service.base.controller.BaseController;
 import io.strategiz.service.device.model.anonymous.CreateAnonymousDeviceRequest;
 import io.strategiz.service.device.model.anonymous.CreateAnonymousDeviceResponse;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Controller exclusively for creating/registering anonymous devices
@@ -25,9 +28,16 @@ public class CreateAnonymousDeviceController extends BaseController {
 
     private final CreateAnonymousDeviceService createService;
 
+    private final PasetoTokenIssuer pasetoTokenIssuer;
+
+    private final CookieUtil cookieUtil;
+
     @Autowired
-    public CreateAnonymousDeviceController(CreateAnonymousDeviceService createService) {
+    public CreateAnonymousDeviceController(CreateAnonymousDeviceService createService,
+            PasetoTokenIssuer pasetoTokenIssuer, CookieUtil cookieUtil) {
         this.createService = createService;
+        this.pasetoTokenIssuer = pasetoTokenIssuer;
+        this.cookieUtil = cookieUtil;
     }
 
     @Override
@@ -53,6 +63,7 @@ public class CreateAnonymousDeviceController extends BaseController {
     @PostMapping("/registrations")
     public ResponseEntity<CreateAnonymousDeviceResponse> registerAnonymousDevice(
             HttpServletRequest request,
+            HttpServletResponse httpResponse,
             @RequestBody CreateAnonymousDeviceRequest deviceRequest) {
 
         log.info("Registering anonymous device with comprehensive fingerprint");
@@ -76,6 +87,19 @@ public class CreateAnonymousDeviceController extends BaseController {
             if (response.isSuccess()) {
                 log.info("Successfully registered anonymous device: {}",
                     response.getDeviceId());
+
+                // Issue PASETO device token and set as HttpOnly cookie
+                try {
+                    String fingerprint = deviceRequest.getVisitorId();
+                    String deviceToken = pasetoTokenIssuer.issueDeviceToken(
+                            response.getDeviceId(), fingerprint);
+                    cookieUtil.setDeviceTokenCookie(httpResponse, deviceToken);
+                    log.info("Set device token cookie for device: {}", response.getDeviceId());
+                }
+                catch (Exception e) {
+                    log.warn("Failed to issue device token cookie: {}", e.getMessage());
+                }
+
                 return ResponseEntity.ok(response);
             } else {
                 log.warn("Failed to register anonymous device: {}",

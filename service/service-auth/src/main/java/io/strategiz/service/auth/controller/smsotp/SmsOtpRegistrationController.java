@@ -25,9 +25,9 @@ import java.util.Map;
 /**
  * Controller for SMS OTP registration (phone number setup)
  *
- * Supports two flows:
- * 1. Signup flow: signup token cookie present → create account atomically with SMS auth
- * 2. Existing user flow: userId in request → add SMS auth to existing account
+ * Supports two flows: 1. Signup flow: signup token cookie present → create account
+ * atomically with SMS auth 2. Existing user flow: userId in request → add SMS auth to
+ * existing account
  */
 @RestController
 @RequestMapping("/v1/auth/sms-otp")

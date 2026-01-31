@@ -89,7 +89,8 @@ public class PasskeyAuthenticationController extends BaseController {
 	public ResponseEntity<PasskeyAuthenticationService.AuthenticationChallenge> beginAuthentication() {
 		logRequest("beginAuthentication", "anonymous");
 
-		// Clean expired challenges (non-blocking - should not fail the authentication flow)
+		// Clean expired challenges (non-blocking - should not fail the authentication
+		// flow)
 		try {
 			challengeService.cleanExpiredChallenges();
 		}

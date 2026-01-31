@@ -1,0 +1,45 @@
+name: Deploy Execution
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+
+      - name: Build Docker image
+        run: docker build -f application-strategy-execution/Dockerfile -t gcr.io/strategiz-io/strategiz-execution .
+
+      - name: Push Docker image
+        run: docker push gcr.io/strategiz-io/strategiz-execution
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy strategiz-execution \
+            --image gcr.io/strategiz-io/strategiz-execution \
+            --region us-east1 \
+            --platform managed \
+            --no-allow-unauthenticated \
+            --memory 2Gi \
+            --cpu 2 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --timeout 300 \
+            --concurrency 20 \
+            --port 50051 \
+            --set-env-vars '^@^ENVIRONMENT=production@GRPC_PORT=50051@MAX_WORKERS=20@MAX_TIMEOUT_SECONDS=30@MAX_MEMORY_MB=512@LOG_LEVEL=INFO@VAULT_ADDR=https://strategiz-vault-43628135674.us-east1.run.app' \
+            --set-secrets 'VAULT_TOKEN=vault-root-token:latest'

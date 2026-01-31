@@ -1,0 +1,27 @@
+name: Deploy All Backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-api:
+    uses: ./.github/workflows/deploy-api.yml
+    secrets: inherit
+
+  deploy-auth:
+    uses: ./.github/workflows/deploy-auth.yml
+    secrets: inherit
+
+  deploy-console:
+    uses: ./.github/workflows/deploy-console.yml
+    secrets: inherit
+
+  deploy-execution:
+    uses: ./.github/workflows/deploy-execution.yml
+    secrets: inherit
+
+  deploy-vault:
+    uses: ./.github/workflows/deploy-vault.yml
+    secrets: inherit

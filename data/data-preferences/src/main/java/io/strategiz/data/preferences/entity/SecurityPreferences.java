@@ -1,12 +1,12 @@
 package io.strategiz.data.preferences.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.cloud.Timestamp;
 import com.google.cloud.firestore.annotation.DocumentId;
 import com.google.cloud.firestore.annotation.PropertyName;
 import io.strategiz.data.base.annotation.Collection;
 import io.strategiz.data.base.entity.BaseEntity;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,7 +55,7 @@ public class SecurityPreferences extends BaseEntity {
 	 */
 	@PropertyName("mfaEnforcedAt")
 	@JsonProperty("mfaEnforcedAt")
-	private Instant mfaEnforcedAt;
+	private Timestamp mfaEnforcedAt;
 
 	/**
 	 * Current maximum achievable ACR based on configured methods (computed, not stored)
@@ -89,7 +89,7 @@ public class SecurityPreferences extends BaseEntity {
 	public void setMfaEnforced(Boolean mfaEnforced) {
 		this.mfaEnforced = mfaEnforced;
 		if (Boolean.TRUE.equals(mfaEnforced) && this.mfaEnforcedAt == null) {
-			this.mfaEnforcedAt = Instant.now();
+			this.mfaEnforcedAt = Timestamp.now();
 		}
 		else if (Boolean.FALSE.equals(mfaEnforced)) {
 			this.mfaEnforcedAt = null;
@@ -104,11 +104,11 @@ public class SecurityPreferences extends BaseEntity {
 		this.minimumAcrLevel = minimumAcrLevel != null ? minimumAcrLevel : DEFAULT_MINIMUM_ACR_LEVEL;
 	}
 
-	public Instant getMfaEnforcedAt() {
+	public Timestamp getMfaEnforcedAt() {
 		return mfaEnforcedAt;
 	}
 
-	public void setMfaEnforcedAt(Instant mfaEnforcedAt) {
+	public void setMfaEnforcedAt(Timestamp mfaEnforcedAt) {
 		this.mfaEnforcedAt = mfaEnforcedAt;
 	}
 

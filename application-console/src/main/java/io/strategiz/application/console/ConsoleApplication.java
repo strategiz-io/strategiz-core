@@ -6,7 +6,6 @@ import io.strategiz.batch.marketdata.config.BatchMarketDataConfig;
 import io.strategiz.business.livestrategies.config.LiveStrategiesConfig;
 import io.strategiz.business.portfolio.config.BusinessPortfolioConfig;
 import io.strategiz.data.auth.config.DataAuthConfig;
-import io.strategiz.data.base.config.FirebaseConfig;
 import io.strategiz.data.device.config.DataDeviceConfig;
 import io.strategiz.data.infrastructurecosts.config.DataInfrastructureCostsConfig;
 import io.strategiz.data.portfolio.config.DataPortfolioConfig;
@@ -58,7 +57,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		"io.strategiz.client.anthropic", "io.strategiz.client.grok",
 
 		// Service Framework Base
-		"io.strategiz.service.base" })
+		"io.strategiz.service.base",
+
+		// Data Framework Base (FirebaseConfig + FirebaseVaultConfig)
+		"io.strategiz.data.base" })
 @Import({
 		// Service layer configs (pull in their business + data dependencies)
 		ServiceConsoleConfig.class, ServiceMarketDataConfig.class,
@@ -70,7 +72,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 		LiveStrategiesConfig.class, BusinessPortfolioConfig.class,
 
 		// Additional data configs not pulled in by service/batch configs above
-		FirebaseConfig.class, DataAuthConfig.class, DataDeviceConfig.class, DataProviderConfig.class,
+		DataAuthConfig.class, DataDeviceConfig.class, DataProviderConfig.class,
 		DataStrategyConfig.class, DataInfrastructureCostsConfig.class, DataPortfolioConfig.class })
 public class ConsoleApplication {
 
